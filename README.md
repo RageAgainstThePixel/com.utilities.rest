@@ -10,7 +10,7 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 - Open your Unity project settings
 - Select the `Package Manager`
-![scoped-registries](Documentation~/images/package-manager-scopes.png)
+![scoped-registries](Utilities.Rest\Packages\com.utilities.rest\Documentation~\images\package-manager-scopes.png)
 - Add the OpenUPM package registry:
   - `Name: OpenUPM`
   - `URL: https://package.openupm.com`
@@ -23,7 +23,7 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 ### Via Unity Package Manager and Git url
 
 - Open your Unity Package Manager
-- Add package from git url: `https://github.com/StephenHodgson/com.utilities.rest.git#upm`
+- Add package from git url: `https://github.com/RageAgainstThePixel/com.utilities.rest.git#upm`
 
 ## Getting Started
 
