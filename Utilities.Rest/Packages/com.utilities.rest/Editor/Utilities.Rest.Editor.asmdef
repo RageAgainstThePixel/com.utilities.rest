@@ -1,5 +1,5 @@
 {
-    "name": "ProjectScope.ProjectName.Editor",
+    "name": "Utilities.Rest.Editor",
     "references": [],
     "includePlatforms": [
         "Editor"
