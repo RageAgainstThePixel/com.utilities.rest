@@ -23,7 +23,7 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 ### Via Unity Package Manager and Git url
 
 - Open your Unity Package Manager
-- Add package from git url: `https://github.com/StephenHodgson/com.utilities.rest.git#upm`
+- Add package from git url: `https://github.com/RageAgainstThePixel/com.utilities.rest.git#upm`
 
 ## Getting Started
 
