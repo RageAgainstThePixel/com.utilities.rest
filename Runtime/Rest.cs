@@ -201,11 +201,13 @@ namespace Utilities.WebRequestRest
 
         #region Get Multimedia Content
 
-        public static string DownloadCacheDirectory => $"{Application.temporaryCachePath}{Path.DirectorySeparatorChar}download_cache";
+        public static string DownloadCacheDirectory => Path.Combine(Application.temporaryCachePath, "download_cache");
 
         public static void ValidateCacheDirectory()
         {
-            if (!Directory.Exists(DownloadCacheDirectory))
+            var exists = Directory.Exists(DownloadCacheDirectory);
+
+            if (!exists)
             {
                 Directory.CreateDirectory(DownloadCacheDirectory);
             }
@@ -220,7 +222,7 @@ namespace Utilities.WebRequestRest
         public static bool TryGetDownloadCacheItem(string uri, out string filePath)
         {
             ValidateCacheDirectory();
-            filePath = $"{DownloadCacheDirectory}{Path.DirectorySeparatorChar}{GenerateGuid(uri)}";
+            filePath = Path.Combine(DownloadCacheDirectory, GenerateGuid(uri).ToString());
             var exists = File.Exists(filePath);
 
             if (exists)
@@ -490,7 +492,7 @@ namespace Utilities.WebRequestRest
             }
 
             ValidateCacheDirectory();
-            var filePath = $"{DownloadCacheDirectory}{Path.DirectorySeparatorChar}{fileName}";
+            var filePath = Path.Combine(DownloadCacheDirectory, fileName);
 
             if (File.Exists(filePath))
             {
