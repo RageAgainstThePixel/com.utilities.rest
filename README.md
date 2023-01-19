@@ -15,7 +15,7 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
   - `Name: OpenUPM`
   - `URL: https://package.openupm.com`
   - `Scope(s):`
-    - `com.utilities.rest`
+    - `com.utilities`
 - Open the Unity Package Manager window
 - Change the Registry from Unity to `My Registries`
 - Add the `Utilities.Rest` package
