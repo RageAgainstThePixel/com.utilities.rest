@@ -625,8 +625,8 @@ namespace Utilities.WebRequestRest
                 case DownloadHandlerAudioClip _:
                 case DownloadHandlerAssetBundle _:
                     return new Response(true, null, null, webRequest.responseCode);
-                case DownloadHandlerBuffer _:
-                    return new Response(true, null, webRequest.downloadHandler?.data, webRequest.responseCode);
+                case DownloadHandlerBuffer bufferDownloadHandler:
+                    return new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode);
                 default:
                     return new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode);
             }
