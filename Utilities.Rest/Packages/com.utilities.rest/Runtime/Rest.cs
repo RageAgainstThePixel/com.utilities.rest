@@ -46,16 +46,20 @@ namespace Utilities.WebRequestRest
         /// Rest GET.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> GetAsync(string query, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> GetAsync(
+            string query,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Get(query))
-            {
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Get(query);
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         #endregion GET
@@ -66,16 +70,20 @@ namespace Utilities.WebRequestRest
         /// Rest POST.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(string query, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> PostAsync(
+            string query,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Post(query, null as string))
-            {
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Post(query, null as string);
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -83,16 +91,21 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="formData">Form Data.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(string query, WWWForm formData, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> PostAsync(
+            string query,
+            WWWForm formData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Post(query, formData))
-            {
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Post(query, formData);
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -100,21 +113,26 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(string query, string jsonData, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> PostAsync(
+            string query,
+            string jsonData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Post(query, "POST"))
-            {
-                var data = new UTF8Encoding().GetBytes(jsonData);
-                webRequest.uploadHandler = new UploadHandlerRaw(data);
-                webRequest.downloadHandler = new DownloadHandlerBuffer();
-                webRequest.SetRequestHeader("Content-Type", "application/json");
-                webRequest.SetRequestHeader("Accept", "application/json");
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Post(query, "POST");
+            var data = new UTF8Encoding().GetBytes(jsonData);
+            webRequest.uploadHandler = new UploadHandlerRaw(data);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader("Accept", "application/json");
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -122,19 +140,24 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="bodyData">The raw data to post.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(string query, byte[] bodyData, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> PostAsync(
+            string query,
+            byte[] bodyData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Post(query, "POST"))
-            {
-                webRequest.uploadHandler = new UploadHandlerRaw(bodyData);
-                webRequest.downloadHandler = new DownloadHandlerBuffer();
-                webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Post(query, "POST");
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyData);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         #endregion POST
@@ -146,17 +169,22 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">Data to be submitted.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PutAsync(string query, string jsonData, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> PutAsync(
+            string query,
+            string jsonData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Put(query, jsonData))
-            {
-                webRequest.SetRequestHeader("Content-Type", "application/json");
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Put(query, jsonData);
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -164,17 +192,22 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="bodyData">Data to be submitted.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PutAsync(string query, byte[] bodyData, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> PutAsync(
+            string query,
+            byte[] bodyData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Put(query, bodyData))
-            {
-                webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Put(query, bodyData);
+            webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         #endregion PUT
@@ -185,16 +218,20 @@ namespace Utilities.WebRequestRest
         /// Rest DELETE.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> DeleteAsync(string query, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Response> DeleteAsync(
+            string query,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
-            using (var webRequest = UnityWebRequest.Delete(query))
-            {
-                return await ProcessRequestAsync(webRequest, headers, progress, timeout);
-            }
+            using var webRequest = UnityWebRequest.Delete(query);
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
         #endregion DELETE
@@ -205,9 +242,7 @@ namespace Utilities.WebRequestRest
 
         public static void ValidateCacheDirectory()
         {
-            var exists = Directory.Exists(DownloadCacheDirectory);
-
-            if (!exists)
+            if (!Directory.Exists(DownloadCacheDirectory))
             {
                 Directory.CreateDirectory(DownloadCacheDirectory);
             }
@@ -240,10 +275,8 @@ namespace Utilities.WebRequestRest
         /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
         private static Guid GenerateGuid(string @string)
         {
-            using (MD5 md5 = MD5.Create())
-            {
-                return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
-            }
+            using MD5 md5 = MD5.Create();
+            return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
         }
 
         /// <summary>
@@ -253,21 +286,21 @@ namespace Utilities.WebRequestRest
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
         {
-            if (TryGetDownloadCacheItem(uri, out var filePath))
+            if (!TryGetDownloadCacheItem(uri, out var filePath))
             {
-                try
-                {
-                    File.Delete(filePath);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError(e);
-                }
-
-                return !File.Exists(filePath);
+                return false;
             }
 
-            return false;
+            try
+            {
+                File.Delete(filePath);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+            }
+
+            return !File.Exists(filePath);
         }
 
         /// <summary>
@@ -285,52 +318,55 @@ namespace Utilities.WebRequestRest
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the <see cref="Texture2D"/> from.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="Texture2D"/> instance.</returns>
-        public static async Task<Texture2D> DownloadTextureAsync(string url, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<Texture2D> DownloadTextureAsync(
+            string url,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
-            bool isCached = TryGetDownloadCacheItem(url, out var cachePath);
+            var isCached = TryGetDownloadCacheItem(url, out var cachePath);
 
             if (isCached)
             {
                 url = cachePath;
             }
 
-            using (var webRequest = UnityWebRequestTexture.GetTexture(url))
+            using var webRequest = UnityWebRequestTexture.GetTexture(url);
+
+            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+
+            if (!response.Successful)
             {
-                var response = await ProcessRequestAsync(webRequest, headers, progress, timeout);
+                Debug.LogError($"Failed to download texture from \"{url}\"!");
 
-                if (!response.Successful)
-                {
-                    Debug.LogError($"Failed to download texture from \"{url}\"!");
-
-                    return null;
-                }
-
-                var downloadHandler = (DownloadHandlerTexture)webRequest.downloadHandler;
-
-                if (!isCached &&
-                    !File.Exists(cachePath))
-                {
-                    try
-                    {
-                        using (var fileStream = File.OpenWrite(cachePath))
-                        {
-                            await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, CancellationToken.None);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError($"Failed to write texture to disk!\n{e}");
-                    }
-                }
-
-                return downloadHandler.texture;
+                return null;
             }
+
+            var downloadHandler = (DownloadHandlerTexture)webRequest.downloadHandler;
+
+            if (!isCached &&
+                !File.Exists(cachePath))
+            {
+                try
+                {
+                    await using var fileStream = File.OpenWrite(cachePath);
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to write texture to disk!\n{e}");
+                }
+            }
+
+            return downloadHandler.texture;
         }
 
         /// <summary>
@@ -338,52 +374,55 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="url">The url to download the <see cref="AudioClip"/> from.</param>
         /// <param name="audioType"><see cref="AudioType"/> to download.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
-        public static async Task<AudioClip> DownloadAudioClipAsync(string url, AudioType audioType, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<AudioClip> DownloadAudioClipAsync(
+            string url,
+            AudioType audioType,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
-            bool isCached = TryGetDownloadCacheItem(url, out var cachePath);
+            var isCached = TryGetDownloadCacheItem(url, out var cachePath);
 
             if (isCached)
             {
                 url = cachePath;
             }
 
-            using (var webRequest = UnityWebRequestMultimedia.GetAudioClip(url, audioType))
+            using var webRequest = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
+            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+
+            if (!response.Successful)
             {
-                var response = await ProcessRequestAsync(webRequest, headers, progress, timeout);
+                Debug.LogError($"Failed to download audio clip from \"{url}\"!");
 
-                if (!response.Successful)
-                {
-                    Debug.LogError($"Failed to download audio clip from \"{url}\"!");
-
-                    return null;
-                }
-
-                var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
-
-                if (!isCached &&
-                    !File.Exists(cachePath))
-                {
-                    try
-                    {
-                        using (var fileStream = File.OpenWrite(cachePath))
-                        {
-                            await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, CancellationToken.None);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError($"Failed to write audio asset to disk! {e}");
-                    }
-                }
-
-                return downloadHandler.audioClip;
+                return null;
             }
+
+            var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
+
+            if (!isCached &&
+                !File.Exists(cachePath))
+            {
+                try
+                {
+                    await using var fileStream = File.OpenWrite(cachePath);
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to write audio asset to disk! {e}");
+                }
+            }
+
+            return downloadHandler.audioClip;
         }
 
 #if UNITY_ADDRESSABLES
@@ -393,10 +432,16 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="url">The url to download the <see cref="AssetBundle"/> from.</param>
         /// <param name="options">Asset bundle request options.</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AssetBundle"/> instance.</returns>
-        public static async Task<AssetBundle> DownloadAssetBundleAsync(string url, UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options, Dictionary<string, string> headers = null, IProgress<float> progress = null)
+        public static async Task<AssetBundle> DownloadAssetBundleAsync(
+            string url,
+            UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -438,10 +483,6 @@ namespace Utilities.WebRequestRest
                 {
                     webRequest.redirectLimit = options.RedirectLimit;
                 }
-
-#if !UNITY_2019_3_OR_NEWER
-                webRequest.chunkedTransfer = options.ChunkedTransfer;
-#endif
             }
 
             using (webRequest)
@@ -450,7 +491,7 @@ namespace Utilities.WebRequestRest
 
                 try
                 {
-                    response = await ProcessRequestAsync(webRequest, headers, progress, options?.Timeout ?? -1);
+                    response = await ProcessRequestAsync(webRequest, headers, progress, options?.Timeout ?? -1, cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -475,12 +516,19 @@ namespace Utilities.WebRequestRest
         /// Download a file from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the file from.</param>
-        /// <param name="fileName">Optional file name to download (including extension).</param>
-        /// <param name="headers">Optional header information for the request.</param>
-        /// <param name="progress">Optional <see cref="IProgress{T}"/> handler.</param>
-        /// <param name="timeout">Optional time in seconds before request expires.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The path to the downloaded file.</returns>
-        public static async Task<string> DownloadFileAsync(string url, string fileName = null, Dictionary<string, string> headers = null, IProgress<float> progress = null, int timeout = -1)
+        public static async Task<string> DownloadFileAsync(
+            string url,
+            string fileName = null,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -499,30 +547,33 @@ namespace Utilities.WebRequestRest
                 return filePath;
             }
 
-            using (var webRequest = UnityWebRequest.Get(url))
-            using (var fileDownloadHandler = new DownloadHandlerFile(filePath)
+            using var webRequest = UnityWebRequest.Get(url);
+            using var fileDownloadHandler = new DownloadHandlerFile(filePath)
             {
                 removeFileOnAbort = true
-            })
+            };
+
+            webRequest.downloadHandler = fileDownloadHandler;
+            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+
+            if (!response.Successful)
             {
-                webRequest.downloadHandler = fileDownloadHandler;
-                var response = await ProcessRequestAsync(webRequest, headers, progress, timeout);
-                fileDownloadHandler.Dispose();
+                Debug.LogError($"Failed to download file from \"{url}\"!");
 
-                if (!response.Successful)
-                {
-                    Debug.LogError($"Failed to download file from \"{url}\"!");
-
-                    return null;
-                }
-
-                return filePath;
+                return null;
             }
+
+            return filePath;
         }
 
         #endregion Get Multimedia Content
 
-        private static async Task<Response> ProcessRequestAsync(UnityWebRequest webRequest, Dictionary<string, string> headers, IProgress<float> progress, int timeout)
+        private static async Task<Response> ProcessRequestAsync(
+            UnityWebRequest webRequest,
+            Dictionary<string, string> headers,
+            IProgress<float> progress,
+            int timeout,
+            CancellationToken cancellationToken)
         {
             await Awaiters.UnityMainThread;
 
@@ -539,8 +590,9 @@ namespace Utilities.WebRequestRest
                 }
             }
 
-            var isUpload = webRequest.method == UnityWebRequest.kHttpVerbPOST ||
-                           webRequest.method == UnityWebRequest.kHttpVerbPUT;
+            var isUpload = webRequest.method is
+                UnityWebRequest.kHttpVerbPOST or
+                UnityWebRequest.kHttpVerbPUT;
 
             // HACK: Workaround for extra quotes around boundary.
             if (isUpload)
@@ -554,11 +606,15 @@ namespace Utilities.WebRequestRest
                 }
             }
 
+            webRequest.disposeCertificateHandlerOnDispose = true;
+            webRequest.disposeDownloadHandlerOnDispose = true;
+            webRequest.disposeUploadHandlerOnDispose = true;
+
             Thread backgroundThread = null;
 
             if (progress != null)
             {
-                async void UploadThread()
+                async void ProgressReportingThread()
                 {
                     try
                     {
@@ -567,6 +623,12 @@ namespace Utilities.WebRequestRest
                         while (!webRequest.isDone)
                         {
                             progress.Report(isUpload ? webRequest.uploadProgress : webRequest.downloadProgress * 100f);
+
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                webRequest.Abort();
+                            }
+
                             await Awaiters.UnityMainThread;
                         }
                     }
@@ -576,7 +638,7 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-                backgroundThread = new Thread(UploadThread)
+                backgroundThread = new Thread(ProgressReportingThread)
                 {
                     IsBackground = true
                 };
@@ -596,11 +658,9 @@ namespace Utilities.WebRequestRest
             backgroundThread?.Join();
             progress?.Report(100f);
 
-#if UNITY_2020_1_OR_NEWER
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
-#else
-            if (webRequest.isNetworkError || webRequest.isHttpError)
-#endif
+            if (webRequest.result is
+                UnityWebRequest.Result.ConnectionError or
+                UnityWebRequest.Result.ProtocolError)
             {
                 if (webRequest.responseCode == 401)
                 {
@@ -619,11 +679,11 @@ namespace Utilities.WebRequestRest
 
             switch (webRequest.downloadHandler)
             {
-                case DownloadHandlerFile _:
-                case DownloadHandlerScript _:
-                case DownloadHandlerTexture _:
-                case DownloadHandlerAudioClip _:
-                case DownloadHandlerAssetBundle _:
+                case DownloadHandlerFile:
+                case DownloadHandlerScript:
+                case DownloadHandlerTexture:
+                case DownloadHandlerAudioClip:
+                case DownloadHandlerAssetBundle:
                     return new Response(true, null, null, webRequest.responseCode);
                 case DownloadHandlerBuffer bufferDownloadHandler:
                     return new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode);
