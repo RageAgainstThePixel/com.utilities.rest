@@ -82,7 +82,11 @@ namespace Utilities.WebRequestRest
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
+#if UNITY_2022_2_OR_NEWER
+            using var webRequest = UnityWebRequest.PostWwwForm(query, null);
+#else
             using var webRequest = UnityWebRequest.Post(query, null as string);
+#endif
             return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
 
@@ -126,7 +130,11 @@ namespace Utilities.WebRequestRest
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
+#if UNITY_2022_2_OR_NEWER
+            using var webRequest = UnityWebRequest.PostWwwForm(query, "POST");
+#else
             using var webRequest = UnityWebRequest.Post(query, "POST");
+#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             webRequest.uploadHandler = new UploadHandlerRaw(data);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -153,7 +161,11 @@ namespace Utilities.WebRequestRest
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
+#if UNITY_2022_2_OR_NEWER
+            using var webRequest = UnityWebRequest.PostWwwForm(query, "POST");
+#else
             using var webRequest = UnityWebRequest.Post(query, "POST");
+#endif
             webRequest.uploadHandler = new UploadHandlerRaw(bodyData);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
@@ -318,6 +330,7 @@ namespace Utilities.WebRequestRest
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the <see cref="Texture2D"/> from.</param>
+        /// <param name="fileName"></param>
         /// <param name="headers">Optional, header information for the request.</param>
         /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
         /// <param name="timeout">Optional, time in seconds before request expires.</param>
@@ -325,6 +338,7 @@ namespace Utilities.WebRequestRest
         /// <returns>A new <see cref="Texture2D"/> instance.</returns>
         public static async Task<Texture2D> DownloadTextureAsync(
             string url,
+            string fileName = null,
             Dictionary<string, string> headers = null,
             IProgress<float> progress = null,
             int timeout = -1,
@@ -332,7 +346,26 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            var isCached = TryGetDownloadCacheItem(url, out var cachePath);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                // We will try go guess the name based on the url endpoint.
+                var index = url.LastIndexOf('/') + 1;
+                fileName = url.Substring(index, url.Length - index).Split("?")[0];
+            }
+
+            bool isCached;
+            string cachePath;
+
+            if (url.Contains("file://"))
+            {
+                isCached = true;
+                cachePath = url;
+            }
+            else
+            {
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            }
+
 
             if (isCached)
             {
@@ -345,7 +378,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download texture from \"{url}\"!");
+                Debug.LogError($"Failed to download texture from \"{url}\"!\n{response.ResponseBody}");
 
                 return null;
             }
@@ -535,8 +568,8 @@ namespace Utilities.WebRequestRest
             if (string.IsNullOrWhiteSpace(fileName))
             {
                 // We will try go guess the name based on the url endpoint.
-                var index = url.LastIndexOf('/');
-                fileName = url.Substring(index, url.Length - index);
+                var index = url.LastIndexOf('/') + 1;
+                fileName = url.Substring(index, url.Length - index).Split("?")[0];
             }
 
             ValidateCacheDirectory();
@@ -675,6 +708,11 @@ namespace Utilities.WebRequestRest
                 var responseHeaders = webRequest.GetResponseHeaders().Aggregate(string.Empty, (_, header) => $"\n{header.Key}: {header.Value}");
                 Debug.LogError($"REST Error {webRequest.responseCode}:{webRequest.downloadHandler?.text}{responseHeaders}");
                 return new Response(false, $"{responseHeaders}\n{webRequest.downloadHandler?.text}", null, webRequest.responseCode);
+            }
+
+            if (!string.IsNullOrEmpty(webRequest.downloadHandler.error))
+            {
+                return new Response(false, webRequest.downloadHandler.error, webRequest.downloadHandler.data, webRequest.responseCode);
             }
 
             switch (webRequest.downloadHandler)

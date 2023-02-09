@@ -10,12 +10,12 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 - Open your Unity project settings
 - Select the `Package Manager`
-![scoped-registries](Documentation~/images/package-manager-scopes.png)
+![scoped-registries](images/package-manager-scopes.png)
 - Add the OpenUPM package registry:
   - `Name: OpenUPM`
   - `URL: https://package.openupm.com`
   - `Scope(s):`
-    - `com.utilities.rest`
+    - `com.utilities`
 - Open the Unity Package Manager window
 - Change the Registry from Unity to `My Registries`
 - Add the `Utilities.Rest` package
@@ -25,10 +25,24 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 - Open your Unity Package Manager
 - Add package from git url: `https://github.com/RageAgainstThePixel/com.utilities.rest.git#upm`
 
+---
+
 ## Getting Started
 
-### Project Setup
+### Get
 
-```csharp
-// TODO
-```
+### Post
+
+### Put
+
+### Delete
+
+### Multimedia
+
+#### Files
+
+#### Textures
+
+#### Audio
+
+#### Asset Bundles
