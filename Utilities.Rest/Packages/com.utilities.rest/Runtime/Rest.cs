@@ -366,20 +366,17 @@ namespace Utilities.WebRequestRest
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath);
             }
 
-
             if (isCached)
             {
                 url = cachePath;
             }
 
             using var webRequest = UnityWebRequestTexture.GetTexture(url);
-
             var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
 
             if (!response.Successful)
             {
                 Debug.LogError($"Failed to download texture from \"{url}\"!\n{response.ResponseBody}");
-
                 return null;
             }
 
