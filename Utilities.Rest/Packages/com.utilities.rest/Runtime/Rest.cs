@@ -385,14 +385,19 @@ namespace Utilities.WebRequestRest
             if (!isCached &&
                 !File.Exists(cachePath))
             {
+                var fileStream = File.OpenWrite(cachePath);
+
                 try
                 {
-                    await using var fileStream = File.OpenWrite(cachePath);
                     await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
                 }
                 catch (Exception e)
                 {
                     Debug.LogError($"Failed to write texture to disk!\n{e}");
+                }
+                finally
+                {
+                    await fileStream.DisposeAsync();
                 }
             }
 
@@ -441,14 +446,19 @@ namespace Utilities.WebRequestRest
             if (!isCached &&
                 !File.Exists(cachePath))
             {
+                var fileStream = File.OpenWrite(cachePath);
+
                 try
                 {
-                    await using var fileStream = File.OpenWrite(cachePath);
                     await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, CancellationToken.None);
                 }
                 catch (Exception e)
                 {
                     Debug.LogError($"Failed to write audio asset to disk! {e}");
+                }
+                finally
+                {
+                    await fileStream.DisposeAsync();
                 }
             }
 
