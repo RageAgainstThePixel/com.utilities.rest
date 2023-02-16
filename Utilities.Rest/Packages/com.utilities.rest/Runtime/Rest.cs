@@ -250,8 +250,30 @@ namespace Utilities.WebRequestRest
 
         #region Get Multimedia Content
 
-        public static string DownloadCacheDirectory => Path.Combine(Application.temporaryCachePath, "download_cache");
+        #region Download Cache
 
+        private const string DOWNLOAD_CACHE = "download_cache";
+
+        /// <summary>
+        /// Generates a <see cref="Guid"/> based on the string.
+        /// </summary>
+        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
+        /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
+        private static Guid GenerateGuid(string @string)
+        {
+            using MD5 md5 = MD5.Create();
+            return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
+        }
+
+        /// <summary>
+        /// The download cache directory.<br/>
+        /// </summary>
+        public static string DownloadCacheDirectory
+            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
+
+        /// <summary>
+        /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
+        /// </summary>
         public static void ValidateCacheDirectory()
         {
             if (!Directory.Exists(DownloadCacheDirectory))
@@ -278,17 +300,6 @@ namespace Utilities.WebRequestRest
             }
 
             return exists;
-        }
-
-        /// <summary>
-        /// Generates a <see cref="Guid"/> based on the string.
-        /// </summary>
-        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
-        /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
-        private static Guid GenerateGuid(string @string)
-        {
-            using MD5 md5 = MD5.Create();
-            return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
         }
 
         /// <summary>
@@ -325,6 +336,8 @@ namespace Utilities.WebRequestRest
                 Directory.Delete(DownloadCacheDirectory, true);
             }
         }
+
+        #endregion Download Cache
 
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
