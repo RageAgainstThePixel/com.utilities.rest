@@ -291,8 +291,18 @@ namespace Utilities.WebRequestRest
         public static bool TryGetDownloadCacheItem(string uri, out string filePath)
         {
             ValidateCacheDirectory();
-            filePath = Path.Combine(DownloadCacheDirectory, GenerateGuid(uri).ToString());
-            var exists = File.Exists(filePath);
+            bool exists;
+
+            if (TryGetFileNameFromUrl(uri, out var fileName))
+            {
+                filePath = Path.Combine(DownloadCacheDirectory, fileName);
+                exists = File.Exists(filePath);
+            }
+            else
+            {
+                filePath = Path.Combine(DownloadCacheDirectory, GenerateGuid(uri).ToString());
+                exists = File.Exists(filePath);
+            }
 
             if (exists)
             {
@@ -337,13 +347,27 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        /// <summary>
+        /// We will try go guess the name based on the url.
+        /// </summary>
+        /// <param name="url">The url to parse to try to guess file name.</param>
+        /// <param name="fileName">The filename if found.</param>
+        /// <returns>True, if a valid filename is found.</returns>
+        private static bool TryGetFileNameFromUrl(string url, out string fileName)
+        {
+            var baseUrl = url.Split("?")[0];
+            var index = baseUrl.LastIndexOf('/') + 1;
+            fileName = baseUrl.Substring(index, baseUrl.Length - index);
+            return Path.HasExtension(fileName);
+        }
+
         #endregion Download Cache
 
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the <see cref="Texture2D"/> from.</param>
-        /// <param name="fileName"></param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="headers">Optional, header information for the request.</param>
         /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
         /// <param name="timeout">Optional, time in seconds before request expires.</param>
@@ -361,9 +385,7 @@ namespace Utilities.WebRequestRest
 
             if (string.IsNullOrWhiteSpace(fileName))
             {
-                // We will try go guess the name based on the url endpoint.
-                var index = url.LastIndexOf('/') + 1;
-                fileName = url.Substring(index, url.Length - index).Split("?")[0];
+                TryGetFileNameFromUrl(url, out fileName);
             }
 
             bool isCached;
@@ -422,6 +444,7 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="url">The url to download the <see cref="AudioClip"/> from.</param>
         /// <param name="audioType"><see cref="AudioType"/> to download.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="headers">Optional, header information for the request.</param>
         /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
         /// <param name="timeout">Optional, time in seconds before request expires.</param>
@@ -430,6 +453,7 @@ namespace Utilities.WebRequestRest
         public static async Task<AudioClip> DownloadAudioClipAsync(
             string url,
             AudioType audioType,
+            string fileName = null,
             Dictionary<string, string> headers = null,
             IProgress<float> progress = null,
             int timeout = -1,
@@ -437,7 +461,23 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            var isCached = TryGetDownloadCacheItem(url, out var cachePath);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                TryGetFileNameFromUrl(url, out fileName);
+            }
+
+            bool isCached;
+            string cachePath;
+
+            if (url.Contains("file://"))
+            {
+                isCached = true;
+                cachePath = url;
+            }
+            else
+            {
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            }
 
             if (isCached)
             {
@@ -585,17 +625,7 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                // We will try go guess the name based on the url endpoint.
-                var index = url.LastIndexOf('/') + 1;
-                fileName = url.Substring(index, url.Length - index).Split("?")[0];
-            }
-
-            ValidateCacheDirectory();
-            var filePath = Path.Combine(DownloadCacheDirectory, fileName);
-
-            if (File.Exists(filePath))
+            if (TryGetDownloadCacheItem(url, out var filePath))
             {
                 return filePath;
             }
