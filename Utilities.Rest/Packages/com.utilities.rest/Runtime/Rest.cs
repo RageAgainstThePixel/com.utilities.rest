@@ -625,7 +625,12 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (TryGetDownloadCacheItem(url, out var filePath))
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                TryGetFileNameFromUrl(url, out fileName);
+            }
+
+            if (TryGetDownloadCacheItem(fileName, out var filePath))
             {
                 return filePath;
             }
