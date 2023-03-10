@@ -19,6 +19,8 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public static class Rest
     {
+        private const string khttpVerbPATCH = "PATCH";
+
         #region Authentication
 
         /// <summary>
@@ -131,9 +133,9 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
 #if UNITY_2022_2_OR_NEWER
-            using var webRequest = UnityWebRequest.PostWwwForm(query, "POST");
+            using var webRequest = UnityWebRequest.PostWwwForm(query, UnityWebRequest.kHttpVerbPOST);
 #else
-            using var webRequest = UnityWebRequest.Post(query, "POST");
+            using var webRequest = UnityWebRequest.Post(query, UnityWebRequest.kHttpVerbPOST);
 #endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             webRequest.uploadHandler = new UploadHandlerRaw(data);
@@ -162,9 +164,9 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
 #if UNITY_2022_2_OR_NEWER
-            using var webRequest = UnityWebRequest.PostWwwForm(query, "POST");
+            using var webRequest = UnityWebRequest.PostWwwForm(query, UnityWebRequest.kHttpVerbPOST);
 #else
-            using var webRequest = UnityWebRequest.Post(query, "POST");
+            using var webRequest = UnityWebRequest.Post(query, UnityWebRequest.kHttpVerbPOST);
 #endif
             webRequest.uploadHandler = new UploadHandlerRaw(bodyData);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -223,6 +225,58 @@ namespace Utilities.WebRequestRest
         }
 
         #endregion PUT
+
+        #region PATCH
+
+        /// <summary>
+        /// Rest PATCH.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">Data to be submitted.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PatchAsync(
+            string query,
+            string jsonData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
+        {
+            using var webRequest = UnityWebRequest.Put(query, jsonData);
+            webRequest.method = khttpVerbPATCH;
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+        }
+
+        /// <summary>
+        /// Rest PATCH.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="bodyData">Data to be submitted.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="progress">Optional, <see cref="IProgress{T}"/> handler.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PatchAsync(
+            string query,
+            byte[] bodyData,
+            Dictionary<string, string> headers = null,
+            IProgress<float> progress = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
+        {
+            using var webRequest = UnityWebRequest.Put(query, bodyData);
+            webRequest.method = khttpVerbPATCH;
+            webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+        }
+
+        #endregion PATCH
 
         #region DELETE
 
@@ -680,7 +734,8 @@ namespace Utilities.WebRequestRest
 
             var isUpload = webRequest.method is
                 UnityWebRequest.kHttpVerbPOST or
-                UnityWebRequest.kHttpVerbPUT;
+                UnityWebRequest.kHttpVerbPUT or
+                khttpVerbPATCH;
 
             // HACK: Workaround for extra quotes around boundary.
             if (isUpload)

@@ -41,6 +41,7 @@ Advanced features includes progress notifications, authentication and native mul
 - [Get](#get)
 - [Post](#post)
 - [Put](#put)
+- [Patch](#patch)
 - [Delete](#delete)
 - [Download Multimedia](#multimedia)
   - [Caching](#caching)
@@ -103,6 +104,24 @@ string jsonData = "{\"data\":\"content\"}";
 try
 {
     response = await Rest.PutAsync("www.your.api/endpoint", jsonData);
+}
+catch (Exception e)
+{
+    Debug.LogError(e);
+}
+
+Debug.Log($"[{response.ResponseCode}] {response.ResponseBody}");
+```
+
+### Patch
+
+```csharp
+Response response;
+string jsonData = "{\"data\":\"content\"}";
+
+try
+{
+    response = await Rest.PatchAsync("www.your.api/endpoint", jsonData);
 }
 catch (Exception e)
 {
