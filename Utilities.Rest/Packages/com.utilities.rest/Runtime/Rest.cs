@@ -409,9 +409,10 @@ namespace Utilities.WebRequestRest
         /// <returns>True, if a valid filename is found.</returns>
         private static bool TryGetFileNameFromUrl(string url, out string fileName)
         {
-            var baseUrl = url.Split("?")[0];
-            var index = baseUrl.LastIndexOf('/') + 1;
-            fileName = baseUrl.Substring(index, baseUrl.Length - index);
+            var baseUrl = UnityWebRequest.UnEscapeURL(url);
+            var rootUrl = baseUrl.Split("?")[0];
+            var index = rootUrl.LastIndexOf('/') + 1;
+            fileName = rootUrl.Substring(index, rootUrl.Length - index);
             return Path.HasExtension(fileName);
         }
 
@@ -465,7 +466,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download texture from \"{url}\"!\n{response.ResponseBody}");
+                Debug.LogError($"Failed to download texture from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
                 return null;
             }
 
@@ -543,7 +544,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download audio clip from \"{url}\"!");
+                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
 
                 return null;
             }
@@ -700,7 +701,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download file from \"{url}\"!");
+                Debug.LogError($"Failed to download file from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
 
                 return null;
             }
@@ -795,7 +796,7 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                Debug.LogError($"{nameof(Rest)}.{nameof(ProcessRequestAsync)}::Send Web Request Failed! {e}");
+                Debug.LogError($"{nameof(Rest)}.{nameof(ProcessRequestAsync)}::Send Web Request Failed!\n{e}");
             }
 
             backgroundThread?.Join();
