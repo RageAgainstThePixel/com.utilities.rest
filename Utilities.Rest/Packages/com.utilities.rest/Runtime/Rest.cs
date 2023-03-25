@@ -337,6 +337,15 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
+        /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
+        /// </summary>
+        public static async Task ValidateCacheDirectoryAsync()
+        {
+            await Awaiters.UnityMainThread;
+            ValidateCacheDirectory();
+        }
+
+        /// <summary>
         /// Try to get a file out of the download cache by uri reference.
         /// </summary>
         /// <param name="uri">The uri key of the item.</param>
