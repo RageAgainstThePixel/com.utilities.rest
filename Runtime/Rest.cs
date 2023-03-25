@@ -479,7 +479,7 @@ namespace Utilities.WebRequestRest
 
                 try
                 {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -487,11 +487,14 @@ namespace Utilities.WebRequestRest
                 }
                 finally
                 {
-                    await fileStream.DisposeAsync();
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
                 }
             }
 
-            return downloadHandler.texture;
+            await Awaiters.UnityMainThread;
+            var texture = downloadHandler.texture;
+            texture.name = Path.GetFileNameWithoutExtension(cachePath);
+            return texture;
         }
 
         /// <summary>
@@ -558,7 +561,7 @@ namespace Utilities.WebRequestRest
 
                 try
                 {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, CancellationToken.None);
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -566,11 +569,14 @@ namespace Utilities.WebRequestRest
                 }
                 finally
                 {
-                    await fileStream.DisposeAsync();
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
                 }
             }
 
-            return downloadHandler.audioClip;
+            await Awaiters.UnityMainThread;
+            var clip = downloadHandler.audioClip;
+            clip.name = Path.GetFileNameWithoutExtension(cachePath);
+            return clip;
         }
 
 #if UNITY_ADDRESSABLES
