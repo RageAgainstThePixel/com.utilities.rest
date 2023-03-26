@@ -227,8 +227,8 @@ Streams an audio file from disk or remote resource as soon as enough data has be
 var audioClip = await Rest.StreamAudioAsync("local/path/to/your_file.ogg", AudioType.OGGVORBIS, clip =>
 {
     // assign it to your audio source
-    audioSource.clip = audioClip;
-    audioSource.PlayOneShot(audioClip);
+    audioSource.clip = clip;
+    audioSource.PlayOneShot(clip);
 });
 ```
 
