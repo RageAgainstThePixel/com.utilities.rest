@@ -48,6 +48,7 @@ Advanced features includes progress notifications, authentication and native mul
   - [Files](#files)
   - [Textures](#textures)
   - [Audio](#audio)
+    - [Streaming](#audio-streaming)
   - [Asset Bundles](#asset-bundles)
 
 ### Authentication
@@ -205,7 +206,7 @@ if (texture != null)
 > Pro Tip: This also works with local file paths to load audio clips async at runtime!
 
 ```csharp
-var audioClip = await Rest.DownloadAudioClipAsync("www.your.api/your_file.ogg");
+var audioClip = await Rest.DownloadAudioClipAsync("www.your.api/your_file.ogg", AudioType.OGGVORBIS);
 
 if (audioClip != null)
 {
@@ -213,6 +214,22 @@ if (audioClip != null)
     audioSource.clip = audioClip;
     audioSource.PlayOneShot(audioClip);
 }
+```
+
+##### Audio Streaming
+
+Streams an audio file from disk or remote resource as soon as enough data has been loaded.
+
+> Unsure if this is working correctly as Unity doesn't seem to respect streaming when setting [`DownloadHandlerAudioClip.streamAudio`](https://docs.unity3d.com/ScriptReference/Networking.DownloadHandlerAudioClip-streamAudio.html) to true.
+> Seems to work better for local files on disk than remote resources.
+
+```csharp
+var audioClip = await Rest.StreamAudioAsync("local/path/to/your_file.ogg", AudioType.OGGVORBIS, clip =>
+{
+    // assign it to your audio source
+    audioSource.clip = audioClip;
+    audioSource.PlayOneShot(audioClip);
+});
 ```
 
 #### Asset Bundles

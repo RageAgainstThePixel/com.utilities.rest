@@ -1,10 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 namespace Utilities.WebRequestRest
 {
     public readonly struct Progress
     {
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
         public enum DataUnit
         {
             /// <summary>
