@@ -56,7 +56,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> GetAsync(
             string query,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -80,7 +80,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -106,7 +106,7 @@ namespace Utilities.WebRequestRest
             string query,
             WWWForm formData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -128,7 +128,7 @@ namespace Utilities.WebRequestRest
             string query,
             string jsonData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -159,7 +159,7 @@ namespace Utilities.WebRequestRest
             string query,
             byte[] bodyData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -192,7 +192,7 @@ namespace Utilities.WebRequestRest
             string query,
             string jsonData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -215,7 +215,7 @@ namespace Utilities.WebRequestRest
             string query,
             byte[] bodyData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -242,7 +242,7 @@ namespace Utilities.WebRequestRest
             string query,
             string jsonData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -266,7 +266,7 @@ namespace Utilities.WebRequestRest
             string query,
             byte[] bodyData,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -292,7 +292,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> DeleteAsync(
             string query,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -441,7 +441,7 @@ namespace Utilities.WebRequestRest
             string url,
             string fileName = null,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -502,6 +502,7 @@ namespace Utilities.WebRequestRest
 
             await Awaiters.UnityMainThread;
             var texture = downloadHandler.texture;
+            downloadHandler.Dispose();
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
         }
@@ -522,7 +523,7 @@ namespace Utilities.WebRequestRest
             AudioType audioType,
             string fileName = null,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -588,6 +589,171 @@ namespace Utilities.WebRequestRest
             return clip;
         }
 
+        /// <summary>
+        /// Download a <see cref="AudioClip"/> from the provided <see cref="url"/>.
+        /// </summary>
+        /// <param name="url">The url to download the <see cref="AudioClip"/> from.</param>
+        /// <param name="audioType"><see cref="AudioType"/> to download.</param>
+        /// <param name="onStreamPlaybackReady"><see cref="Action{T}"/> callback raised when stream is ready to be played.</param>
+        /// <param name="httpMethod">Optional, must be either GET or POST.</param>
+        /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
+        /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="playbackAmountThreshold">Optional, the amount of data to to download before signaling that streaming is ready.</param>
+        /// <param name="headers">Optional, header information for the request.</param>
+        /// <param name="timeout">Optional, time in seconds before request expires.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>Raw downloaded bytes from the stream.</returns>
+        public static async Task<AudioClip> StreamAudioAsync(
+            string url,
+            AudioType audioType,
+            Action<AudioClip> onStreamPlaybackReady,
+            string httpMethod = UnityWebRequest.kHttpVerbGET,
+            string fileName = null,
+            string jsonData = null,
+            byte[] payload = null,
+            ulong playbackAmountThreshold = 10000,
+            Dictionary<string, string> headers = null,
+            int timeout = -1,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                TryGetFileNameFromUrl(url, out fileName);
+            }
+
+            bool isCached;
+            string cachePath;
+
+            if (url.Contains("file://"))
+            {
+                isCached = true;
+                cachePath = url;
+            }
+            else
+            {
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            }
+
+            if (isCached)
+            {
+                url = cachePath;
+                // override the httpMethod
+                httpMethod = UnityWebRequest.kHttpVerbGET;
+            }
+
+            AudioClip clip = null;
+            var streamStarted = false;
+            UploadHandler uploadHandler = null;
+            Progress<Progress> progress = null;
+
+            if (httpMethod == UnityWebRequest.kHttpVerbPOST)
+            {
+                if (!string.IsNullOrWhiteSpace(jsonData))
+                {
+                    if (payload != null)
+                    {
+                        throw new ArgumentException($"{nameof(payload)} and {nameof(jsonData)} cannot be supplied in the same request. Choose either one or the other.", nameof(jsonData));
+                    }
+
+                    payload = new UTF8Encoding().GetBytes(jsonData);
+
+                    if (headers != null)
+                    {
+                        headers.Add("Content-Type", "application/json");
+                    }
+                    else
+                    {
+                        headers = new Dictionary<string, string>
+                        {
+                            { "Content-Type", "application/json" }
+                        };
+                    }
+                }
+
+                uploadHandler = new UploadHandlerRaw(payload);
+            }
+
+            var downloadHandler = new DownloadHandlerAudioClip(string.Empty, audioType)
+            {
+                streamAudio = true // Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
+            };
+            using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
+            webRequest.disposeDownloadHandlerOnDispose = false;
+
+            if (!isCached)
+            {
+                progress = new Progress<Progress>(report =>
+                {
+                    // only raise stream ready if we haven't assigned a clip yet.
+                    if (clip != null)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        // ReSharper disable once AccessToDisposedClosure
+                        if (report.Position > playbackAmountThreshold || downloadHandler.isDone)
+                        {
+                            // ReSharper disable once AccessToDisposedClosure
+                            var tempClip = downloadHandler.audioClip;
+                            clip = tempClip;
+                            clip.name = Path.GetFileNameWithoutExtension(fileName);
+                            streamStarted = true;
+                            onStreamPlaybackReady?.Invoke(clip);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Ignored
+                    }
+                });
+            }
+
+            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+
+            if (!response.Successful)
+            {
+                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
+                return null;
+            }
+
+            if (!isCached &&
+                !File.Exists(cachePath))
+            {
+                var fileStream = File.OpenWrite(cachePath);
+
+                try
+                {
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to write audio asset to disk! {e}");
+                }
+                finally
+                {
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+
+            await Awaiters.UnityMainThread;
+            var loadedClip = downloadHandler.audioClip;
+            loadedClip.name = Path.GetFileNameWithoutExtension(fileName);
+
+            if (!streamStarted)
+            {
+                streamStarted = true;
+                onStreamPlaybackReady?.Invoke(loadedClip);
+            }
+
+            downloadHandler.Dispose();
+            return loadedClip;
+        }
+
 #if UNITY_ADDRESSABLES
 
         /// <summary>
@@ -603,7 +769,7 @@ namespace Utilities.WebRequestRest
             string url,
             UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -689,7 +855,7 @@ namespace Utilities.WebRequestRest
             string url,
             string fileName = null,
             Dictionary<string, string> headers = null,
-            IProgress<float> progress = null,
+            IProgress<Progress> progress = null,
             int timeout = -1,
             CancellationToken cancellationToken = default)
         {
@@ -729,7 +895,7 @@ namespace Utilities.WebRequestRest
         private static async Task<Response> ProcessRequestAsync(
             UnityWebRequest webRequest,
             Dictionary<string, string> headers,
-            IProgress<float> progress,
+            IProgress<Progress> progress,
             int timeout,
             CancellationToken cancellationToken)
         {
@@ -775,13 +941,52 @@ namespace Utilities.WebRequestRest
             {
                 async void ProgressReportingThread()
                 {
+                    var frame = 0;
+
                     try
                     {
                         await Awaiters.UnityMainThread;
 
+                        // Define constants for data units
+                        const double kbSize = 1e+3;
+                        const double mbSize = 1e+6;
+                        const double gbSize = 1e+9;
+                        const double tbSize = 1e+12;
+
                         while (!webRequest.isDone)
                         {
-                            progress.Report(isUpload ? webRequest.uploadProgress : webRequest.downloadProgress * 100f);
+                            // Calculate the amount of bytes downloaded during this frame
+                            var bytesThisFrame = (webRequest.downloadedBytes * 8) / (frame++ * 0.5f);
+                            // Determine the appropriate data unit for the speed based on the size of bytes downloaded this frame
+                            var unit = bytesThisFrame switch
+                            {
+                                _ when bytesThisFrame > tbSize => Progress.DataUnit.TB,
+                                _ when bytesThisFrame > gbSize => Progress.DataUnit.GB,
+                                _ when bytesThisFrame > mbSize => Progress.DataUnit.MB,
+                                _ when bytesThisFrame > kbSize => Progress.DataUnit.kB,
+                                _ => Progress.DataUnit.b
+                            };
+                            // Calculate the speed based on the size of bytes downloaded this frame and the appropriate data unit
+                            var speed = bytesThisFrame switch
+                            {
+                                _ when bytesThisFrame > tbSize => (float)Math.Round(bytesThisFrame / tbSize),
+                                _ when bytesThisFrame > gbSize => (float)Math.Round(bytesThisFrame / gbSize),
+                                _ when bytesThisFrame > mbSize => (float)Math.Round(bytesThisFrame / mbSize),
+                                _ when bytesThisFrame > kbSize => (float)Math.Round(bytesThisFrame / kbSize),
+                                _ => bytesThisFrame
+                            };
+                            // Determine the percentage of the download or upload that has been completed
+                            var percentage = isUpload ? webRequest.uploadProgress : webRequest.downloadProgress * 100f;
+                            // Get the content length of the download
+                            const string contentLength = "Content-Length";
+
+                            if (!ulong.TryParse(webRequest.GetResponseHeader(contentLength), out var length))
+                            {
+                                length = webRequest.downloadedBytes;
+                            }
+
+                            // Report the progress using the progress handler provided by the caller
+                            progress.Report(new Progress(webRequest.downloadedBytes, length, percentage, speed, unit));
 
                             if (cancellationToken.IsCancellationRequested)
                             {
@@ -815,7 +1020,7 @@ namespace Utilities.WebRequestRest
             }
 
             backgroundThread?.Join();
-            progress?.Report(100f);
+            progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
@@ -832,8 +1037,8 @@ namespace Utilities.WebRequestRest
                 }
 
                 var responseHeaders = webRequest.GetResponseHeaders().Aggregate(string.Empty, (_, header) => $"\n{header.Key}: {header.Value}");
-                Debug.LogError($"REST Error {webRequest.responseCode}:{webRequest.downloadHandler?.text}{responseHeaders}");
-                return new Response(false, $"{responseHeaders}\n{webRequest.downloadHandler?.text}", null, webRequest.responseCode);
+                Debug.LogError($"REST Error {webRequest.responseCode}:{webRequest.downloadHandler?.error}{responseHeaders}");
+                return new Response(false, $"{responseHeaders}\n{webRequest.downloadHandler?.error}", null, webRequest.responseCode);
             }
 
             if (!string.IsNullOrEmpty(webRequest.downloadHandler.error))

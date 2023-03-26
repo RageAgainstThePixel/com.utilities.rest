@@ -3,7 +3,7 @@
   "displayName": "Utilities.Rest",
   "description": "This package contains useful RESTful utilities for the Unity Game Engine.",
   "keywords": [],
-  "version": "1.2.6",
+  "version": "1.3.0",
   "unity": "2021.3",
   "documentationUrl": "https://github.com/RageAgainstThePixel/com.utilities.rest#documentation",
   "changelogUrl": "https://github.com/RageAgainstThePixel/com.utilities.rest/releases",
