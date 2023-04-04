@@ -21,6 +21,8 @@ namespace Utilities.WebRequestRest
     {
         private const string khttpVerbPATCH = "PATCH";
 
+        private const string fileUriPrefix = "file://";
+
         #region Authentication
 
         /// <summary>
@@ -356,6 +358,12 @@ namespace Utilities.WebRequestRest
             ValidateCacheDirectory();
             bool exists;
 
+            if (uri.Contains(fileUriPrefix))
+            {
+                filePath = uri;
+                return File.Exists(filePath);
+            }
+
             if (TryGetFileNameFromUrl(uri, out var fileName))
             {
                 filePath = Path.Combine(DownloadCacheDirectory, fileName);
@@ -369,7 +377,7 @@ namespace Utilities.WebRequestRest
 
             if (exists)
             {
-                filePath = $"file://{Path.GetFullPath(filePath)}";
+                filePath = $"{fileUriPrefix}{Path.GetFullPath(filePath)}";
             }
 
             return exists;
@@ -455,7 +463,7 @@ namespace Utilities.WebRequestRest
             bool isCached;
             string cachePath;
 
-            if (url.Contains("file://"))
+            if (url.Contains(fileUriPrefix))
             {
                 isCached = true;
                 cachePath = url;
@@ -537,7 +545,7 @@ namespace Utilities.WebRequestRest
             bool isCached;
             string cachePath;
 
-            if (url.Contains("file://"))
+            if (url.Contains(fileUriPrefix))
             {
                 isCached = true;
                 cachePath = url;
@@ -627,7 +635,7 @@ namespace Utilities.WebRequestRest
             bool isCached;
             string cachePath;
 
-            if (url.Contains("file://"))
+            if (url.Contains(fileUriPrefix))
             {
                 isCached = true;
                 cachePath = url;
