@@ -361,7 +361,7 @@ namespace Utilities.WebRequestRest
             if (uri.Contains(fileUriPrefix))
             {
                 filePath = uri;
-                return File.Exists(filePath);
+                return File.Exists(uri.Replace(fileUriPrefix, string.Empty));
             }
 
             if (TryGetFileNameFromUrl(uri, out var fileName))
