@@ -19,7 +19,7 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public static class Rest
     {
-        private const string khttpVerbPATCH = "PATCH";
+        private const string kHttpVerbPATCH = "PATCH";
 
         private const string fileUriPrefix = "file://";
 
@@ -63,7 +63,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Get(query);
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         #endregion GET
@@ -91,7 +91,7 @@ namespace Utilities.WebRequestRest
 #else
             using var webRequest = UnityWebRequest.Post(query, null as string);
 #endif
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -113,7 +113,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Post(query, formData);
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace Utilities.WebRequestRest
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/json");
             webRequest.SetRequestHeader("Accept", "application/json");
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -173,7 +173,7 @@ namespace Utilities.WebRequestRest
             webRequest.uploadHandler = new UploadHandlerRaw(bodyData);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         #endregion POST
@@ -200,7 +200,7 @@ namespace Utilities.WebRequestRest
         {
             using var webRequest = UnityWebRequest.Put(query, jsonData);
             webRequest.SetRequestHeader("Content-Type", "application/json");
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace Utilities.WebRequestRest
         {
             using var webRequest = UnityWebRequest.Put(query, bodyData);
             webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         #endregion PUT
@@ -249,9 +249,9 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Put(query, jsonData);
-            webRequest.method = khttpVerbPATCH;
+            webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader("Content-Type", "application/json");
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -273,9 +273,9 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Put(query, bodyData);
-            webRequest.method = khttpVerbPATCH;
+            webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         #endregion PATCH
@@ -299,7 +299,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Delete(query);
-            return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            return await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
         }
 
         #endregion DELETE
@@ -479,7 +479,7 @@ namespace Utilities.WebRequestRest
             }
 
             using var webRequest = UnityWebRequestTexture.GetTexture(url);
-            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            var response = await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
 
             if (!response.Successful)
             {
@@ -561,7 +561,7 @@ namespace Utilities.WebRequestRest
             }
 
             using var webRequest = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
-            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            var response = await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
 
             if (!response.Successful)
             {
@@ -721,7 +721,7 @@ namespace Utilities.WebRequestRest
                 });
             }
 
-            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            var response = await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
 
             if (!response.Successful)
             {
@@ -828,7 +828,7 @@ namespace Utilities.WebRequestRest
 
                 try
                 {
-                    response = await ProcessRequestAsync(webRequest, headers, progress, options?.Timeout ?? -1, cancellationToken);
+                    response = await webRequest.SendAsync(headers, progress, options?.Timeout ?? -1, cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -836,7 +836,7 @@ namespace Utilities.WebRequestRest
                     throw;
                 }
 
-                if (!response.Successful)
+                if (!response.Successful)webRequest.SendAsync
                 {
                     Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.ResponseCode}:{response.ResponseBody}");
                     return null;
@@ -886,7 +886,7 @@ namespace Utilities.WebRequestRest
             };
 
             webRequest.downloadHandler = fileDownloadHandler;
-            var response = await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
+            var response = await webRequest.SendAsync(headers, progress, timeout, cancellationToken);
 
             if (!response.Successful)
             {
@@ -900,12 +900,21 @@ namespace Utilities.WebRequestRest
 
         #endregion Get Multimedia Content
 
-        private static async Task<Response> ProcessRequestAsync(
-            UnityWebRequest webRequest,
-            Dictionary<string, string> headers,
-            IProgress<Progress> progress,
-            int timeout,
-            CancellationToken cancellationToken)
+        /// <summary>
+        /// Process a <see cref="UnityWebRequest"/> asynchronously.
+        /// </summary>
+        /// <param name="webRequest">The <see cref="UnityWebRequest"/>.</param>
+        /// <param name="headers">Optional, headers.</param>
+        /// <param name="progress">Optional, progress.</param>
+        /// <param name="timeout">Optional, timeout.</param>
+        /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
+        /// <returns><see cref="Response"/></returns>
+        public static async Task<Response> SendAsync(
+            this UnityWebRequest webRequest,
+            Dictionary<string, string> headers = null,
+            IProgress<Progress> progress = null,
+            int timeout = 0,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -925,7 +934,7 @@ namespace Utilities.WebRequestRest
             var isUpload = webRequest.method is
                 UnityWebRequest.kHttpVerbPOST or
                 UnityWebRequest.kHttpVerbPUT or
-                khttpVerbPATCH;
+                kHttpVerbPATCH;
 
             // HACK: Workaround for extra quotes around boundary.
             if (isUpload)
@@ -1024,7 +1033,7 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                Debug.LogError($"{nameof(Rest)}.{nameof(ProcessRequestAsync)}::Send Web Request Failed!\n{e}");
+                Debug.LogError($"{nameof(Rest)}.{nameof(SendAsync)}::Send Web Request Failed!\n{e}");
             }
 
             backgroundThread?.Join();
@@ -1054,19 +1063,16 @@ namespace Utilities.WebRequestRest
                 return new Response(false, webRequest.downloadHandler.error, webRequest.downloadHandler.data, webRequest.responseCode);
             }
 
-            switch (webRequest.downloadHandler)
+            return webRequest.downloadHandler switch
             {
-                case DownloadHandlerFile:
-                case DownloadHandlerScript:
-                case DownloadHandlerTexture:
-                case DownloadHandlerAudioClip:
-                case DownloadHandlerAssetBundle:
-                    return new Response(true, null, null, webRequest.responseCode);
-                case DownloadHandlerBuffer bufferDownloadHandler:
-                    return new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode);
-                default:
-                    return new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode);
-            }
+                DownloadHandlerFile => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerScript => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerTexture => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerAudioClip => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerAssetBundle => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerBuffer bufferDownloadHandler => new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode),
+                _ => new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode)
+            };
         }
     }
 }
