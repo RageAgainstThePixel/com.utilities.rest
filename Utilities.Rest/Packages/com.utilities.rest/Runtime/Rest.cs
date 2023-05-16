@@ -19,7 +19,7 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public static class Rest
     {
-        private const string khttpVerbPATCH = "PATCH";
+        private const string kHttpVerbPATCH = "PATCH";
 
         private const string fileUriPrefix = "file://";
 
@@ -249,7 +249,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Put(query, jsonData);
-            webRequest.method = khttpVerbPATCH;
+            webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader("Content-Type", "application/json");
             return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
@@ -273,7 +273,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Put(query, bodyData);
-            webRequest.method = khttpVerbPATCH;
+            webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
             return await ProcessRequestAsync(webRequest, headers, progress, timeout, cancellationToken);
         }
@@ -925,7 +925,7 @@ namespace Utilities.WebRequestRest
             var isUpload = webRequest.method is
                 UnityWebRequest.kHttpVerbPOST or
                 UnityWebRequest.kHttpVerbPUT or
-                khttpVerbPATCH;
+                kHttpVerbPATCH;
 
             // HACK: Workaround for extra quotes around boundary.
             if (isUpload)
@@ -1054,19 +1054,16 @@ namespace Utilities.WebRequestRest
                 return new Response(false, webRequest.downloadHandler.error, webRequest.downloadHandler.data, webRequest.responseCode);
             }
 
-            switch (webRequest.downloadHandler)
+            return webRequest.downloadHandler switch
             {
-                case DownloadHandlerFile:
-                case DownloadHandlerScript:
-                case DownloadHandlerTexture:
-                case DownloadHandlerAudioClip:
-                case DownloadHandlerAssetBundle:
-                    return new Response(true, null, null, webRequest.responseCode);
-                case DownloadHandlerBuffer bufferDownloadHandler:
-                    return new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode);
-                default:
-                    return new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode);
-            }
+                DownloadHandlerFile => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerScript => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerTexture => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerAudioClip => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerAssetBundle => new Response(true, null, null, webRequest.responseCode),
+                DownloadHandlerBuffer bufferDownloadHandler => new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode),
+                _ => new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode)
+            };
         }
     }
 }
