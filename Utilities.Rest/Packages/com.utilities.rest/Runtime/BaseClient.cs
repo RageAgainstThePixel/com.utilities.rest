@@ -1,3 +1,5 @@
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
 using System;
 using System.Net.Http;
 using System.Security.Authentication;
@@ -50,15 +52,21 @@ namespace Utilities.WebRequestRest
         protected abstract HttpClient SetupClient(HttpClient httpClient = null);
 
         /// <summary>
-        /// Validate the <see cref="IAuthentication"/> for this client.
+        /// Validate the <see cref="TAuthentication"/> for this client.
         /// </summary>
         /// <exception cref="UnauthorizedAccessException"></exception>
         protected abstract void ValidateAuthentication();
 
+        /// <summary>
+        /// Does the client currently have a valid loaded <see cref="TAuthentication"/>?
+        /// </summary>
         public abstract bool HasValidAuthentication { get; }
 
         protected TAuthentication Authentication { get; }
 
+        /// <summary>
+        /// The <see cref="TSettings"/> for this <see cref="IClient"/>
+        /// </summary>
         public TSettings Settings { get; }
 
         /// <summary>
