@@ -1,5 +1,6 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using System.IO;
 using UnityEngine;
 
 namespace Utilities.WebRequestRest.Interfaces
@@ -8,6 +9,9 @@ namespace Utilities.WebRequestRest.Interfaces
         where TAuthentication : IAuthentication
         where TAuthInfo : IAuthInfo
     {
+        /// <inheritdoc />
+        public abstract TAuthInfo Info { get; }
+
         /// <summary>
         /// Attempts to load the authentication from a <see cref="ScriptableObject"/> asset that implements <see cref="IConfiguration"/>.
         /// </summary>
@@ -33,7 +37,8 @@ namespace Utilities.WebRequestRest.Interfaces
         /// <returns>
         /// The loaded <see cref="IAuthentication{T}"/> or <see langword="null"/>.
         /// </returns>
-        public abstract TAuthentication LoadFromPath(string path);
+        public TAuthentication LoadFromPath(string path)
+            => LoadFromDirectory(Path.GetDirectoryName(path), Path.GetFileName(path), false);
 
         /// <summary>
         /// Attempts to load the authentication from the specified directory,
@@ -52,8 +57,5 @@ namespace Utilities.WebRequestRest.Interfaces
         /// The loaded <see cref="IAuthentication{T}"/> or <see langword="null"/>.
         /// </returns>
         public abstract TAuthentication LoadFromDirectory(string directory = null, string filename = null, bool searchUp = true);
-
-        /// <inheritdoc />
-        public abstract TAuthInfo Info { get; }
     }
 }
