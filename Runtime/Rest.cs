@@ -836,7 +836,7 @@ namespace Utilities.WebRequestRest
                     throw;
                 }
 
-                if (!response.Successful)webRequest.SendAsync
+                if (!response.Successful)
                 {
                     Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.ResponseCode}:{response.ResponseBody}");
                     return null;
