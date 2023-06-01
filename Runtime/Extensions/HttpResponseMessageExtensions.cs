@@ -15,7 +15,7 @@ namespace Utilities.Rest.Extensions
 
             if (!response.IsSuccessStatusCode)
             {
-                throw new HttpRequestException($"{methodName} Failed! HTTP status code: {response.StatusCode} | Response body: {responseAsString}");
+                throw new HttpRequestException($"{methodName} Failed! HTTP status code: [{(int)response.StatusCode}] {response.StatusCode} | Response body: {responseAsString}");
             }
 
             if (debug)
@@ -31,7 +31,7 @@ namespace Utilities.Rest.Extensions
             if (!response.IsSuccessStatusCode)
             {
                 var responseAsString = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException($"{methodName} Failed! HTTP status code: {response.StatusCode} | Response body: {responseAsString}");
+                throw new HttpRequestException($"{methodName} Failed! HTTP status code:[{(int)response.StatusCode}] {response.StatusCode} | Response body: {responseAsString}");
             }
         }
     }
