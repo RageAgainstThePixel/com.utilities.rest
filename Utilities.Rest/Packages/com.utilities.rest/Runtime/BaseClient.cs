@@ -1,7 +1,6 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
-using System.Net.Http;
 using System.Security.Authentication;
 using Utilities.WebRequestRest.Interfaces;
 
@@ -11,14 +10,6 @@ namespace Utilities.WebRequestRest
         where TAuthentication : IAuthentication
         where TSettings : ISettings
     {
-        protected BaseClient(TAuthentication authentication, TSettings settings, HttpClient httpClient)
-            : this(authentication, settings)
-        {
-            // ReSharper disable once VirtualMemberCallInConstructor
-            // Called from base type initializer
-            Client = SetupClient(httpClient);
-        }
-
         protected BaseClient(TAuthentication authentication, TSettings settings)
         {
             Authentication = authentication;
@@ -38,18 +29,7 @@ namespace Utilities.WebRequestRest
             // ReSharper disable once VirtualMemberCallInConstructor
             // Called from base type initializer
             ValidateAuthentication();
-
-            // ReSharper disable once VirtualMemberCallInConstructor
-            // Called from base type initializer
-            Client = SetupClient();
         }
-
-        /// <summary>
-        /// Setup the <see cref="HttpClient"/>
-        /// </summary>
-        /// <param name="httpClient"></param>
-        /// <returns><see cref="HttpClient"/></returns>
-        protected abstract HttpClient SetupClient(HttpClient httpClient = null);
 
         /// <summary>
         /// Validate the <see cref="TAuthentication"/> for this client.
@@ -68,10 +48,5 @@ namespace Utilities.WebRequestRest
         /// The <see cref="TSettings"/> for this <see cref="IClient"/>
         /// </summary>
         public TSettings Settings { get; }
-
-        /// <summary>
-        /// <see cref="HttpClient"/> to use when making calls to the API.
-        /// </summary>
-        public HttpClient Client { get; private set; }
     }
 }
