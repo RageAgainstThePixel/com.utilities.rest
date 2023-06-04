@@ -1,11 +1,13 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using System.Collections.Generic;
+
 namespace Utilities.WebRequestRest
 {
     /// <summary>
     /// Response to a REST Call.
     /// </summary>
-    public struct Response
+    public class Response
     {
         /// <summary>
         /// Was the REST call successful?
@@ -28,18 +30,25 @@ namespace Utilities.WebRequestRest
         public long ResponseCode { get; }
 
         /// <summary>
+        /// Response headers from the resource.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> ResponseHeaders { get; }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="successful">Was the REST call successful?</param>
         /// <param name="responseBody">Response body from the resource.</param>
         /// <param name="responseData">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
-        public Response(bool successful, string responseBody, byte[] responseData, long responseCode)
+        /// <param name="responseHeaders">Response headers from the resource.</param>
+        public Response(bool successful, string responseBody, byte[] responseData, long responseCode, IReadOnlyDictionary<string, string> responseHeaders)
         {
             Successful = successful;
             ResponseBody = responseBody;
             ResponseData = responseData;
             ResponseCode = responseCode;
+            ResponseHeaders = responseHeaders;
         }
     }
 }
