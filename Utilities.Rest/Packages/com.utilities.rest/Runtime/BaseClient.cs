@@ -1,6 +1,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Security.Authentication;
 using Utilities.WebRequestRest.Interfaces;
 
@@ -29,6 +30,10 @@ namespace Utilities.WebRequestRest
             // ReSharper disable once VirtualMemberCallInConstructor
             // Called from base type initializer
             ValidateAuthentication();
+
+            // ReSharper disable once VirtualMemberCallInConstructor
+            // Called from base type initializer
+            SetupDefaultRequestHeaders();
         }
 
         /// <summary>
@@ -38,6 +43,16 @@ namespace Utilities.WebRequestRest
         protected abstract void ValidateAuthentication();
 
         /// <summary>
+        /// Setup the <see cref="DefaultRequestHeaders"/> for this client.
+        /// </summary>
+        protected abstract void SetupDefaultRequestHeaders();
+
+        /// <summary>
+        /// The default request headers for this <see cref="IClient"/>.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> DefaultRequestHeaders { get; protected set; }
+
+        /// <summary>
         /// Does the client currently have a valid loaded <see cref="TAuthentication"/>?
         /// </summary>
         public abstract bool HasValidAuthentication { get; }
@@ -45,7 +60,7 @@ namespace Utilities.WebRequestRest
         protected TAuthentication Authentication { get; }
 
         /// <summary>
-        /// The <see cref="TSettings"/> for this <see cref="IClient"/>
+        /// The <see cref="TSettings"/> for this <see cref="IClient"/>.
         /// </summary>
         public TSettings Settings { get; }
     }

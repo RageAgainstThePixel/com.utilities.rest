@@ -1,8 +1,5 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using System.Net.Http;
-using System.Text;
-
 namespace Utilities.Rest.Extensions
 {
     public static class StringExtensions
@@ -26,17 +23,6 @@ namespace Utilities.Rest.Extensions
 
             const string doneTag = "[DONE]";
             return eventData != doneTag;
-        }
-
-        /// <summary>
-        /// Converts a json string to <see cref="StringContent"/>.
-        /// </summary>
-        /// <param name="json">Json string input.</param>
-        /// <returns><see cref="StringContent"/></returns>
-        public static StringContent ToJsonStringContent(this string json)
-        {
-            const string jsonContent = "application/json";
-            return new StringContent(json, Encoding.UTF8, jsonContent);
         }
     }
 }
