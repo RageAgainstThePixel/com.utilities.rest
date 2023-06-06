@@ -723,22 +723,8 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            bool isCached;
-            string cachePath;
-
             if (url.Contains(fileUriPrefix))
             {
-                isCached = true;
-                cachePath = url;
-            }
-            else
-            {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
-            }
-
-            if (isCached)
-            {
-                url = cachePath;
                 // override the httpMethod
                 httpMethod = UnityWebRequest.kHttpVerbGET;
             }
@@ -781,51 +767,50 @@ namespace Utilities.WebRequestRest
             }
 
             parameters ??= new RestParameters();
-            var downloadHandler = new DownloadHandlerAudioClip(string.Empty, audioType)
+            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType)
             {
                 streamAudio = true // Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
             };
+
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
             parameters.DisposeDownloadHandler = false;
 
-            if (!isCached)
-            {
-                IProgress<Progress> progress = null;
+            IProgress<Progress> progress = null;
 
-                if (parameters.Progress != null)
+            if (parameters.Progress != null)
+            {
+                progress = parameters.Progress;
+            }
+
+            parameters.Progress = new Progress<Progress>(report =>
+            {
+                Debug.Log($"{report.Speed} {report.Unit} | {report.Percentage}% | Length: {report.Length} | Position: {report.Position}");
+                progress?.Report(report);
+
+                // only raise stream ready if we haven't assigned a clip yet.
+                if (clip != null)
                 {
-                    progress = parameters.Progress;
+                    return;
                 }
 
-                parameters.Progress = new Progress<Progress>(report =>
+                try
                 {
-                    progress?.Report(report);
-
-                    // only raise stream ready if we haven't assigned a clip yet.
-                    if (clip != null)
-                    {
-                        return;
-                    }
-
-                    try
+                    // ReSharper disable once AccessToDisposedClosure
+                    if (report.Position > playbackAmountThreshold || downloadHandler.isDone)
                     {
                         // ReSharper disable once AccessToDisposedClosure
-                        if (report.Position > playbackAmountThreshold || downloadHandler.isDone)
-                        {
-                            // ReSharper disable once AccessToDisposedClosure
-                            var tempClip = downloadHandler.audioClip;
-                            clip = tempClip;
-                            clip.name = Path.GetFileNameWithoutExtension(fileName);
-                            streamStarted = true;
-                            onStreamPlaybackReady?.Invoke(clip);
-                        }
+                        var tempClip = downloadHandler.audioClip;
+                        clip = tempClip;
+                        clip.name = Path.GetFileNameWithoutExtension(fileName);
+                        streamStarted = true;
+                        onStreamPlaybackReady?.Invoke(clip);
                     }
-                    catch (Exception)
-                    {
-                        // Ignored
-                    }
-                });
-            }
+                }
+                catch (Exception)
+                {
+                    // Ignored
+                }
+            });
 
             var response = await webRequest.SendAsync(parameters, cancellationToken);
 
@@ -835,26 +820,6 @@ namespace Utilities.WebRequestRest
                 return null;
             }
 
-            if (!isCached &&
-                !File.Exists(cachePath))
-            {
-                var fileStream = File.OpenWrite(cachePath);
-
-                try
-                {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Failed to write audio asset to disk! {e}");
-                }
-                finally
-                {
-                    await fileStream.DisposeAsync().ConfigureAwait(false);
-                }
-            }
-
-            await Awaiters.UnityMainThread;
             var loadedClip = downloadHandler.audioClip;
             loadedClip.name = Path.GetFileNameWithoutExtension(fileName);
 
@@ -864,7 +829,6 @@ namespace Utilities.WebRequestRest
                 onStreamPlaybackReady?.Invoke(loadedClip);
             }
 
-            downloadHandler.Dispose();
             return loadedClip;
         }
 
