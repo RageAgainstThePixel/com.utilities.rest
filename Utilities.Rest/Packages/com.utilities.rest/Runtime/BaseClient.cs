@@ -1,7 +1,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
-using System.Net.Http;
+using System.Collections.Generic;
 using System.Security.Authentication;
 using Utilities.WebRequestRest.Interfaces;
 
@@ -11,14 +11,6 @@ namespace Utilities.WebRequestRest
         where TAuthentication : IAuthentication
         where TSettings : ISettings
     {
-        protected BaseClient(TAuthentication authentication, TSettings settings, HttpClient httpClient)
-            : this(authentication, settings)
-        {
-            // ReSharper disable once VirtualMemberCallInConstructor
-            // Called from base type initializer
-            Client = SetupClient(httpClient);
-        }
-
         protected BaseClient(TAuthentication authentication, TSettings settings)
         {
             Authentication = authentication;
@@ -41,21 +33,24 @@ namespace Utilities.WebRequestRest
 
             // ReSharper disable once VirtualMemberCallInConstructor
             // Called from base type initializer
-            Client = SetupClient();
+            SetupDefaultRequestHeaders();
         }
-
-        /// <summary>
-        /// Setup the <see cref="HttpClient"/>
-        /// </summary>
-        /// <param name="httpClient"></param>
-        /// <returns><see cref="HttpClient"/></returns>
-        protected abstract HttpClient SetupClient(HttpClient httpClient = null);
 
         /// <summary>
         /// Validate the <see cref="TAuthentication"/> for this client.
         /// </summary>
         /// <exception cref="UnauthorizedAccessException"></exception>
         protected abstract void ValidateAuthentication();
+
+        /// <summary>
+        /// Setup the <see cref="DefaultRequestHeaders"/> for this client.
+        /// </summary>
+        protected abstract void SetupDefaultRequestHeaders();
+
+        /// <summary>
+        /// The default request headers for this <see cref="IClient"/>.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> DefaultRequestHeaders { get; protected set; }
 
         /// <summary>
         /// Does the client currently have a valid loaded <see cref="TAuthentication"/>?
@@ -65,13 +60,8 @@ namespace Utilities.WebRequestRest
         protected TAuthentication Authentication { get; }
 
         /// <summary>
-        /// The <see cref="TSettings"/> for this <see cref="IClient"/>
+        /// The <see cref="TSettings"/> for this <see cref="IClient"/>.
         /// </summary>
         public TSettings Settings { get; }
-
-        /// <summary>
-        /// <see cref="HttpClient"/> to use when making calls to the API.
-        /// </summary>
-        public HttpClient Client { get; private set; }
     }
 }

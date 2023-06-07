@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using Utilities.Async;
+using Debug = UnityEngine.Debug;
 
 namespace Utilities.WebRequestRest
 {
@@ -72,6 +74,24 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
+        /// <summary>
+        /// Rest GET.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="serverSentEventCallback"><see cref="Action{T}"/> server sent event callback.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> GetAsync(
+            string query,
+            Action<string> serverSentEventCallback,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            using var webRequest = UnityWebRequest.Get(query);
+            return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
+        }
+
         #endregion GET
 
         #region POST
@@ -100,9 +120,9 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
 #if UNITY_2022_2_OR_NEWER
-            using var webRequest = UnityWebRequest.PostWwwForm(query, null);
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #else
-            using var webRequest = UnityWebRequest.Post(query, null as string);
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #endif
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
@@ -164,16 +184,45 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
 #if UNITY_2022_2_OR_NEWER
-            using var webRequest = UnityWebRequest.PostWwwForm(query, UnityWebRequest.kHttpVerbPOST);
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #else
-            using var webRequest = UnityWebRequest.Post(query, UnityWebRequest.kHttpVerbPOST);
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             webRequest.uploadHandler = new UploadHandlerRaw(data);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/json");
-            webRequest.SetRequestHeader("Accept", "application/json");
             return await webRequest.SendAsync(parameters, cancellationToken);
+        }
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">JSON data for the request.</param>
+        /// <param name="serverSentEventCallback"><see cref="Action{T}"/> server sent event callback.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            string query,
+            string jsonData,
+            Action<string> serverSentEventCallback,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+#if UNITY_2022_2_OR_NEWER
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+#else
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+#endif
+            var data = new UTF8Encoding().GetBytes(jsonData);
+            using var uploadHandler = new UploadHandlerRaw(data);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+            return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
         }
 
         [Obsolete("Use new Overload: PostAsync(string, byte[], RestParameters, CancellationToken)")]
@@ -203,13 +252,38 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
 #if UNITY_2022_2_OR_NEWER
-            using var webRequest = UnityWebRequest.PostWwwForm(query, UnityWebRequest.kHttpVerbPOST);
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #else
-            using var webRequest = UnityWebRequest.Post(query, UnityWebRequest.kHttpVerbPOST);
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #endif
-            webRequest.uploadHandler = new UploadHandlerRaw(bodyData);
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            using var uploadHandler = new UploadHandlerRaw(bodyData);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            return await webRequest.SendAsync(parameters, cancellationToken);
+        }
+
+        public static async Task<Response> PostAsync(
+            string query,
+            List<IMultipartFormSection> form,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+#if UNITY_2022_2_OR_NEWER
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+#else
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+#endif
+            var boundary = UnityWebRequest.GenerateBoundary();
+            var formSections = UnityWebRequest.SerializeFormSections(form, boundary);
+            using var uploadHandler = new UploadHandlerRaw(formSections)
+            {
+                contentType = $"multipart/form-data; boundary={Encoding.UTF8.GetString(boundary)}"
+            };
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -1048,6 +1122,21 @@ namespace Utilities.WebRequestRest
             this UnityWebRequest webRequest,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
+            => await SendAsync(webRequest, parameters, null, cancellationToken);
+
+        /// <summary>
+        /// Process a <see cref="UnityWebRequest"/> asynchronously.
+        /// </summary>
+        /// <param name="webRequest">The <see cref="UnityWebRequest"/>.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="serverSentEventCallback">Optional, <see cref="Action{T}"/> server sent event callback.</param>
+        /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
+        /// <returns><see cref="Response"/></returns>
+        public static async Task<Response> SendAsync(
+            this UnityWebRequest webRequest,
+            RestParameters parameters = null,
+            Action<string> serverSentEventCallback = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -1064,20 +1153,21 @@ namespace Utilities.WebRequestRest
                 }
             }
 
-            var isUpload = webRequest.method is
+            var hasUpload = webRequest.method is
                 UnityWebRequest.kHttpVerbPOST or
                 UnityWebRequest.kHttpVerbPUT or
                 kHttpVerbPATCH;
 
             // HACK: Workaround for extra quotes around boundary.
-            if (isUpload)
+            if (hasUpload)
             {
-                var contentType = webRequest.GetRequestHeader("Content-Type");
+                const string CONTENT_TYPE = "Content-Type";
+                var contentType = webRequest.GetRequestHeader(CONTENT_TYPE);
 
                 if (!string.IsNullOrWhiteSpace(contentType))
                 {
-                    contentType = contentType.Replace("\"", "");
-                    webRequest.SetRequestHeader("Content-Type", contentType);
+                    contentType = contentType.Replace("\"", string.Empty);
+                    webRequest.SetRequestHeader(CONTENT_TYPE, contentType);
                 }
             }
 
@@ -1086,11 +1176,10 @@ namespace Utilities.WebRequestRest
             webRequest.disposeDownloadHandlerOnDispose = parameters?.DisposeDownloadHandler ?? true;
             webRequest.disposeUploadHandlerOnDispose = parameters?.DisposeUploadHandler ?? true;
 
-            Thread backgroundThread = null;
-
-            if (parameters is { Progress: not null })
+            if (parameters is { Progress: not null } ||
+                serverSentEventCallback != null)
             {
-                async void ProgressReportingThread()
+                async void CallbackThread()
                 {
                     var frame = 0;
 
@@ -1104,40 +1193,66 @@ namespace Utilities.WebRequestRest
                         const double gbSize = 1e+9;
                         const double tbSize = 1e+12;
 
+                        var prevLineCount = 0;
+
                         while (!webRequest.isDone)
                         {
-                            // Calculate the amount of bytes downloaded during this frame
-                            var bytesThisFrame = (webRequest.downloadedBytes * 8) / (frame++ * 0.5f);
-                            // Determine the appropriate data unit for the speed based on the size of bytes downloaded this frame
-                            var unit = bytesThisFrame switch
+                            if (serverSentEventCallback != null)
                             {
-                                _ when bytesThisFrame > tbSize => Progress.DataUnit.TB,
-                                _ when bytesThisFrame > gbSize => Progress.DataUnit.GB,
-                                _ when bytesThisFrame > mbSize => Progress.DataUnit.MB,
-                                _ when bytesThisFrame > kbSize => Progress.DataUnit.kB,
-                                _ => Progress.DataUnit.b
-                            };
-                            // Calculate the speed based on the size of bytes downloaded this frame and the appropriate data unit
-                            var speed = bytesThisFrame switch
-                            {
-                                _ when bytesThisFrame > tbSize => (float)Math.Round(bytesThisFrame / tbSize),
-                                _ when bytesThisFrame > gbSize => (float)Math.Round(bytesThisFrame / gbSize),
-                                _ when bytesThisFrame > mbSize => (float)Math.Round(bytesThisFrame / mbSize),
-                                _ when bytesThisFrame > kbSize => (float)Math.Round(bytesThisFrame / kbSize),
-                                _ => bytesThisFrame
-                            };
-                            // Determine the percentage of the download or upload that has been completed
-                            var percentage = isUpload ? webRequest.uploadProgress : webRequest.downloadProgress * 100f;
-                            // Get the content length of the download
-                            const string contentLength = "Content-Length";
+                                const string eventDelimiter = "data: ";
+                                var lines = webRequest.downloadHandler?.text
+                                    .Split(eventDelimiter)
+                                    .Where(line => line != string.Empty)
+                                    .ToArray();
 
-                            if (!ulong.TryParse(webRequest.GetResponseHeader(contentLength), out var length))
-                            {
-                                length = webRequest.downloadedBytes;
+                                if (lines != null)
+                                {
+                                    for (var i = prevLineCount; i < lines.Length; i++)
+                                    {
+                                        prevLineCount++;
+                                        serverSentEventCallback.Invoke(lines[i]);
+                                    }
+                                }
                             }
 
-                            // Report the progress using the progress handler provided by the caller
-                            parameters.Progress.Report(new Progress(webRequest.downloadedBytes, length, percentage, speed, unit));
+                            if (parameters is { Progress: not null })
+                            {
+                                // Calculate the amount of bytes downloaded during this frame
+                                var bytesThisFrame = (webRequest.downloadedBytes * 8) / (frame++ * 0.5f);
+                                // Determine the appropriate data unit for the speed based on the size of bytes downloaded this frame
+                                var unit = bytesThisFrame switch
+                                {
+                                    _ when bytesThisFrame > tbSize => Progress.DataUnit.TB,
+                                    _ when bytesThisFrame > gbSize => Progress.DataUnit.GB,
+                                    _ when bytesThisFrame > mbSize => Progress.DataUnit.MB,
+                                    _ when bytesThisFrame > kbSize => Progress.DataUnit.kB,
+                                    _ => Progress.DataUnit.b
+                                };
+                                // Calculate the speed based on the size of bytes downloaded this frame and the appropriate data unit
+                                var speed = bytesThisFrame switch
+                                {
+                                    _ when bytesThisFrame > tbSize => (float)Math.Round(bytesThisFrame / tbSize),
+                                    _ when bytesThisFrame > gbSize => (float)Math.Round(bytesThisFrame / gbSize),
+                                    _ when bytesThisFrame > mbSize => (float)Math.Round(bytesThisFrame / mbSize),
+                                    _ when bytesThisFrame > kbSize => (float)Math.Round(bytesThisFrame / kbSize),
+                                    _ => bytesThisFrame
+                                };
+
+                                // Determine the percentage of the download or upload that has been completed
+                                var percentage = hasUpload && webRequest.uploadProgress > 1f
+                                    ? webRequest.uploadProgress
+                                    : webRequest.downloadProgress;
+                                // Get the content length of the download
+                                const string CONTENT_LENGTH = "Content-Length";
+
+                                if (!ulong.TryParse(webRequest.GetResponseHeader(CONTENT_LENGTH), out var length))
+                                {
+                                    length = webRequest.downloadedBytes;
+                                }
+
+                                // Report the progress using the progress handler provided by the caller
+                                parameters.Progress.Report(new Progress(webRequest.downloadedBytes, length, percentage * 100f, speed, unit));
+                            }
 
                             if (cancellationToken.IsCancellationRequested)
                             {
@@ -1153,13 +1268,10 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-                backgroundThread = new Thread(ProgressReportingThread)
-                {
-                    IsBackground = true
-                };
+#pragma warning disable CS4014
+                Task.Run(CallbackThread, cancellationToken);
+#pragma warning restore CS4014
             }
-
-            backgroundThread?.Start();
 
             try
             {
@@ -1167,10 +1279,8 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                return new Response(false, $"{nameof(Rest)}.{nameof(SendAsync)}::Send Web Request Failed!\n{e}", null, -1, null);
+                return new Response(false, $"{nameof(Rest)}.{nameof(SendAsync)}::Send Web Request Failed!", null, -1, null, e.ToString());
             }
-
-            backgroundThread?.Join();
 
             parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
 
@@ -1178,26 +1288,22 @@ namespace Utilities.WebRequestRest
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
-                UnityWebRequest.Result.ProtocolError)
+                UnityWebRequest.Result.ProtocolError &&
+                webRequest.responseCode > 400)
             {
                 if (webRequest.responseCode == 401)
                 {
-                    return new Response(false, "Invalid Credentials", null, webRequest.responseCode, responseHeaders);
+                    return new Response(false, "Invalid Credentials", null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
                 }
 
-                if (responseHeaders == null)
-                {
-                    return new Response(false, "Invalid Headers", null, webRequest.responseCode, null);
-                }
-
-                var responseHeadersAsString = webRequest.GetResponseHeaders().Aggregate(string.Empty, (_, header) => $"\n{header.Key}: {header.Value}");
-                //Debug.LogError($"REST Error [{webRequest.responseCode}] {webRequest.downloadHandler?.error} {responseHeadersAsString}");
-                return new Response(false, $"{responseHeadersAsString}\n{webRequest.downloadHandler?.error}", null, webRequest.responseCode, responseHeaders);
+                return responseHeaders == null
+                    ? new Response(false, webRequest.downloadHandler?.text, null, webRequest.responseCode, new Dictionary<string, string> { { "Invalid Headers", "Invalid Headers" } }, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
+                    : new Response(false, webRequest.downloadHandler?.text, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
             }
 
-            if (!string.IsNullOrEmpty(webRequest.downloadHandler?.error))
+            if (webRequest.responseCode > 400)
             {
-                return new Response(false, webRequest.downloadHandler?.error, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders);
+                return new Response(false, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, webRequest.error);
             }
 
             return webRequest.downloadHandler switch
@@ -1210,6 +1316,34 @@ namespace Utilities.WebRequestRest
                 DownloadHandlerBuffer bufferDownloadHandler => new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
                 _ => new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
+        }
+
+        /// <summary>
+        /// Validates the <see cref="Response"/> and will throw a <see cref="RestException"/> if the response is unsuccessful.
+        /// </summary>
+        /// <param name="response"></param>
+        /// <param name="debug"></param>
+        /// <param name="methodName"></param>
+        /// <exception cref="RestException"></exception>
+        public static void ValidateResponse(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
+        {
+            if (!response.Successful)
+            {
+                var headersAsString = new StringBuilder();
+
+                foreach (var header in response.ResponseHeaders)
+                {
+                    headersAsString.AppendLine($"{header.Key}: {header.Value}");
+                }
+
+                throw new RestException(response.ResponseCode, $"[{(int)response.ResponseCode}] {methodName} Failed!\n{response.Error}\n[Headers]\n{headersAsString}\n[Body]\n{response.ResponseBody}");
+            }
+
+            if (debug &&
+                !string.IsNullOrWhiteSpace(response.ResponseBody))
+            {
+                Debug.Log(response.ResponseBody);
+            }
         }
     }
 }
