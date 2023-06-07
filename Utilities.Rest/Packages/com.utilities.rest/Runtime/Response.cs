@@ -30,6 +30,11 @@ namespace Utilities.WebRequestRest
         public long ResponseCode { get; }
 
         /// <summary>
+        /// Error string
+        /// </summary>
+        public string Error { get; }
+
+        /// <summary>
         /// Response headers from the resource.
         /// </summary>
         public IReadOnlyDictionary<string, string> ResponseHeaders { get; }
@@ -42,13 +47,15 @@ namespace Utilities.WebRequestRest
         /// <param name="responseData">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
         /// <param name="responseHeaders">Response headers from the resource.</param>
-        public Response(bool successful, string responseBody, byte[] responseData, long responseCode, IReadOnlyDictionary<string, string> responseHeaders)
+        /// <param name="error">Optional, error message from the resource.</param>
+        public Response(bool successful, string responseBody, byte[] responseData, long responseCode, IReadOnlyDictionary<string, string> responseHeaders, string error = null)
         {
             Successful = successful;
             ResponseBody = responseBody;
             ResponseData = responseData;
             ResponseCode = responseCode;
             ResponseHeaders = responseHeaders;
+            Error = error;
         }
     }
 }
