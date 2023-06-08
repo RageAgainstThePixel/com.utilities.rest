@@ -1302,15 +1302,10 @@ namespace Utilities.WebRequestRest
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
-                UnityWebRequest.Result.ProtocolError &&
+                UnityWebRequest.Result.ProtocolError ||
                 webRequest.responseCode > 400)
             {
                 return new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
-            }
-
-            if (webRequest.responseCode > 400)
-            {
-                return new Response(webRequest.url, false, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, webRequest.error);
             }
 
             return webRequest.downloadHandler switch
@@ -1328,9 +1323,9 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Validates the <see cref="Response"/> and will throw a <see cref="RestException"/> if the response is unsuccessful.
         /// </summary>
-        /// <param name="response"></param>
-        /// <param name="debug"></param>
-        /// <param name="methodName"></param>
+        /// <param name="response"><see cref="Response"/>.</param>
+        /// <param name="debug">Print debug information of <see cref="Response"/>.</param>
+        /// <param name="methodName">Optional, <see cref="CallerMemberNameAttribute"/>.</param>
         /// <exception cref="RestException"></exception>
         public static void Validate(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
         {
