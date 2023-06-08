@@ -1030,7 +1030,7 @@ namespace Utilities.WebRequestRest
 
                 if (!response.Successful)
                 {
-                    Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.ResponseCode}:{response.Body}");
+                    Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.Code}:{response.Body}");
                     return null;
                 }
 
@@ -1317,7 +1317,7 @@ namespace Utilities.WebRequestRest
         /// <param name="debug"></param>
         /// <param name="methodName"></param>
         /// <exception cref="RestException"></exception>
-        public static void ValidateResponse(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
+        public static void Validate(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
         {
             string ResponseToString()
             {
