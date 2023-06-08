@@ -24,8 +24,6 @@ namespace Utilities.WebRequestRest
         private const string kHttpVerbPATCH = "PATCH";
         private const string fileUriPrefix = "file://";
 
-        public static Dictionary<string, string> DefaultRequestHeaders { get; } = new Dictionary<string, string>();
-
         #region Authentication
 
         /// <summary>
@@ -1160,14 +1158,6 @@ namespace Utilities.WebRequestRest
             if (parameters is { Headers: not null })
             {
                 foreach (var header in parameters.Headers)
-                {
-                    webRequest.SetRequestHeader(header.Key, header.Value);
-                }
-            }
-
-            if (DefaultRequestHeaders != null)
-            {
-                foreach (var header in DefaultRequestHeaders)
                 {
                     webRequest.SetRequestHeader(header.Key, header.Value);
                 }
