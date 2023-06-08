@@ -158,6 +158,7 @@ PlayerSettings:
     Android: com.utilities.rest
     Lumin: com.Utilities.Rest
     Standalone: com.utilities.rest
+    iPhone: com.utilities.rest
   buildNumber:
     Standalone: 0
     iPhone: 0
@@ -786,7 +787,7 @@ PlayerSettings:
   metroCertificateNotAfter: 0000000000000000
   metroApplicationDescription: com.Utilities.Rest
   wsaImages: {}
-  metroTileShortName: 
+  metroTileShortName: Utilities.Rest
   metroTileShowName: 0
   metroMediumTileShowName: 0
   metroLargeTileShowName: 0
