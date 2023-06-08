@@ -1,7 +1,6 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Security.Authentication;
 using Utilities.WebRequestRest.Interfaces;
 
@@ -42,15 +41,7 @@ namespace Utilities.WebRequestRest
         /// <exception cref="UnauthorizedAccessException"></exception>
         protected abstract void ValidateAuthentication();
 
-        /// <summary>
-        /// Setup the <see cref="DefaultRequestHeaders"/> for this client.
-        /// </summary>
         protected abstract void SetupDefaultRequestHeaders();
-
-        /// <summary>
-        /// The default request headers for this <see cref="IClient"/>.
-        /// </summary>
-        public IReadOnlyDictionary<string, string> DefaultRequestHeaders { get; protected set; }
 
         /// <summary>
         /// Does the client currently have a valid loaded <see cref="TAuthentication"/>?
