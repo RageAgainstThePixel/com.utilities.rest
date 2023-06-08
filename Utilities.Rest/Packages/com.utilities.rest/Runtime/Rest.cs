@@ -1210,7 +1210,12 @@ namespace Utilities.WebRequestRest
                                     for (var i = prevLineCount; i < lines.Length; i++)
                                     {
                                         prevLineCount++;
-                                        serverSentEventCallback.Invoke(lines[i]);
+                                        var line = lines[i];
+
+                                        if (!string.IsNullOrWhiteSpace(line))
+                                        {
+                                            serverSentEventCallback.Invoke(line);
+                                        }
                                     }
                                 }
                             }
