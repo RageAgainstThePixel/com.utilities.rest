@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Utilities.WebRequestRest
 {
@@ -73,6 +74,53 @@ namespace Utilities.WebRequestRest
             Code = responseCode;
             Headers = headers;
             Error = error;
+        }
+
+        public override string ToString() => ToString(string.Empty);
+
+        public string ToString(string methodName)
+        {
+            var debugMessage = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(methodName))
+            {
+                debugMessage.Append($"{methodName} -> ");
+            }
+
+            debugMessage.Append($"<b>[{(int)Code}]</b> <color=\"cyan\">{Request}</color>");
+
+            if (!Successful)
+            {
+                debugMessage.Append(" <color=\"red\">Failed!</color>");
+            }
+
+            debugMessage.Append("\n");
+
+            if (Headers != null)
+            {
+                debugMessage.AppendLine("[Headers]");
+
+                foreach (var header in Headers)
+                {
+                    debugMessage.AppendLine($"{header.Key}: {header.Value}");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(Body))
+            {
+                debugMessage.AppendLine("[Body]");
+                debugMessage.Append(Body);
+                debugMessage.Append("\n");
+            }
+
+            if (!string.IsNullOrWhiteSpace(Error))
+            {
+                debugMessage.AppendLine("[Errors]");
+                debugMessage.Append(Error);
+                debugMessage.Append("\n");
+            }
+
+            return debugMessage.ToString();
         }
     }
 }

@@ -1334,61 +1334,14 @@ namespace Utilities.WebRequestRest
         /// <exception cref="RestException"></exception>
         public static void Validate(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
         {
-            string ResponseToString()
-            {
-                var debugMessage = new StringBuilder();
-                debugMessage.Append($"[{(int)response.Code}] {methodName}");
-
-                if (!response.Successful)
-                {
-                    debugMessage.Append(" Failed!");
-                }
-
-                debugMessage.Append($" -> {response.Request}");
-                debugMessage.Append("\n");
-
-                if (response.Headers != null)
-                {
-                    debugMessage.AppendLine("[Headers]");
-
-                    foreach (var header in response.Headers)
-                    {
-                        debugMessage.AppendLine($"{header.Key}: {header.Value}");
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(response.Body))
-                {
-                    debugMessage.AppendLine("[Body]");
-                    debugMessage.Append(response.Body);
-                    debugMessage.Append("\n");
-                }
-
-                if (!string.IsNullOrWhiteSpace(response.Error))
-                {
-                    debugMessage.AppendLine("[Errors]");
-                    debugMessage.Append(response.Error);
-                    debugMessage.Append("\n");
-                }
-
-                return debugMessage.ToString();
-            }
-
             if (!response.Successful)
             {
-                var headersAsString = new StringBuilder();
-
-                foreach (var header in response.Headers)
-                {
-                    headersAsString.AppendLine($"{header.Key}: {header.Value}");
-                }
-
-                throw new RestException(response.Code, ResponseToString());
+                throw new RestException(response);
             }
 
             if (debug)
             {
-                Debug.Log(ResponseToString());
+                Debug.Log(response.ToString(methodName));
             }
         }
     }

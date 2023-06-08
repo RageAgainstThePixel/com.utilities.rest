@@ -4,12 +4,12 @@ namespace Utilities.WebRequestRest
 {
     public class RestException : Exception
     {
-        public RestException(long statusCode, string message, Exception innerException = null)
-            : base(message, innerException)
+        public RestException(Response response, string message = null, Exception innerException = null)
+            : base(string.IsNullOrWhiteSpace(message) ? response.ToString() : message, innerException)
         {
-            StatusCode = statusCode;
+            Response = response;
         }
 
-        public long StatusCode { get; }
+        public Response Response { get; }
     }
 }
