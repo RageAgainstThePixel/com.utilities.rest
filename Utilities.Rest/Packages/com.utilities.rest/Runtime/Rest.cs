@@ -1302,7 +1302,7 @@ namespace Utilities.WebRequestRest
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
-                UnityWebRequest.Result.ProtocolError ||
+                UnityWebRequest.Result.ProtocolError &&
                 webRequest.responseCode > 400)
             {
                 return new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
