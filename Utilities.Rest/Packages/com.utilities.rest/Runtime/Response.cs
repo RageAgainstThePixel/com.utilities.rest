@@ -11,6 +11,11 @@ namespace Utilities.WebRequestRest
     public class Response
     {
         /// <summary>
+        /// The original request that prompted the response.
+        /// </summary>
+        public string Request { get; }
+
+        /// <summary>
         /// Was the REST call successful?
         /// </summary>
         public bool Successful { get; }
@@ -52,14 +57,16 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Constructor.
         /// </summary>
+        /// <param name="request">The request that prompted the response.</param>
         /// <param name="successful">Was the REST call successful?</param>
         /// <param name="body">Response body from the resource.</param>
         /// <param name="data">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
         /// <param name="headers">Response headers from the resource.</param>
         /// <param name="error">Optional, error message from the resource.</param>
-        public Response(bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        public Response(string request, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
         {
+            Request = request;
             Successful = successful;
             Body = body;
             Data = data;

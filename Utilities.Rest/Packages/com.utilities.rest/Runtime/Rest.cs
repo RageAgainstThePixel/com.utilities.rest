@@ -1279,42 +1279,34 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                return new Response(false, $"{nameof(Rest)}.{nameof(SendAsync)}::Send Web Request Failed!", null, -1, null, e.ToString());
+                return new Response(webRequest.url, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, e.ToString());
             }
 
             parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
-
-            var responseHeaders = webRequest.GetResponseHeaders();
+            var responseHeaders = webRequest.GetResponseHeaders() ?? new Dictionary<string, string> { { "Invalid Headers", "Invalid Headers" } };
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
                 UnityWebRequest.Result.ProtocolError &&
                 webRequest.responseCode > 400)
             {
-                if (webRequest.responseCode == 401)
-                {
-                    return new Response(false, "Invalid Credentials", null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
-                }
-
-                return responseHeaders == null
-                    ? new Response(false, webRequest.downloadHandler?.text, null, webRequest.responseCode, new Dictionary<string, string> { { "Invalid Headers", "Invalid Headers" } }, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
-                    : new Response(false, webRequest.downloadHandler?.text, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
+                return new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
             }
 
             if (webRequest.responseCode > 400)
             {
-                return new Response(false, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, webRequest.error);
+                return new Response(webRequest.url, false, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, webRequest.error);
             }
 
             return webRequest.downloadHandler switch
             {
-                DownloadHandlerFile => new Response(true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerScript => new Response(true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerTexture => new Response(true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAudioClip => new Response(true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAssetBundle => new Response(true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerBuffer bufferDownloadHandler => new Response(true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                _ => new Response(true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
+                DownloadHandlerFile => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerScript => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerTexture => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerAudioClip => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerAssetBundle => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
+                _ => new Response(webRequest.url, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
         }
 
@@ -1327,6 +1319,46 @@ namespace Utilities.WebRequestRest
         /// <exception cref="RestException"></exception>
         public static void ValidateResponse(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
         {
+            string ResponseToString()
+            {
+                var debugMessage = new StringBuilder();
+                debugMessage.Append($"[{(int)response.Code}] {methodName}");
+
+                if (!response.Successful)
+                {
+                    debugMessage.Append(" Failed!");
+                }
+
+                debugMessage.Append($" -> {response.Request}");
+                debugMessage.Append("\n");
+
+                if (response.Headers != null)
+                {
+                    debugMessage.AppendLine("[Headers]");
+
+                    foreach (var header in response.Headers)
+                    {
+                        debugMessage.AppendLine($"{header.Key}: {header.Value}");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(response.Body))
+                {
+                    debugMessage.AppendLine("[Body]");
+                    debugMessage.Append(response.Body);
+                    debugMessage.Append("\n");
+                }
+
+                if (!string.IsNullOrWhiteSpace(response.Error))
+                {
+                    debugMessage.AppendLine("[Errors]");
+                    debugMessage.Append(response.Error);
+                    debugMessage.Append("\n");
+                }
+
+                return debugMessage.ToString();
+            }
+
             if (!response.Successful)
             {
                 var headersAsString = new StringBuilder();
@@ -1336,13 +1368,12 @@ namespace Utilities.WebRequestRest
                     headersAsString.AppendLine($"{header.Key}: {header.Value}");
                 }
 
-                throw new RestException(response.Code, $"[{(int)response.Code}] {methodName} Failed!\n{response.Error}\n[Headers]\n{headersAsString}\n[Body]\n{response.Body}");
+                throw new RestException(response.Code, ResponseToString());
             }
 
-            if (debug &&
-                !string.IsNullOrWhiteSpace(response.Body))
+            if (debug)
             {
-                Debug.Log(response.Body);
+                Debug.Log(ResponseToString());
             }
         }
     }
