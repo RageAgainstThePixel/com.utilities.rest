@@ -189,8 +189,10 @@ namespace Utilities.WebRequestRest
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
 #endif
             var data = new UTF8Encoding().GetBytes(jsonData);
-            webRequest.uploadHandler = new UploadHandlerRaw(data);
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            using var uploadHandler = new UploadHandlerRaw(data);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader("Content-Type", "application/json");
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
@@ -637,6 +639,8 @@ namespace Utilities.WebRequestRest
             }
 
             using var webRequest = UnityWebRequestTexture.GetTexture(url);
+            parameters ??= new RestParameters();
+            parameters.DisposeDownloadHandler = false;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
 
             if (!response.Successful)
@@ -654,7 +658,7 @@ namespace Utilities.WebRequestRest
 
                 try
                 {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -662,7 +666,7 @@ namespace Utilities.WebRequestRest
                 }
                 finally
                 {
-                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                    await fileStream.DisposeAsync();
                 }
             }
 
@@ -728,6 +732,8 @@ namespace Utilities.WebRequestRest
             }
 
             using var webRequest = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
+            parameters ??= new RestParameters();
+            parameters.DisposeDownloadHandler = false;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
 
             if (!response.Successful)
@@ -746,7 +752,7 @@ namespace Utilities.WebRequestRest
 
                 try
                 {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
+                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -754,12 +760,13 @@ namespace Utilities.WebRequestRest
                 }
                 finally
                 {
-                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                    await fileStream.DisposeAsync();
                 }
             }
 
             await Awaiters.UnityMainThread;
             var clip = downloadHandler.audioClip;
+            downloadHandler.Dispose();
             clip.name = Path.GetFileNameWithoutExtension(cachePath);
             return clip;
         }
@@ -1020,6 +1027,7 @@ namespace Utilities.WebRequestRest
                 {
                     parameters ??= new RestParameters();
                     parameters.Timeout = options?.Timeout ?? -1;
+                    parameters.DisposeDownloadHandler = false;
                     response = await webRequest.SendAsync(parameters, cancellationToken);
                 }
                 catch (Exception e)
@@ -1035,7 +1043,9 @@ namespace Utilities.WebRequestRest
                 }
 
                 var downloadHandler = (DownloadHandlerAssetBundle)webRequest.downloadHandler;
-                return downloadHandler.assetBundle;
+                var assetBundle = downloadHandler.assetBundle;
+                downloadHandler.Dispose();
+                return assetBundle;
             }
         }
 
