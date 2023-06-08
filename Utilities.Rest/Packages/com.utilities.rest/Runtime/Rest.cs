@@ -1331,7 +1331,7 @@ namespace Utilities.WebRequestRest
             {
                 var headersAsString = new StringBuilder();
 
-                foreach (var header in response.ResponseHeaders)
+                foreach (var header in response.Headers)
                 {
                     headersAsString.AppendLine($"{header.Key}: {header.Value}");
                 }

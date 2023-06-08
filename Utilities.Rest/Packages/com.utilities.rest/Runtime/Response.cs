@@ -37,7 +37,7 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Response headers from the resource.
         /// </summary>
-        public IReadOnlyDictionary<string, string> ResponseHeaders { get; }
+        public IReadOnlyDictionary<string, string> Headers { get; }
 
         /// <summary>
         /// Constructor.
@@ -46,15 +46,15 @@ namespace Utilities.WebRequestRest
         /// <param name="responseBody">Response body from the resource.</param>
         /// <param name="responseData">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
-        /// <param name="responseHeaders">Response headers from the resource.</param>
+        /// <param name="headers">Response headers from the resource.</param>
         /// <param name="error">Optional, error message from the resource.</param>
-        public Response(bool successful, string responseBody, byte[] responseData, long responseCode, IReadOnlyDictionary<string, string> responseHeaders, string error = null)
+        public Response(bool successful, string responseBody, byte[] responseData, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
         {
             Successful = successful;
             ResponseBody = responseBody;
             ResponseData = responseData;
             ResponseCode = responseCode;
-            ResponseHeaders = responseHeaders;
+            Headers = headers;
             Error = error;
         }
     }
