@@ -1,5 +1,6 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 
 namespace Utilities.WebRequestRest
@@ -14,25 +15,29 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public bool Successful { get; }
 
+        [Obsolete("Use Response.Body")]
+        public string ResponseBody => Body;
+
         /// <summary>
         /// Response body from the resource.
         /// </summary>
-        public string ResponseBody { get; }
+        public string Body { get; }
+
+        [Obsolete("Use Response.Data")]
+        public byte[] ResponseData => Data;
 
         /// <summary>
         /// Response data from the resource.
         /// </summary>
-        public byte[] ResponseData { get; }
+        public byte[] Data { get; }
+
+        [Obsolete("Use Response.Code")]
+        public long ResponseCode => Code;
 
         /// <summary>
         /// Response code from the resource.
         /// </summary>
-        public long ResponseCode { get; }
-
-        /// <summary>
-        /// Error string
-        /// </summary>
-        public string Error { get; }
+        public long Code { get; }
 
         /// <summary>
         /// Response headers from the resource.
@@ -40,20 +45,25 @@ namespace Utilities.WebRequestRest
         public IReadOnlyDictionary<string, string> Headers { get; }
 
         /// <summary>
+        /// Error string
+        /// </summary>
+        public string Error { get; }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="successful">Was the REST call successful?</param>
-        /// <param name="responseBody">Response body from the resource.</param>
-        /// <param name="responseData">Response data from the resource.</param>
+        /// <param name="body">Response body from the resource.</param>
+        /// <param name="data">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
         /// <param name="headers">Response headers from the resource.</param>
         /// <param name="error">Optional, error message from the resource.</param>
-        public Response(bool successful, string responseBody, byte[] responseData, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        public Response(bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
         {
             Successful = successful;
-            ResponseBody = responseBody;
-            ResponseData = responseData;
-            ResponseCode = responseCode;
+            Body = body;
+            Data = data;
+            Code = responseCode;
             Headers = headers;
             Error = error;
         }

@@ -641,7 +641,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download texture from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
+                Debug.LogError($"Failed to download texture from \"{url}\"!\n[{response.Code}] {response.Body}");
                 return null;
             }
 
@@ -732,7 +732,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
+                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.Code}] {response.Body}");
 
                 return null;
             }
@@ -905,7 +905,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
+                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.Code}] {response.Body}");
                 return null;
             }
 
@@ -1030,7 +1030,7 @@ namespace Utilities.WebRequestRest
 
                 if (!response.Successful)
                 {
-                    Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.ResponseCode}:{response.ResponseBody}");
+                    Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.ResponseCode}:{response.Body}");
                     return null;
                 }
 
@@ -1090,7 +1090,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download file from \"{url}\"!\n[{response.ResponseCode}] {response.ResponseBody}");
+                Debug.LogError($"Failed to download file from \"{url}\"!\n[{response.Code}] {response.Body}");
 
                 return null;
             }
@@ -1336,13 +1336,13 @@ namespace Utilities.WebRequestRest
                     headersAsString.AppendLine($"{header.Key}: {header.Value}");
                 }
 
-                throw new RestException(response.ResponseCode, $"[{(int)response.ResponseCode}] {methodName} Failed!\n{response.Error}\n[Headers]\n{headersAsString}\n[Body]\n{response.ResponseBody}");
+                throw new RestException(response.Code, $"[{(int)response.Code}] {methodName} Failed!\n{response.Error}\n[Headers]\n{headersAsString}\n[Body]\n{response.Body}");
             }
 
             if (debug &&
-                !string.IsNullOrWhiteSpace(response.ResponseBody))
+                !string.IsNullOrWhiteSpace(response.Body))
             {
-                Debug.Log(response.ResponseBody);
+                Debug.Log(response.Body);
             }
         }
     }
