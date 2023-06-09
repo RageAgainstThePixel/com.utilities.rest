@@ -12,9 +12,9 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 - Select the `Package Manager`
 ![scoped-registries](Utilities.Rest/Packages/com.utilities.rest/Documentation~/images/package-manager-scopes.png)
 - Add the OpenUPM package registry:
-  - `Name: OpenUPM`
-  - `URL: https://package.openupm.com`
-  - `Scope(s):`
+  - Name: `OpenUPM`
+  - URL: `https://package.openupm.com`
+  - Scope(s):
     - `com.utilities`
 - Open the Unity Package Manager window
 - Change the Registry from Unity to `My Registries`
@@ -38,8 +38,10 @@ Advanced features includes progress notifications, authentication and native mul
 ### Table of contents
 
 - [Authentication](#authentication)
+- [Rest Parameters](#rest-parameters)
 - [Get](#get)
 - [Post](#post)
+  - [Server Sent Events](#server-sent-events)
 - [Put](#put)
 - [Patch](#patch)
 - [Delete](#delete)
@@ -61,92 +63,75 @@ var basicAuthentication = Rest.GetBasicAuthentication("username", "password");
 var bearerToken = Rest.GetBearerOAuthToken("authToken");
 ```
 
+### Rest Parameters
+
+Rest parameters have been bundled into a single object to make the method signatures a bit more uniform.
+
+```csharp
+var restParameters = new RestParameters(
+    headers, // Optional, header information for the request.
+    progressCallback, // Optional, Progress callback handler for the request.
+    timeout, // Optional, time in seconds before the request expires. Default is -1.
+    disposeDownloadHandler, // Optional, dispose the DownloadHandler. Default is true.
+    disposeUploadHandler, // Optional, dispose the UploadHandler. Default is true.
+    certificateHandler, // Optional, certificate handler for the request.
+    disposeCertificateHandler); // Optional, dispose the CertificateHandler. Default is true.
+var response = await Rest.GetAsync("www.your.api/endpoint", restParameters);
+```
+
 ### Get
 
 ```csharp
-Response response;
-
-try
-{
-    response = await Rest.GetAsync("www.your.api/endpoint");
-}
-catch (Exception e)
-{
-    Debug.LogError(e);
-}
-
-Debug.Log($"[{response.ResponseCode}] {response.ResponseBody}");
+var response = await Rest.GetAsync("www.your.api/endpoint");
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
 ```
 
 ### Post
 
 ```csharp
-Response response;
-byte[] someBinaryData = new byte[0];
+var form = new WWWForm();
+form.AddField("fieldName", "fieldValue");
+var response = await Rest.PostAsync("www.your.api/endpoint", form);
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
+```
 
-try
-{
-    response = await Rest.PostAsync("www.your.api/endpoint", someBinaryData);
-}
-catch (Exception e)
-{
-    Debug.LogError(e);
-}
+#### Server Sent Events
 
-Debug.Log($"[{response.ResponseCode}] {response.ResponseBody}");
+```csharp
+var jsonData = "{\"data\":\"content\"}";
+var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, eventData => {
+    Debug.Log(eventData);
+});
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
 ```
 
 ### Put
 
 ```csharp
-Response response;
-string jsonData = "{\"data\":\"content\"}";
-
-try
-{
-    response = await Rest.PutAsync("www.your.api/endpoint", jsonData);
-}
-catch (Exception e)
-{
-    Debug.LogError(e);
-}
-
-Debug.Log($"[{response.ResponseCode}] {response.ResponseBody}");
+var jsonData = "{\"data\":\"content\"}";
+var response = await Rest.PutAsync("www.your.api/endpoint", jsonData);
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
 ```
 
 ### Patch
 
 ```csharp
-Response response;
-string jsonData = "{\"data\":\"content\"}";
-
-try
-{
-    response = await Rest.PatchAsync("www.your.api/endpoint", jsonData);
-}
-catch (Exception e)
-{
-    Debug.LogError(e);
-}
-
-Debug.Log($"[{response.ResponseCode}] {response.ResponseBody}");
+var jsonData = "{\"data\":\"content\"}";
+var response = await Rest.PatchAsync("www.your.api/endpoint", jsonData);
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
 ```
 
 ### Delete
 
 ```csharp
-Response response;
-
-try
-{
-    response = await Rest.DeleteAsync("www.your.api/endpoint");
-}
-catch (Exception e)
-{
-    Debug.LogError(e);
-}
-
-Debug.Log($"[{response.ResponseCode}] {response.ResponseBody}");
+var response = await Rest.DeleteAsync("www.your.api/endpoint", restParameters);
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
 ```
 
 ### Multimedia
@@ -210,8 +195,8 @@ var audioClip = await Rest.DownloadAudioClipAsync("www.your.api/your_file.ogg", 
 
 if (audioClip != null)
 {
-    // assign it to your audio source
-    audioSource.clip = audioClip;
+// assign it to your audio source
+audioSource.clip = audioClip;
     audioSource.PlayOneShot(audioClip);
 }
 ```
@@ -224,12 +209,12 @@ Streams an audio file from disk or remote resource as soon as enough data has be
 > Seems to work better for local files on disk than remote resources.
 
 ```csharp
-var audioClip = await Rest.StreamAudioAsync("local/path/to/your_file.ogg", AudioType.OGGVORBIS, clip =>
+var audioClip = await Rest.StreamAudioAsync("local/path/to/your_file.ogg", AudioType.OGGVORBIS, onStreamPlaybackReady =>
 {
-    // assign it to your audio source
-    audioSource.clip = clip;
-    audioSource.PlayOneShot(clip);
+    audioSource.PlayOneShot(onStreamPlaybackReady);
 });
+// you can assign the fully downloaded clip to your audio source if desired
+audioSource.clip = audioClip;
 ```
 
 #### Asset Bundles
