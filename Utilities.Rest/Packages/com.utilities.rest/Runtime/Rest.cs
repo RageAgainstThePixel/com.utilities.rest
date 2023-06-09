@@ -738,9 +738,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.Code}] {response.Body}");
-
-                return null;
+                throw new RestException(response, $"Failed to download audio clip from \"{url}\"!\n{response.ToString(nameof(StreamAudioAsync))}");
             }
 
             var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
@@ -789,7 +787,7 @@ namespace Utilities.WebRequestRest
             string url,
             AudioType audioType,
             Action<AudioClip> onStreamPlaybackReady,
-            string httpMethod = UnityWebRequest.kHttpVerbGET,
+            string httpMethod = UnityWebRequest.kHttpVerbPOST,
             string fileName = null,
             string jsonData = null,
             byte[] payload = null,
@@ -804,22 +802,8 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            bool isCached;
-            string cachePath;
-
             if (url.Contains(fileUriPrefix))
             {
-                isCached = true;
-                cachePath = url;
-            }
-            else
-            {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
-            }
-
-            if (isCached)
-            {
-                url = cachePath;
                 // override the httpMethod
                 httpMethod = UnityWebRequest.kHttpVerbGET;
             }
@@ -862,82 +846,58 @@ namespace Utilities.WebRequestRest
             }
 
             parameters ??= new RestParameters();
-            var downloadHandler = new DownloadHandlerAudioClip(string.Empty, audioType)
+            parameters.DisposeUploadHandler = false;
+            parameters.DisposeDownloadHandler = false;
+            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType)
             {
                 streamAudio = true // Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
             };
+
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
-            parameters.DisposeDownloadHandler = false;
 
-            if (!isCached)
+            IProgress<Progress> progress = null;
+
+            if (parameters.Progress != null)
             {
-                IProgress<Progress> progress = null;
-
-                if (parameters.Progress != null)
-                {
-                    progress = parameters.Progress;
-                }
-
-                parameters.Progress = new Progress<Progress>(report =>
-                {
-                    progress?.Report(report);
-
-                    // only raise stream ready if we haven't assigned a clip yet.
-                    if (clip != null)
-                    {
-                        return;
-                    }
-
-                    try
-                    {
-                        // ReSharper disable once AccessToDisposedClosure
-                        if (report.Position > playbackAmountThreshold || downloadHandler.isDone)
-                        {
-                            // ReSharper disable once AccessToDisposedClosure
-                            var tempClip = downloadHandler.audioClip;
-                            clip = tempClip;
-                            clip.name = Path.GetFileNameWithoutExtension(fileName);
-                            streamStarted = true;
-                            onStreamPlaybackReady?.Invoke(clip);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Ignored
-                    }
-                });
+                progress = parameters.Progress;
             }
 
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
-
-            if (!response.Successful)
+            parameters.Progress = new Progress<Progress>(report =>
             {
-                Debug.LogError($"Failed to download audio clip from \"{url}\"!\n[{response.Code}] {response.Body}");
-                return null;
-            }
+                progress?.Report(report);
 
-            if (!isCached &&
-                !File.Exists(cachePath))
-            {
-                var fileStream = File.OpenWrite(cachePath);
+                // only raise stream ready if we haven't assigned a clip yet.
+                if (clip != null) { return; }
 
                 try
                 {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken).ConfigureAwait(false);
+                    // ReSharper disable once AccessToDisposedClosure
+                    if (report.Position > playbackAmountThreshold || downloadHandler.isDone)
+                    {
+                        // ReSharper disable once AccessToDisposedClosure
+                        var tempClip = downloadHandler.audioClip;
+                        clip = tempClip;
+                        clip.name = Path.GetFileNameWithoutExtension(fileName);
+                        streamStarted = true;
+                        onStreamPlaybackReady?.Invoke(clip);
+                    }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    Debug.LogError($"Failed to write audio asset to disk! {e}");
+                    // Ignored
                 }
-                finally
-                {
-                    await fileStream.DisposeAsync().ConfigureAwait(false);
-                }
-            }
+            });
 
-            await Awaiters.UnityMainThread;
+            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            uploadHandler?.Dispose();
+            response.Validate(true);
+
             var loadedClip = downloadHandler.audioClip;
-            loadedClip.name = Path.GetFileNameWithoutExtension(fileName);
+
+            if (loadedClip != null)
+            {
+                loadedClip.name = Path.GetFileNameWithoutExtension(fileName);
+            }
 
             if (!streamStarted)
             {
@@ -945,7 +905,6 @@ namespace Utilities.WebRequestRest
                 onStreamPlaybackReady?.Invoke(loadedClip);
             }
 
-            downloadHandler.Dispose();
             return loadedClip;
         }
 
@@ -1305,7 +1264,16 @@ namespace Utilities.WebRequestRest
                 UnityWebRequest.Result.ProtocolError &&
                 webRequest.responseCode is 0 or >= 400)
             {
-                return new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}");
+                return webRequest.downloadHandler switch
+                {
+                    DownloadHandlerFile => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerScript => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerTexture => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAudioClip => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAssetBundle => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    _ => new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
+                };
             }
 
             return webRequest.downloadHandler switch
