@@ -23,6 +23,8 @@ namespace Utilities.WebRequestRest
     {
         private const string kHttpVerbPATCH = "PATCH";
         private const string fileUriPrefix = "file://";
+        private const string eventDelimiter = "data: ";
+        private const string stopEventDelimiter = "[DONE]";
 
         #region Authentication
 
@@ -1162,31 +1164,11 @@ namespace Utilities.WebRequestRest
                         const double gbSize = 1e+9;
                         const double tbSize = 1e+12;
 
-                        var prevLineCount = 0;
-
                         while (!webRequest.isDone)
                         {
                             if (serverSentEventCallback != null)
                             {
-                                const string eventDelimiter = "data: ";
-                                var lines = webRequest.downloadHandler?.text
-                                    .Split(eventDelimiter)
-                                    .Where(line => line != string.Empty)
-                                    .ToArray();
-
-                                if (lines != null)
-                                {
-                                    for (var i = prevLineCount; i < lines.Length; i++)
-                                    {
-                                        prevLineCount++;
-                                        var line = lines[i];
-
-                                        if (!string.IsNullOrWhiteSpace(line))
-                                        {
-                                            serverSentEventCallback.Invoke(line);
-                                        }
-                                    }
-                                }
+                                SendServerEventCallback();
                             }
 
                             if (parameters is { Progress: not null })
@@ -1276,6 +1258,11 @@ namespace Utilities.WebRequestRest
                 };
             }
 
+            if (serverSentEventCallback != null)
+            {
+                SendServerEventCallback();
+            }
+
             return webRequest.downloadHandler switch
             {
                 DownloadHandlerFile => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
@@ -1286,6 +1273,30 @@ namespace Utilities.WebRequestRest
                 DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
                 _ => new Response(webRequest.url, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
+
+            void SendServerEventCallback()
+            {
+                parameters ??= new RestParameters();
+                var lines = webRequest.downloadHandler?.text
+                    .Split(eventDelimiter)
+                    .Where(line => line != string.Empty)
+                    .ToArray();
+
+                if (lines != null)
+                {
+                    for (var i = parameters.ServerSentEventCount; i < lines.Length; i++)
+                    {
+                        parameters.ServerSentEventCount++;
+                        var line = lines[i];
+
+                        if (!string.IsNullOrWhiteSpace(line) &&
+                            !line.Contains(stopEventDelimiter))
+                        {
+                            serverSentEventCallback.Invoke(line);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

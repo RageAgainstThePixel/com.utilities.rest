@@ -76,5 +76,7 @@ namespace Utilities.WebRequestRest
         /// Default is true.
         /// </summary>
         public bool DisposeUploadHandler { get; internal set; }
+
+        internal int ServerSentEventCount { get; set; }
     }
 }
