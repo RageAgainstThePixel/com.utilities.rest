@@ -49,17 +49,6 @@ namespace Utilities.WebRequestRest
 
         #region GET
 
-        [Obsolete("Use new Overload: GetAsync(string, RestParameters, CancellationToken)")]
-        public static async Task<Response> GetAsync(
-            string query,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await GetAsync(query, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Rest GET.
         /// </summary>
@@ -98,17 +87,6 @@ namespace Utilities.WebRequestRest
 
         #region POST
 
-        [Obsolete("Use new Overload: PostAsync(string, RestParameters, CancellationToken)")]
-        public static async Task<Response> PostAsync(
-            string query,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PostAsync(query, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Rest POST.
         /// </summary>
@@ -129,18 +107,6 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
-        [Obsolete("Use new Overload: PostAsync(string, WWWForm, RestParameters, CancellationToken)")]
-        public static async Task<Response> PostAsync(
-            string query,
-            WWWForm formData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PostAsync(query, formData, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Rest POST.
         /// </summary>
@@ -157,18 +123,6 @@ namespace Utilities.WebRequestRest
         {
             using var webRequest = UnityWebRequest.Post(query, formData);
             return await webRequest.SendAsync(parameters, cancellationToken);
-        }
-
-        [Obsolete("Use new Overload: PostAsync(string, string, RestParameters, CancellationToken)")]
-        public static async Task<Response> PostAsync(
-            string query,
-            string jsonData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PostAsync(query, jsonData, new RestParameters(headers, progress, timeout), cancellationToken);
         }
 
         /// <summary>
@@ -227,18 +181,6 @@ namespace Utilities.WebRequestRest
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader("Content-Type", "application/json");
             return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
-        }
-
-        [Obsolete("Use new Overload: PostAsync(string, byte[], RestParameters, CancellationToken)")]
-        public static async Task<Response> PostAsync(
-            string query,
-            byte[] bodyData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PostAsync(query, bodyData, new RestParameters(headers, progress, timeout), cancellationToken);
         }
 
         /// <summary>
@@ -295,18 +237,6 @@ namespace Utilities.WebRequestRest
 
         #region PUT
 
-        [Obsolete("Use new Overload: PutAsync(string, string, RestParameters, CancellationToken)")]
-        public static async Task<Response> PutAsync(
-            string query,
-            string jsonData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PutAsync(query, jsonData, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Rest PUT.
         /// </summary>
@@ -324,18 +254,6 @@ namespace Utilities.WebRequestRest
             using var webRequest = UnityWebRequest.Put(query, jsonData);
             webRequest.SetRequestHeader("Content-Type", "application/json");
             return await webRequest.SendAsync(parameters, cancellationToken);
-        }
-
-        [Obsolete("Use new Overload: PutAsync(string, byte[], RestParameters, CancellationToken)")]
-        public static async Task<Response> PutAsync(
-            string query,
-            byte[] bodyData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PutAsync(query, bodyData, new RestParameters(headers, progress, timeout), cancellationToken);
         }
 
         /// <summary>
@@ -361,18 +279,6 @@ namespace Utilities.WebRequestRest
 
         #region PATCH
 
-        [Obsolete("Use new Overload: PatchAsync(string, string, RestParameters, CancellationToken)")]
-        public static async Task<Response> PatchAsync(
-            string query,
-            string jsonData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PatchAsync(query, jsonData, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Rest PATCH.
         /// </summary>
@@ -391,18 +297,6 @@ namespace Utilities.WebRequestRest
             webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader("Content-Type", "application/json");
             return await webRequest.SendAsync(parameters, cancellationToken);
-        }
-
-        [Obsolete("Use new Overload: PatchAsync(string, byte[], RestParameters, CancellationToken)")]
-        public static async Task<Response> PatchAsync(
-            string query,
-            byte[] bodyData,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await PatchAsync(query, bodyData, new RestParameters(headers, progress, timeout), cancellationToken);
         }
 
         /// <summary>
@@ -429,17 +323,6 @@ namespace Utilities.WebRequestRest
 
         #region DELETE
 
-        [Obsolete("Use new Overload: DeleteAsync(string, RestParameters, CancellationToken)")]
-        public static async Task<Response> DeleteAsync(
-            string query,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await DeleteAsync(query, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Rest DELETE.
         /// </summary>
@@ -453,6 +336,8 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Delete(query);
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -589,18 +474,6 @@ namespace Utilities.WebRequestRest
 
         #endregion Download Cache
 
-        [Obsolete("Use new Overload: DownloadTextureAsync(string, string, RestParameters, CancellationToken)")]
-        public static async Task<Texture2D> DownloadTextureAsync(
-            string url,
-            string fileName = null,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadTextureAsync(url, fileName, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
@@ -677,19 +550,6 @@ namespace Utilities.WebRequestRest
             downloadHandler.Dispose();
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
-        }
-
-        [Obsolete("Use new Overload: DownloadAudioClipAsync(string, AudioType, string, RestParameters, CancellationToken)")]
-        public static async Task<AudioClip> DownloadAudioClipAsync(
-            string url,
-            AudioType audioType,
-            string fileName = null,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadAudioClipAsync(url, audioType, fileName, new RestParameters(headers, progress, timeout), cancellationToken);
         }
 
         /// <summary>
@@ -912,18 +772,6 @@ namespace Utilities.WebRequestRest
 
 #if UNITY_ADDRESSABLES
 
-        [Obsolete("Use new Overload: DownloadAssetBundleAsync(string, AssetBundleRequestOptions, RestParameters, CancellationToken)")]
-        public static async Task<AssetBundle> DownloadAssetBundleAsync(
-            string url,
-            UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadAssetBundleAsync(url, options, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Download a <see cref="AssetBundle"/> from the provided <see cref="url"/>.
         /// </summary>
@@ -1012,18 +860,6 @@ namespace Utilities.WebRequestRest
 
 #endif // UNITY_ADDRESSABLES
 
-        [Obsolete("Use new Overload: DownloadFileAsync(string, string, RestParameters, CancellationToken)")]
-        public static async Task<string> DownloadFileAsync(
-            string url,
-            string fileName = null,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadFileAsync(url, fileName, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
-
         /// <summary>
         /// Download a file from the provided <see cref="url"/>.
         /// </summary>
@@ -1070,17 +906,6 @@ namespace Utilities.WebRequestRest
         }
 
         #endregion Get Multimedia Content
-
-        [Obsolete("Use new Overload: SendAsync(UnityWebRequest, RestParameters, CancellationToken)")]
-        public static async Task<Response> SendAsync(
-            this UnityWebRequest webRequest,
-            Dictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int timeout = -1,
-            CancellationToken cancellationToken = default)
-        {
-            return await SendAsync(webRequest, new RestParameters(headers, progress, timeout), cancellationToken);
-        }
 
         /// <summary>
         /// Process a <see cref="UnityWebRequest"/> asynchronously.

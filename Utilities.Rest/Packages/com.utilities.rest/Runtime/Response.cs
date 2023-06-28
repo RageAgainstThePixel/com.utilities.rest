@@ -1,6 +1,5 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -21,24 +20,15 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public bool Successful { get; }
 
-        [Obsolete("Use Response.Body")]
-        public string ResponseBody => Body;
-
         /// <summary>
         /// Response body from the resource.
         /// </summary>
         public string Body { get; }
 
-        [Obsolete("Use Response.Data")]
-        public byte[] ResponseData => Data;
-
         /// <summary>
         /// Response data from the resource.
         /// </summary>
         public byte[] Data { get; }
-
-        [Obsolete("Use Response.Code")]
-        public long ResponseCode => Code;
 
         /// <summary>
         /// Response code from the resource.
@@ -104,6 +94,11 @@ namespace Utilities.WebRequestRest
                 {
                     debugMessage.AppendLine($"{header.Key}: {header.Value}");
                 }
+            }
+
+            if (Data is { Length: > 0 })
+            {
+                debugMessage.AppendLine($"[Data] {Data.Length} bytes");
             }
 
             if (!string.IsNullOrWhiteSpace(Body))
