@@ -463,7 +463,7 @@ namespace Utilities.WebRequestRest
         /// <param name="url">The url to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
         /// <returns>True, if a valid filename is found.</returns>
-        private static bool TryGetFileNameFromUrl(string url, out string fileName)
+        public static bool TryGetFileNameFromUrl(string url, out string fileName)
         {
             var baseUrl = UnityWebRequest.UnEscapeURL(url);
             var rootUrl = baseUrl.Split("?")[0];

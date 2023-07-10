@@ -26,6 +26,7 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 - Add package from git url: `https://github.com/RageAgainstThePixel/com.utilities.rest.git#upm`
   > Note: this repo has dependencies on other repositories! You are responsible for adding these on your own.
   - [com.utilities.async](https://github.com/RageAgainstThePixel/com.utilities.async)
+  - [com.utilities.extensions](https://github.com/RageAgainstThePixel/com.utilities.extensions)
 
 ---
 
