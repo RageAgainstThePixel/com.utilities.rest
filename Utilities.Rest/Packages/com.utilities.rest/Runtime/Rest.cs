@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using Utilities.Async;
+using Utilities.Rest;
 using Utilities.WebRequestRest.Interfaces;
 using Debug = UnityEngine.Debug;
 
@@ -348,7 +349,11 @@ namespace Utilities.WebRequestRest
 
         #region Download Cache
 
+#if UNITY_WEBGL
+        private static IDownloadCache Cache { get; } = new NoOpDownloadCache();
+#else
         private static IDownloadCache Cache { get; } = new DiskDownloadCache();
+#endif
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
