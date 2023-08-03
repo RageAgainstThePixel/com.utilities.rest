@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using Utilities.Async;
+using Utilities.WebRequestRest.Interfaces;
 using Debug = UnityEngine.Debug;
 
 namespace Utilities.WebRequestRest
@@ -347,43 +348,22 @@ namespace Utilities.WebRequestRest
 
         #region Download Cache
 
-        private const string DOWNLOAD_CACHE = "download_cache";
-
-        /// <summary>
-        /// Generates a <see cref="Guid"/> based on the string.
-        /// </summary>
-        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
-        /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
-        private static Guid GenerateGuid(string @string)
-        {
-            using MD5 md5 = MD5.Create();
-            return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
-        }
-
-        /// <summary>
-        /// The download cache directory.<br/>
-        /// </summary>
-        public static string DownloadCacheDirectory
-            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
+        private static IDownloadCache Cache { get; } = new DownloadCache();
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
         /// </summary>
         public static void ValidateCacheDirectory()
         {
-            if (!Directory.Exists(DownloadCacheDirectory))
-            {
-                Directory.CreateDirectory(DownloadCacheDirectory);
-            }
+            Cache.ValidateCacheDirectory();
         }
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
         /// </summary>
-        public static async Task ValidateCacheDirectoryAsync()
+        public static Task ValidateCacheDirectoryAsync()
         {
-            await Awaiters.UnityMainThread;
-            ValidateCacheDirectory();
+            return Cache.ValidateCacheDirectoryAsync();
         }
 
         /// <summary>
@@ -394,32 +374,7 @@ namespace Utilities.WebRequestRest
         /// <returns>True, if the item was in cache, otherwise false.</returns>
         public static bool TryGetDownloadCacheItem(string uri, out string filePath)
         {
-            ValidateCacheDirectory();
-            bool exists;
-
-            if (uri.Contains(fileUriPrefix))
-            {
-                filePath = uri;
-                return File.Exists(uri.Replace(fileUriPrefix, string.Empty));
-            }
-
-            if (TryGetFileNameFromUrl(uri, out var fileName))
-            {
-                filePath = Path.Combine(DownloadCacheDirectory, fileName);
-                exists = File.Exists(filePath);
-            }
-            else
-            {
-                filePath = Path.Combine(DownloadCacheDirectory, GenerateGuid(uri).ToString());
-                exists = File.Exists(filePath);
-            }
-
-            if (exists)
-            {
-                filePath = $"{fileUriPrefix}{Path.GetFullPath(filePath)}";
-            }
-
-            return exists;
+            return Cache.TryGetDownloadCacheItem(uri, out filePath);
         }
 
         /// <summary>
@@ -429,21 +384,7 @@ namespace Utilities.WebRequestRest
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
         {
-            if (!TryGetDownloadCacheItem(uri, out var filePath))
-            {
-                return false;
-            }
-
-            try
-            {
-                File.Delete(filePath);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);
-            }
-
-            return !File.Exists(filePath);
+            return Cache.TryDeleteCacheItem(uri);
         }
 
         /// <summary>
@@ -451,10 +392,7 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public static void DeleteDownloadCache()
         {
-            if (Directory.Exists(DownloadCacheDirectory))
-            {
-                Directory.Delete(DownloadCacheDirectory, true);
-            }
+            Cache.DeleteDownloadCache();
         }
 
         /// <summary>
