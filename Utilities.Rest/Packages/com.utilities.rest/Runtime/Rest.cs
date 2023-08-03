@@ -348,7 +348,7 @@ namespace Utilities.WebRequestRest
 
         #region Download Cache
 
-        private static IDownloadCache Cache { get; } = new DownloadCache();
+        private static IDownloadCache Cache { get; } = new DiskDownloadCache();
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.

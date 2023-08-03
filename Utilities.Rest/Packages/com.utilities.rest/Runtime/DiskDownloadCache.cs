@@ -10,7 +10,7 @@ using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
 {
-    public class DownloadCache : IDownloadCache
+    public class DiskDownloadCache : IDownloadCache
     {
         private const string fileUriPrefix = "file://";
         private const string DOWNLOAD_CACHE = "download_cache";
@@ -118,7 +118,7 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                Debug.LogError($"Failed to write audio asset to disk! {e}");
+                Debug.LogError($"Failed to write asset to disk! {e}");
             }
             finally
             {
