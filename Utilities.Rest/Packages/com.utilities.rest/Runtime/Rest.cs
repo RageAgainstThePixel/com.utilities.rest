@@ -464,23 +464,9 @@ namespace Utilities.WebRequestRest
 
             var downloadHandler = (DownloadHandlerTexture)webRequest.downloadHandler;
 
-            if (!isCached &&
-                !File.Exists(cachePath))
+            if (!isCached)
             {
-                var fileStream = File.OpenWrite(cachePath);
-
-                try
-                {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Failed to write texture to disk!\n{e}");
-                }
-                finally
-                {
-                    await fileStream.DisposeAsync();
-                }
+                await CacheItemToPath(downloadHandler.data, cachePath, cancellationToken);
             }
 
             await Awaiters.UnityMainThread;
@@ -488,6 +474,29 @@ namespace Utilities.WebRequestRest
             downloadHandler.Dispose();
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
+        }
+
+        public static async Task CacheItemToPath(byte[] data, string cachePath, CancellationToken cancellationToken)
+        {
+            if (File.Exists(cachePath))
+            {
+                return;
+            }
+
+            var fileStream = File.OpenWrite(cachePath);
+
+            try
+            {
+                await fileStream.WriteAsync(data, 0, data.Length, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to write audio asset to disk! {e}");
+            }
+            finally
+            {
+                await fileStream.DisposeAsync();
+            }
         }
 
         /// <summary>
@@ -543,23 +552,9 @@ namespace Utilities.WebRequestRest
 
             var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
 
-            if (!isCached &&
-                !File.Exists(cachePath))
+            if (!isCached)
             {
-                var fileStream = File.OpenWrite(cachePath);
-
-                try
-                {
-                    await fileStream.WriteAsync(downloadHandler.data, 0, downloadHandler.data.Length, cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Failed to write audio asset to disk! {e}");
-                }
-                finally
-                {
-                    await fileStream.DisposeAsync();
-                }
+                await CacheItemToPath(downloadHandler.data, cachePath, cancellationToken);
             }
 
             await Awaiters.UnityMainThread;
