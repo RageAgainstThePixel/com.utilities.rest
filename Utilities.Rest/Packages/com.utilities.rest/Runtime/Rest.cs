@@ -433,18 +433,8 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            bool isCached;
             string cachePath;
-
-            if (url.Contains(fileUriPrefix))
-            {
-                isCached = true;
-                cachePath = url;
-            }
-            else
-            {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
-            }
+            bool isCached = TryGetDownloadCacheItem(fileName, out cachePath);
 
             if (isCached)
             {
@@ -466,7 +456,7 @@ namespace Utilities.WebRequestRest
 
             if (!isCached)
             {
-                await CacheItemToPath(downloadHandler.data, cachePath, cancellationToken);
+                await Cache.CacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
             }
 
             await Awaiters.UnityMainThread;
@@ -474,29 +464,6 @@ namespace Utilities.WebRequestRest
             downloadHandler.Dispose();
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
-        }
-
-        public static async Task CacheItemToPath(byte[] data, string cachePath, CancellationToken cancellationToken)
-        {
-            if (File.Exists(cachePath))
-            {
-                return;
-            }
-
-            var fileStream = File.OpenWrite(cachePath);
-
-            try
-            {
-                await fileStream.WriteAsync(data, 0, data.Length, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to write audio asset to disk! {e}");
-            }
-            finally
-            {
-                await fileStream.DisposeAsync();
-            }
         }
 
         /// <summary>
@@ -522,18 +489,8 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            bool isCached;
             string cachePath;
-
-            if (url.Contains(fileUriPrefix))
-            {
-                isCached = true;
-                cachePath = url;
-            }
-            else
-            {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
-            }
+            bool isCached = TryGetDownloadCacheItem(fileName, out cachePath);
 
             if (isCached)
             {
@@ -554,7 +511,7 @@ namespace Utilities.WebRequestRest
 
             if (!isCached)
             {
-                await CacheItemToPath(downloadHandler.data, cachePath, cancellationToken);
+                await Cache.CacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
             }
 
             await Awaiters.UnityMainThread;

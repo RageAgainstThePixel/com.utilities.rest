@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace Utilities.WebRequestRest.Interfaces
 {
@@ -9,5 +10,6 @@ namespace Utilities.WebRequestRest.Interfaces
         bool TryGetDownloadCacheItem(string uri, out string filePath);
         bool TryDeleteCacheItem(string uri);
         void DeleteDownloadCache();
+        Task CacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken);
     }
 }

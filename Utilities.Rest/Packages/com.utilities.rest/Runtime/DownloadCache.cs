@@ -2,6 +2,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using Utilities.Async;
@@ -99,6 +100,29 @@ namespace Utilities.WebRequestRest
             if (Directory.Exists(DownloadCacheDirectory))
             {
                 Directory.Delete(DownloadCacheDirectory, true);
+            }
+        }
+
+        public async Task CacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
+        {
+            if (File.Exists(cachePath))
+            {
+                return;
+            }
+
+            var fileStream = File.OpenWrite(cachePath);
+
+            try
+            {
+                await fileStream.WriteAsync(data, 0, data.Length, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to write audio asset to disk! {e}");
+            }
+            finally
+            {
+                await fileStream.DisposeAsync();
             }
         }
     }
