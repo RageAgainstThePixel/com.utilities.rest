@@ -1,20 +1,16 @@
-﻿using System.Threading;
+﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+
+using System.Threading;
 using System.Threading.Tasks;
 using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.Rest
 {
-    public class NoOpDownloadCache : IDownloadCache
+    internal class NoOpDownloadCache : IDownloadCache
     {
-        public void ValidateCacheDirectory()
-        {
+        public void ValidateCacheDirectory() { }
 
-        }
-
-        public Task ValidateCacheDirectoryAsync()
-        {
-            return Task.CompletedTask;
-        }
+        public Task ValidateCacheDirectoryAsync() => Task.CompletedTask;
 
         public bool TryGetDownloadCacheItem(string uri, out string filePath)
         {
@@ -22,19 +18,10 @@ namespace Utilities.Rest
             return false;
         }
 
-        public bool TryDeleteCacheItem(string uri)
-        {
-            return true;
-        }
+        public bool TryDeleteCacheItem(string uri) => true;
 
-        public void DeleteDownloadCache()
-        {
+        public void DeleteDownloadCache() { }
 
-        }
-
-        public Task CacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+        public Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

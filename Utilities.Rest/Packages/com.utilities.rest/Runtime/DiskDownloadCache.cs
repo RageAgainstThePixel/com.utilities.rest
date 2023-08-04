@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+
+using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,10 +12,9 @@ using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
 {
-    public class DiskDownloadCache : IDownloadCache
+    internal class DiskDownloadCache : IDownloadCache
     {
         private const string fileUriPrefix = "file://";
-        private const string DOWNLOAD_CACHE = "download_cache";
 
         /// <summary>
         /// Generates a <see cref="Guid"/> based on the string.
@@ -26,17 +27,11 @@ namespace Utilities.WebRequestRest
             return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
         }
 
-        /// <summary>
-        /// The download cache directory.<br/>
-        /// </summary>
-        private static string DownloadCacheDirectory
-            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
-
         public void ValidateCacheDirectory()
         {
-            if (!Directory.Exists(DownloadCacheDirectory))
+            if (!Directory.Exists(Rest.DownloadCacheDirectory))
             {
-                Directory.CreateDirectory(DownloadCacheDirectory);
+                Directory.CreateDirectory(Rest.DownloadCacheDirectory);
             }
         }
 
@@ -59,12 +54,12 @@ namespace Utilities.WebRequestRest
 
             if (Rest.TryGetFileNameFromUrl(uri, out var fileName))
             {
-                filePath = Path.Combine(DownloadCacheDirectory, fileName);
+                filePath = Path.Combine(Rest.DownloadCacheDirectory, fileName);
                 exists = File.Exists(filePath);
             }
             else
             {
-                filePath = Path.Combine(DownloadCacheDirectory, GenerateGuid(uri).ToString());
+                filePath = Path.Combine(Rest.DownloadCacheDirectory, GenerateGuid(uri).ToString());
                 exists = File.Exists(filePath);
             }
 
@@ -97,13 +92,13 @@ namespace Utilities.WebRequestRest
 
         public void DeleteDownloadCache()
         {
-            if (Directory.Exists(DownloadCacheDirectory))
+            if (Directory.Exists(Rest.DownloadCacheDirectory))
             {
-                Directory.Delete(DownloadCacheDirectory, true);
+                Directory.Delete(Rest.DownloadCacheDirectory, true);
             }
         }
 
-        public async Task CacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
+        public async Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
         {
             if (File.Exists(cachePath))
             {

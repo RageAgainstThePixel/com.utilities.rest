@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -349,27 +348,46 @@ namespace Utilities.WebRequestRest
 
         #region Download Cache
 
-#if UNITY_WEBGL
-        private static IDownloadCache Cache { get; } = new NoOpDownloadCache();
-#else
-        private static IDownloadCache Cache { get; } = new DiskDownloadCache();
-#endif
+        private const string DOWNLOAD_CACHE = "download_cache";
+
+        /// <summary>
+        /// The download cache directory.<br/>
+        /// </summary>
+        public static string DownloadCacheDirectory
+            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
+
+        private static IDownloadCache cache;
+
+        private static IDownloadCache Cache
+        {
+            get
+            {
+                if (cache != null)
+                {
+                    return cache;
+                }
+
+                cache = Application.platform switch
+                {
+                    RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
+                    _ => new DiskDownloadCache()
+                };
+
+                return cache;
+            }
+        }
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
         /// </summary>
         public static void ValidateCacheDirectory()
-        {
-            Cache.ValidateCacheDirectory();
-        }
+            => Cache.ValidateCacheDirectory();
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
         /// </summary>
         public static Task ValidateCacheDirectoryAsync()
-        {
-            return Cache.ValidateCacheDirectoryAsync();
-        }
+            => Cache.ValidateCacheDirectoryAsync();
 
         /// <summary>
         /// Try to get a file out of the download cache by uri reference.
@@ -378,9 +396,7 @@ namespace Utilities.WebRequestRest
         /// <param name="filePath">The file path to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
         public static bool TryGetDownloadCacheItem(string uri, out string filePath)
-        {
-            return Cache.TryGetDownloadCacheItem(uri, out filePath);
-        }
+            => Cache.TryGetDownloadCacheItem(uri, out filePath);
 
         /// <summary>
         /// Try to delete the cached item at the uri.
@@ -388,17 +404,13 @@ namespace Utilities.WebRequestRest
         /// <param name="uri">The uri key of the item.</param>
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
-        {
-            return Cache.TryDeleteCacheItem(uri);
-        }
+            => Cache.TryDeleteCacheItem(uri);
 
         /// <summary>
         /// Deletes all the files in the download cache.
         /// </summary>
         public static void DeleteDownloadCache()
-        {
-            Cache.DeleteDownloadCache();
-        }
+            => Cache.DeleteDownloadCache();
 
         /// <summary>
         /// We will try go guess the name based on the url.
@@ -438,8 +450,7 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            string cachePath;
-            bool isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            var isCached = TryGetDownloadCacheItem(fileName, out var cachePath);
 
             if (isCached)
             {
@@ -461,7 +472,7 @@ namespace Utilities.WebRequestRest
 
             if (!isCached)
             {
-                await Cache.CacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
             }
 
             await Awaiters.UnityMainThread;
@@ -494,8 +505,7 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            string cachePath;
-            bool isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            var isCached = TryGetDownloadCacheItem(fileName, out var cachePath);
 
             if (isCached)
             {
@@ -516,7 +526,7 @@ namespace Utilities.WebRequestRest
 
             if (!isCached)
             {
-                await Cache.CacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
             }
 
             await Awaiters.UnityMainThread;
@@ -793,7 +803,6 @@ namespace Utilities.WebRequestRest
             if (!response.Successful)
             {
                 Debug.LogError($"Failed to download file from \"{url}\"!\n[{response.Code}] {response.Body}");
-
                 return null;
             }
 
