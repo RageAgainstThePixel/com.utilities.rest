@@ -450,7 +450,18 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            var isCached = TryGetDownloadCacheItem(fileName, out var cachePath);
+            bool isCached;
+            string cachePath;
+
+            if (url.Contains(FileUriPrefix))
+            {
+                isCached = true;
+                cachePath = url;
+            }
+            else
+            {
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            }
 
             if (isCached)
             {
@@ -505,7 +516,18 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            var isCached = TryGetDownloadCacheItem(fileName, out var cachePath);
+            bool isCached;
+            string cachePath;
+
+            if (url.Contains(FileUriPrefix))
+            {
+                isCached = true;
+                cachePath = url;
+            }
+            else
+            {
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+            }
 
             if (isCached)
             {
