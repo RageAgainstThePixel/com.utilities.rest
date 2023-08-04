@@ -22,8 +22,8 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public static class Rest
     {
+        internal const string FileUriPrefix = "file://";
         private const string kHttpVerbPATCH = "PATCH";
-        private const string fileUriPrefix = "file://";
         private const string eventDelimiter = "data: ";
         private const string stopEventDelimiter = "[DONE]";
 
@@ -421,7 +421,7 @@ namespace Utilities.WebRequestRest
         public static bool TryGetFileNameFromUrl(string url, out string fileName)
         {
             var baseUrl = UnityWebRequest.UnEscapeURL(url);
-            var rootUrl = baseUrl.Split("?")[0];
+            var rootUrl = baseUrl.Split('?')[0];
             var index = rootUrl.LastIndexOf('/') + 1;
             fileName = rootUrl.Substring(index, rootUrl.Length - index);
             return Path.HasExtension(fileName);
@@ -569,7 +569,7 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            if (url.Contains(fileUriPrefix))
+            if (url.Contains(FileUriPrefix))
             {
                 // override the httpMethod
                 httpMethod = UnityWebRequest.kHttpVerbGET;

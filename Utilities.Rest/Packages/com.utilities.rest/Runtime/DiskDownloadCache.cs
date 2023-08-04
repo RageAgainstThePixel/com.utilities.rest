@@ -14,8 +14,6 @@ namespace Utilities.WebRequestRest
 {
     internal class DiskDownloadCache : IDownloadCache
     {
-        private const string fileUriPrefix = "file://";
-
         /// <summary>
         /// Generates a <see cref="Guid"/> based on the string.
         /// </summary>
@@ -46,10 +44,10 @@ namespace Utilities.WebRequestRest
             ValidateCacheDirectory();
             bool exists;
 
-            if (uri.Contains(fileUriPrefix))
+            if (uri.Contains(Rest.FileUriPrefix))
             {
                 filePath = uri;
-                return File.Exists(uri.Replace(fileUriPrefix, string.Empty));
+                return File.Exists(uri.Replace(Rest.FileUriPrefix, string.Empty));
             }
 
             if (Rest.TryGetFileNameFromUrl(uri, out var fileName))
@@ -65,7 +63,7 @@ namespace Utilities.WebRequestRest
 
             if (exists)
             {
-                filePath = $"{fileUriPrefix}{Path.GetFullPath(filePath)}";
+                filePath = $"{Rest.FileUriPrefix}{Path.GetFullPath(filePath)}";
             }
 
             return exists;
