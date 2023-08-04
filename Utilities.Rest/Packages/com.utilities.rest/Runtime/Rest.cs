@@ -350,12 +350,6 @@ namespace Utilities.WebRequestRest
 
         private const string DOWNLOAD_CACHE = "download_cache";
 
-        /// <summary>
-        /// The download cache directory.<br/>
-        /// </summary>
-        public static string DownloadCacheDirectory
-            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
-
         private static IDownloadCache cache;
 
         private static IDownloadCache Cache
@@ -376,6 +370,12 @@ namespace Utilities.WebRequestRest
                 return cache;
             }
         }
+
+        /// <summary>
+        /// The download cache directory.<br/>
+        /// </summary>
+        public static string DownloadCacheDirectory
+            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
