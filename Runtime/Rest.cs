@@ -489,6 +489,13 @@ namespace Utilities.WebRequestRest
             await Awaiters.UnityMainThread;
             var texture = downloadHandler.texture;
             downloadHandler.Dispose();
+
+            if (texture == null)
+            {
+                Debug.LogError($"Failed to download texture from \"{url}\"!\n[{response.Code}] {response.Body}");
+                return null;
+            }
+
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
         }
