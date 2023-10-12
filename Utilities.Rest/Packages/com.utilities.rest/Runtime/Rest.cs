@@ -224,10 +224,8 @@ namespace Utilities.WebRequestRest
 #endif
             var boundary = UnityWebRequest.GenerateBoundary();
             var formSections = UnityWebRequest.SerializeFormSections(form, boundary);
-            using var uploadHandler = new UploadHandlerRaw(formSections)
-            {
-                contentType = $"multipart/form-data; boundary={Encoding.UTF8.GetString(boundary)}"
-            };
+            using var uploadHandler = new UploadHandlerRaw(formSections);
+            uploadHandler.contentType = $"multipart/form-data; boundary={Encoding.UTF8.GetString(boundary)}";
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
@@ -644,10 +642,8 @@ namespace Utilities.WebRequestRest
             parameters ??= new RestParameters();
             parameters.DisposeUploadHandler = false;
             parameters.DisposeDownloadHandler = false;
-            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType)
-            {
-                streamAudio = true // Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
-            };
+            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
+            downloadHandler.streamAudio = true; // Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
 
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
 
@@ -821,11 +817,8 @@ namespace Utilities.WebRequestRest
             }
 
             using var webRequest = UnityWebRequest.Get(url);
-            using var fileDownloadHandler = new DownloadHandlerFile(filePath)
-            {
-                removeFileOnAbort = true
-            };
-
+            using var fileDownloadHandler = new DownloadHandlerFile(filePath);
+            fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
 
@@ -926,7 +919,7 @@ namespace Utilities.WebRequestRest
                         {
                             if (serverSentEventCallback != null)
                             {
-                                SendServerEventCallback();
+                                SendServerEventCallback(false);
                             }
 
                             if (parameters is { Progress: not null })
@@ -1018,7 +1011,7 @@ namespace Utilities.WebRequestRest
 
             if (serverSentEventCallback != null)
             {
-                SendServerEventCallback();
+                SendServerEventCallback(true);
             }
 
             return webRequest.downloadHandler switch
@@ -1032,24 +1025,23 @@ namespace Utilities.WebRequestRest
                 _ => new Response(webRequest.url, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
 
-            void SendServerEventCallback()
+            void SendServerEventCallback(bool isEnd)
             {
                 parameters ??= new RestParameters();
                 var lines = webRequest.downloadHandler?.text
-                    .Split(eventDelimiter)
-                    .Where(line => line != string.Empty)
+                    .Split(eventDelimiter, StringSplitOptions.RemoveEmptyEntries)
                     .ToArray();
 
-                if (lines != null)
+                if (lines is { Length: > 1 })
                 {
-                    for (var i = parameters.ServerSentEventCount; i < lines.Length; i++)
+                    var stride = isEnd ? 0 : 1;
+                    for (var i = parameters.ServerSentEventCount; i < lines.Length - stride; i++)
                     {
-                        parameters.ServerSentEventCount++;
                         var line = lines[i];
 
-                        if (!string.IsNullOrWhiteSpace(line) &&
-                            !line.Contains(stopEventDelimiter))
+                        if (!line.Contains(stopEventDelimiter))
                         {
+                            parameters.ServerSentEventCount++;
                             serverSentEventCallback.Invoke(line);
                         }
                     }
