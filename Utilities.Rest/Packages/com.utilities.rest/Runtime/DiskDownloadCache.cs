@@ -25,6 +25,7 @@ namespace Utilities.WebRequestRest
             return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
         }
 
+        /// <inheritdoc />
         public void ValidateCacheDirectory()
         {
             if (!Directory.Exists(Rest.DownloadCacheDirectory))
@@ -33,12 +34,14 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        /// <inheritdoc />
         public async Task ValidateCacheDirectoryAsync()
         {
             await Awaiters.UnityMainThread;
             ValidateCacheDirectory();
         }
 
+        /// <inheritdoc />
         public bool TryGetDownloadCacheItem(string uri, out string filePath)
         {
             ValidateCacheDirectory();
@@ -69,6 +72,7 @@ namespace Utilities.WebRequestRest
             return exists;
         }
 
+        /// <inheritdoc />
         public bool TryDeleteCacheItem(string uri)
         {
             if (!TryGetDownloadCacheItem(uri, out var filePath))
@@ -88,6 +92,7 @@ namespace Utilities.WebRequestRest
             return !File.Exists(filePath);
         }
 
+        /// <inheritdoc />
         public void DeleteDownloadCache()
         {
             if (Directory.Exists(Rest.DownloadCacheDirectory))
@@ -96,6 +101,7 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        /// <inheritdoc />
         public async Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
         {
             if (File.Exists(cachePath))
@@ -103,11 +109,12 @@ namespace Utilities.WebRequestRest
                 return;
             }
 
-            var fileStream = File.OpenWrite(cachePath);
+            FileStream fileStream = null;
 
             try
             {
-                await fileStream.WriteAsync(data, 0, data.Length, cancellationToken);
+                fileStream = new FileStream(cachePath, FileMode.CreateNew, FileAccess.Read);
+                await fileStream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(true);
             }
             catch (Exception e)
             {
@@ -115,7 +122,10 @@ namespace Utilities.WebRequestRest
             }
             finally
             {
-                await fileStream.DisposeAsync();
+                if (fileStream != null)
+                {
+                    await fileStream.DisposeAsync().ConfigureAwait(true);
+                }
             }
         }
     }
