@@ -84,6 +84,34 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
         }
 
+        /// <summary>
+        /// Rest GET.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> GetAsync(
+            string query,
+            Action<UnityWebRequest, byte[]> dataReceivedEventCallback,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            using var webRequest = UnityWebRequest.Get(query);
+            using var downloadHandler = new DownloadHandlerCallback();
+            downloadHandler.OnDataReceived += dataReceivedEventCallback;
+
+            try
+            {
+                return await webRequest.SendAsync(parameters, cancellationToken);
+            }
+            finally
+            {
+                downloadHandler.OnDataReceived -= dataReceivedEventCallback;
+            }
+        }
+
         #endregion GET
 
         #region POST
@@ -188,6 +216,54 @@ namespace Utilities.WebRequestRest
         /// Rest POST.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">JSON data for the request.</param>
+        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
+        /// <param name="eventChunkSize">Optional, <see cref="dataReceivedEventCallback"/> event chunk size in bytes (Defaults to 512 bytes).</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            string query,
+            string jsonData,
+            Action<UnityWebRequest, byte[]> dataReceivedEventCallback,
+            int? eventChunkSize = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+#if UNITY_2022_2_OR_NEWER
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+#else
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+#endif
+            var data = new UTF8Encoding().GetBytes(jsonData);
+            using var uploadHandler = new UploadHandlerRaw(data);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerCallback();
+            downloadHandler.UnityWebRequest = webRequest;
+
+            if (eventChunkSize.HasValue)
+            {
+                downloadHandler.EventChunkSize = eventChunkSize.Value;
+            }
+
+            downloadHandler.OnDataReceived += dataReceivedEventCallback;
+            webRequest.downloadHandler = downloadHandler;
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+
+            try
+            {
+                return await webRequest.SendAsync(parameters, null, cancellationToken);
+            }
+            finally
+            {
+                downloadHandler.OnDataReceived -= dataReceivedEventCallback;
+            }
+        }
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="bodyData">The raw data to post.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
@@ -211,6 +287,14 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="form">The <see cref="IMultipartFormSection"/> to post.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
         public static async Task<Response> PostAsync(
             string query,
             List<IMultipartFormSection> form,
@@ -473,8 +557,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download texture from \"{url}\"!\n[{response.Code}] {response.Body}");
-                return null;
+                throw new RestException(response, $"Failed to download texture from \"{url}\"!");
             }
 
             var downloadHandler = (DownloadHandlerTexture)webRequest.downloadHandler;
@@ -490,8 +573,7 @@ namespace Utilities.WebRequestRest
 
             if (texture == null)
             {
-                Debug.LogError($"Failed to download texture from \"{url}\"!\n[{response.Code}] {response.Body}");
-                return null;
+                throw new RestException(response, $"Failed to download texture from \"{url}\"!");
             }
 
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
@@ -546,7 +628,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                throw new RestException(response, $"Failed to download audio clip from \"{url}\"!\n{response.ToString(nameof(StreamAudioAsync))}");
+                throw new RestException(response, $"Failed to download audio clip from \"{url}\"!");
             }
 
             var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
@@ -575,6 +657,7 @@ namespace Utilities.WebRequestRest
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="playbackAmountThreshold">Optional, the amount of data to to download before signaling that streaming is ready.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>Raw downloaded bytes from the stream.</returns>
         public static async Task<AudioClip> StreamAudioAsync(
@@ -587,6 +670,7 @@ namespace Utilities.WebRequestRest
             byte[] payload = null,
             ulong playbackAmountThreshold = 10000,
             RestParameters parameters = null,
+            bool debug = false,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -643,8 +727,7 @@ namespace Utilities.WebRequestRest
             parameters.DisposeUploadHandler = false;
             parameters.DisposeDownloadHandler = false;
             using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
-            downloadHandler.streamAudio = true; // Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
-
+            downloadHandler.streamAudio = true; // BUG: Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
 
             IProgress<Progress> progress = null;
@@ -682,7 +765,7 @@ namespace Utilities.WebRequestRest
 
             var response = await webRequest.SendAsync(parameters, cancellationToken);
             uploadHandler?.Dispose();
-            response.Validate(true);
+            response.Validate(debug);
 
             var loadedClip = downloadHandler.audioClip;
 
@@ -824,8 +907,7 @@ namespace Utilities.WebRequestRest
 
             if (!response.Successful)
             {
-                Debug.LogError($"Failed to download file from \"{url}\"!\n[{response.Code}] {response.Body}");
-                return null;
+                throw new RestException(response, $"Failed to download file from \"{url}\"!");
             }
 
             return filePath;
