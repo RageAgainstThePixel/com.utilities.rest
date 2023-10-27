@@ -4,58 +4,51 @@ using System;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
-using Utilities.Async;
 
 namespace Utilities.WebRequestRest
 {
     internal class DownloadHandlerCallback : DownloadHandlerScript
     {
+        public DownloadHandlerCallback(UnityWebRequest webRequest, int bufferSize = kEventChunkSize)
+        {
+            this.webRequest = webRequest;
+            eventChunkSize = bufferSize;
+            stream = new MemoryStream();
+        }
+
         internal const int kEventChunkSize = 512;
 
-        private readonly MemoryStream stream = new MemoryStream();
+        private readonly int eventChunkSize;
+        private readonly MemoryStream stream;
+        private readonly UnityWebRequest webRequest;
 
         private long streamPosition;
 
         private long StreamOffset => stream.Length - streamPosition;
 
-        private int eventChunkSize = kEventChunkSize;
-
-        public int EventChunkSize
-        {
-            get => eventChunkSize;
-            set
-            {
-                if (value < 1)
-                {
-                    throw new InvalidOperationException($"{nameof(EventChunkSize)} must be greater than 1!");
-                }
-
-                eventChunkSize = value;
-            }
-        }
-
-        public UnityWebRequest UnityWebRequest { get; set; }
-
         public Action<Response> OnDataReceived { get; set; }
+
+        protected override byte[] GetData() => stream?.ToArray();
+
+        protected override string GetText() => null;
 
         protected override bool ReceiveData(byte[] unprocessedData, int dataLength)
         {
-            var offset = unprocessedData.Length - dataLength;
-
             try
             {
+                var offset = unprocessedData.Length - dataLength;
                 stream.Position = stream.Length;
                 stream.Write(unprocessedData, offset, dataLength);
 
-                if (StreamOffset >= EventChunkSize)
+                if (StreamOffset >= eventChunkSize)
                 {
-                    var multiplier = StreamOffset / EventChunkSize;
-                    var bytesToRead = EventChunkSize * multiplier;
+                    var multiplier = StreamOffset / eventChunkSize;
+                    var bytesToRead = eventChunkSize * multiplier;
                     stream.Position = streamPosition;
                     var buffer = new byte[bytesToRead];
                     var bytesRead = stream.Read(buffer, 0, (int)bytesToRead);
                     streamPosition += bytesRead;
-                    OnDataReceived?.Invoke(new Response(UnityWebRequest.url, true, null, buffer, UnityWebRequest.responseCode, UnityWebRequest.GetResponseHeaders()));
+                    OnDataReceived?.Invoke(new Response(webRequest.url, true, null, buffer, webRequest.responseCode, webRequest.GetResponseHeaders()));
                 }
             }
             catch (Exception e)
@@ -76,7 +69,7 @@ namespace Utilities.WebRequestRest
                     var buffer = new byte[StreamOffset];
                     var bytesRead = stream.Read(buffer);
                     streamPosition += bytesRead;
-                    OnDataReceived?.Invoke(new Response(UnityWebRequest.url, true, null, buffer, UnityWebRequest.responseCode, UnityWebRequest.GetResponseHeaders()));
+                    OnDataReceived?.Invoke(new Response(webRequest.url, true, null, buffer, webRequest.responseCode, webRequest.GetResponseHeaders()));
                 }
             }
             catch (Exception e)
