@@ -94,7 +94,7 @@ namespace Utilities.WebRequestRest
         /// <returns>The response data.</returns>
         public static async Task<Response> GetAsync(
             string query,
-            Action<UnityWebRequest, byte[]> dataReceivedEventCallback,
+            Action<Response> dataReceivedEventCallback,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -225,7 +225,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             string jsonData,
-            Action<UnityWebRequest, byte[]> dataReceivedEventCallback,
+            Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)

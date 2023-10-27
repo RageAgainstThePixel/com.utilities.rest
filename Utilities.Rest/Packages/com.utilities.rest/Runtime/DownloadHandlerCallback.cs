@@ -36,7 +36,7 @@ namespace Utilities.WebRequestRest
 
         public UnityWebRequest UnityWebRequest { get; set; }
 
-        public Action<UnityWebRequest, byte[]> OnDataReceived { get; set; }
+        public Action<Response> OnDataReceived { get; set; }
 
         protected override bool ReceiveData(byte[] unprocessedData, int dataLength)
         {
@@ -55,7 +55,7 @@ namespace Utilities.WebRequestRest
                     var buffer = new byte[bytesToRead];
                     var bytesRead = stream.Read(buffer, 0, (int)bytesToRead);
                     streamPosition += bytesRead;
-                    OnDataReceived?.Invoke(UnityWebRequest, buffer);
+                    OnDataReceived?.Invoke(new Response(UnityWebRequest.url, true, null, buffer, UnityWebRequest.responseCode, UnityWebRequest.GetResponseHeaders()));
                 }
             }
             catch (Exception e)
@@ -76,7 +76,7 @@ namespace Utilities.WebRequestRest
                     var buffer = new byte[StreamOffset];
                     var bytesRead = stream.Read(buffer);
                     streamPosition += bytesRead;
-                    OnDataReceived.Invoke(UnityWebRequest, buffer);
+                    OnDataReceived?.Invoke(new Response(UnityWebRequest.url, true, null, buffer, UnityWebRequest.responseCode, UnityWebRequest.GetResponseHeaders()));
                 }
             }
             catch (Exception e)
