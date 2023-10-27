@@ -89,17 +89,21 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
+        /// <param name="eventChunkSize"></param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
         public static async Task<Response> GetAsync(
             string query,
-            Action<UnityWebRequest, byte[]> dataReceivedEventCallback,
+            Action<Response> dataReceivedEventCallback,
+            int? eventChunkSize = null,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Get(query);
-            using var downloadHandler = new DownloadHandlerCallback();
+            using var downloadHandler = eventChunkSize.HasValue
+                ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
+                : new DownloadHandlerCallback(webRequest);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
 
             try
@@ -225,7 +229,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             string jsonData,
-            Action<UnityWebRequest, byte[]> dataReceivedEventCallback,
+            Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
@@ -238,14 +242,9 @@ namespace Utilities.WebRequestRest
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
-            using var downloadHandler = new DownloadHandlerCallback();
-            downloadHandler.UnityWebRequest = webRequest;
-
-            if (eventChunkSize.HasValue)
-            {
-                downloadHandler.EventChunkSize = eventChunkSize.Value;
-            }
-
+            using var downloadHandler = eventChunkSize.HasValue
+                ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
+                : new DownloadHandlerCallback(webRequest);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader("Content-Type", "application/json");
@@ -1082,11 +1081,11 @@ namespace Utilities.WebRequestRest
                 return webRequest.downloadHandler switch
                 {
                     DownloadHandlerFile => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerScript => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
                     DownloadHandlerTexture => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
                     DownloadHandlerAudioClip => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
                     DownloadHandlerAssetBundle => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
                     DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
                     _ => new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
                 };
             }
@@ -1099,11 +1098,11 @@ namespace Utilities.WebRequestRest
             return webRequest.downloadHandler switch
             {
                 DownloadHandlerFile => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerScript => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
                 DownloadHandlerTexture => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
                 DownloadHandlerAudioClip => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
                 DownloadHandlerAssetBundle => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
                 DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
+                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders),
                 _ => new Response(webRequest.url, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
 
