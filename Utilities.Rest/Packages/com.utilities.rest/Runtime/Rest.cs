@@ -559,20 +559,27 @@ namespace Utilities.WebRequestRest
                 throw new RestException(response, $"Failed to download texture from \"{url}\"!");
             }
 
+            Texture2D texture;
             var downloadHandler = (DownloadHandlerTexture)webRequest.downloadHandler;
 
-            if (!isCached)
+            try
             {
-                await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                if (!isCached)
+                {
+                    await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                }
+
+                await Awaiters.UnityMainThread;
+                texture = downloadHandler.texture;
+
+                if (texture == null)
+                {
+                    throw new RestException(response, $"Failed to load texture from \"{url}\"!");
+                }
             }
-
-            await Awaiters.UnityMainThread;
-            var texture = downloadHandler.texture;
-            downloadHandler.Dispose();
-
-            if (texture == null)
+            finally
             {
-                throw new RestException(response, $"Failed to download texture from \"{url}\"!");
+                downloadHandler.Dispose();
             }
 
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
@@ -630,16 +637,31 @@ namespace Utilities.WebRequestRest
                 throw new RestException(response, $"Failed to download audio clip from \"{url}\"!");
             }
 
+            AudioClip clip;
             var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
 
-            if (!isCached)
+            try
             {
-                await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                if (!isCached)
+                {
+                    await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                }
+
+                await Awaiters.UnityMainThread;
+                clip = downloadHandler.audioClip;
+
+                if (clip == null ||
+                    clip.loadState == AudioDataLoadState.Failed ||
+                    clip.loadState == AudioDataLoadState.Unloaded)
+                {
+                    throw new RestException(response, $"Failed to load audio clip from \"{url}\"!");
+                }
+            }
+            finally
+            {
+                downloadHandler.Dispose();
             }
 
-            await Awaiters.UnityMainThread;
-            var clip = downloadHandler.audioClip;
-            downloadHandler.Dispose();
             clip.name = Path.GetFileNameWithoutExtension(cachePath);
             return clip;
         }
