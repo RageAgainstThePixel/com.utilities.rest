@@ -104,28 +104,15 @@ namespace Utilities.WebRequestRest
         /// <inheritdoc />
         public async Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
         {
-            if (File.Exists(cachePath))
-            {
-                return;
-            }
-
-            FileStream fileStream = null;
+            if (File.Exists(cachePath)) { return; }
 
             try
             {
-                fileStream = new FileStream(cachePath, FileMode.CreateNew, FileAccess.Read);
-                await fileStream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(true);
+                await File.WriteAllBytesAsync(cachePath, data, cancellationToken);
             }
             catch (Exception e)
             {
                 Debug.LogError($"Failed to write asset to disk! {e}");
-            }
-            finally
-            {
-                if (fileStream != null)
-                {
-                    await fileStream.DisposeAsync().ConfigureAwait(true);
-                }
             }
         }
     }
