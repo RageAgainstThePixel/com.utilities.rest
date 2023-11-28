@@ -63,5 +63,8 @@ namespace Utilities.WebRequestRest
         /// The <see cref="TSettings"/> for this <see cref="IClient"/>.
         /// </summary>
         public TSettings Settings { get; }
+
+        /// <inheritdoc />
+        public bool EnableDebug { get; set; }
     }
 }
