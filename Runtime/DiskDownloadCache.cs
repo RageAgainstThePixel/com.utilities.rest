@@ -108,7 +108,7 @@ namespace Utilities.WebRequestRest
 
             try
             {
-                await File.WriteAllBytesAsync(cachePath, data, cancellationToken);
+                await File.WriteAllBytesAsync(cachePath, data, cancellationToken).ConfigureAwait(true);
             }
             catch (Exception e)
             {
