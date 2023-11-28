@@ -18,7 +18,7 @@ namespace Utilities.WebRequestRest.Interfaces
         /// <returns>
         /// The loaded <see cref="IAuthentication{T}"/> or <see langword="null"/>.
         /// </returns>
-        public abstract TAuthentication LoadFromAsset<T>() where T : ScriptableObject, IConfiguration;
+        public abstract TAuthentication LoadFromAsset<T>(T asset = null) where T : ScriptableObject, IConfiguration;
 
         /// <summary>
         /// Attempts to load the authentication from the system environment variables.
