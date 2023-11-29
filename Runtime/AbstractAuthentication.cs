@@ -1,16 +1,53 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using System;
 using System.IO;
 using UnityEngine;
 
 namespace Utilities.WebRequestRest.Interfaces
 {
-    public abstract class AbstractAuthentication<TAuthentication, TAuthInfo> : IAuthentication<TAuthInfo>
+    public abstract class AbstractAuthentication<TAuthentication, TAuthInfo, TConfiguration> : IAuthentication<TAuthInfo>
         where TAuthentication : IAuthentication
         where TAuthInfo : IAuthInfo
+        where TConfiguration : ScriptableObject, IConfiguration
     {
         /// <inheritdoc />
         public abstract TAuthInfo Info { get; }
+
+        /// <summary>
+        /// Attempts to load the default authentication based on order of precedence.<br/>
+        /// 1. ScriptableObject<br/>
+        /// 2. Directory<br/>
+        /// 3. User Directory<br/>
+        /// 4. Environment Variables<br/>
+        /// </summary>
+        /// <returns>
+        /// The loaded <see cref="IAuthentication{T}"/> or <see langword="null"/>.
+        /// </returns>
+        public virtual TAuthentication LoadDefault()
+            => LoadFromAsset() ??
+               LoadFromDirectory() ??
+               LoadFromDirectory(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ??
+               LoadFromEnvironment();
+
+        /// <summary>
+        /// Attempts to load the default authentication based on order of precedence.<br/>
+        /// 1. Environment Variables<br/>
+        /// 2. User Directory<br/>
+        /// 3. Directory<br/>
+        /// 4. ScriptableObject<br/>
+        /// </summary>
+        /// <returns>
+        /// The loaded <see cref="IAuthentication{T}"/> or <see langword="null"/>.
+        /// </returns>
+        public virtual TAuthentication LoadDefaultsReversed()
+            => LoadFromEnvironment() ??
+               LoadFromDirectory(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ??
+               LoadFromAsset() ??
+               LoadFromDirectory();
+
+        [Obsolete("Use LoadFromAsset (remove angle bracket type specification)")]
+        public TAuthentication LoadFromAsset<T>() => LoadFromAsset();
 
         /// <summary>
         /// Attempts to load the authentication from a <see cref="ScriptableObject"/> asset that implements <see cref="IConfiguration"/>.
@@ -18,7 +55,7 @@ namespace Utilities.WebRequestRest.Interfaces
         /// <returns>
         /// The loaded <see cref="IAuthentication{T}"/> or <see langword="null"/>.
         /// </returns>
-        public abstract TAuthentication LoadFromAsset<T>(T asset = null) where T : ScriptableObject, IConfiguration;
+        public abstract TAuthentication LoadFromAsset(TConfiguration configuration = null);
 
         /// <summary>
         /// Attempts to load the authentication from the system environment variables.
