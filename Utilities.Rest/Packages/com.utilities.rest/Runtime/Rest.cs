@@ -429,34 +429,22 @@ namespace Utilities.WebRequestRest
 
         #region Download Cache
 
-        private const string DOWNLOAD_CACHE = "download_cache";
+        private const string download_cache = nameof(download_cache);
 
         private static IDownloadCache cache;
 
         private static IDownloadCache Cache
-        {
-            get
+            => cache ??= Application.platform switch
             {
-                if (cache != null)
-                {
-                    return cache;
-                }
-
-                cache = Application.platform switch
-                {
-                    RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
-                    _ => new DiskDownloadCache()
-                };
-
-                return cache;
-            }
-        }
+                RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
+                _ => new DiskDownloadCache()
+            };
 
         /// <summary>
         /// The download cache directory.<br/>
         /// </summary>
         public static string DownloadCacheDirectory
-            => Path.Combine(Application.temporaryCachePath, DOWNLOAD_CACHE);
+            => Path.Combine(Application.temporaryCachePath, download_cache);
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
@@ -510,19 +498,31 @@ namespace Utilities.WebRequestRest
 
         #endregion Download Cache
 
+        [Obsolete("use new overload with debug support")]
+        public static async Task<Texture2D> DownloadTextureAsync(
+            string url,
+            string fileName = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await DownloadTextureAsync(url, fileName, parameters, false, cancellationToken);
+        }
+
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the <see cref="Texture2D"/> from.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="Texture2D"/> instance.</returns>
         public static async Task<Texture2D> DownloadTextureAsync(
-            string url,
-            string fileName = null,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
+        string url,
+        string fileName = null,
+        RestParameters parameters = null,
+        bool debug = false,
+        CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -549,28 +549,22 @@ namespace Utilities.WebRequestRest
                 url = cachePath;
             }
 
-            using var webRequest = UnityWebRequestTexture.GetTexture(url);
-            parameters ??= new RestParameters();
-            parameters.DisposeDownloadHandler = false;
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
-
-            if (!response.Successful)
-            {
-                throw new RestException(response, $"Failed to download texture from \"{url}\"!");
-            }
-
             Texture2D texture;
-            var downloadHandler = (DownloadHandlerTexture)webRequest.downloadHandler;
+            parameters ??= new RestParameters();
+            parameters.DisposeDownloadHandler = true;
+            using var webRequest = UnityWebRequestTexture.GetTexture(url);
 
             try
             {
+                var response = await webRequest.SendAsync(parameters, cancellationToken);
+                response.Validate(debug);
+
                 if (!isCached)
                 {
-                    await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                    await Cache.WriteCacheItemAsync(webRequest.downloadHandler.data, cachePath, cancellationToken).ConfigureAwait(true);
                 }
 
-                await Awaiters.UnityMainThread;
-                texture = downloadHandler.texture;
+                texture = ((DownloadHandlerTexture)webRequest.downloadHandler).texture;
 
                 if (texture == null)
                 {
@@ -579,11 +573,21 @@ namespace Utilities.WebRequestRest
             }
             finally
             {
-                downloadHandler.Dispose();
+                webRequest.downloadHandler?.Dispose();
             }
 
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
+        }
+
+        [Obsolete("Use new overload with debug support")]
+        public static async Task<AudioClip> DownloadAudioClipAsync(
+            string url,
+            AudioType audioType,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await DownloadAudioClipAsync(url, audioType, httpMethod: UnityWebRequest.kHttpVerbGET, parameters: parameters, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -592,14 +596,22 @@ namespace Utilities.WebRequestRest
         /// <param name="url">The url to download the <see cref="AudioClip"/> from.</param>
         /// <param name="audioType"><see cref="AudioType"/> to download.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="httpMethod">Optional, must be either GET or POST.</param>
+        /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
+        /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
         public static async Task<AudioClip> DownloadAudioClipAsync(
             string url,
             AudioType audioType,
+            string httpMethod = UnityWebRequest.kHttpVerbGET,
             string fileName = null,
+            string jsonData = null,
+            byte[] payload = null,
             RestParameters parameters = null,
+            bool debug = false,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -627,21 +639,53 @@ namespace Utilities.WebRequestRest
                 url = cachePath;
             }
 
-            using var webRequest = UnityWebRequestMultimedia.GetAudioClip(url, audioType);
-            parameters ??= new RestParameters();
-            parameters.DisposeDownloadHandler = false;
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            UploadHandler uploadHandler = null;
+            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
 
-            if (!response.Successful)
+            if (httpMethod == UnityWebRequest.kHttpVerbPOST)
             {
-                throw new RestException(response, $"Failed to download audio clip from \"{url}\"!");
+                if (!string.IsNullOrWhiteSpace(jsonData))
+                {
+                    if (payload != null)
+                    {
+                        throw new ArgumentException($"{nameof(payload)} and {nameof(jsonData)} cannot be supplied in the same request. Choose either one or the other.", nameof(jsonData));
+                    }
+
+                    payload = new UTF8Encoding().GetBytes(jsonData);
+
+                    var jsonHeaders = new Dictionary<string, string>
+                    {
+                        { "Content-Type", "application/json" }
+                    };
+
+                    if (parameters is { Headers: not null })
+                    {
+                        foreach (var header in parameters.Headers)
+                        {
+                            jsonHeaders.Add(header.Key, header.Value);
+                        }
+                    }
+
+                    if (parameters != null)
+                    {
+                        parameters.Headers = jsonHeaders;
+                    }
+                }
+
+                uploadHandler = new UploadHandlerRaw(payload);
             }
 
             AudioClip clip;
-            var downloadHandler = (DownloadHandlerAudioClip)webRequest.downloadHandler;
+            parameters ??= new RestParameters();
+            parameters.DisposeUploadHandler = false;
+            parameters.DisposeDownloadHandler = false;
+            using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
 
             try
             {
+                var response = await webRequest.SendAsync(parameters, cancellationToken);
+                response.Validate(debug);
+
                 if (!isCached)
                 {
                     await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
@@ -650,16 +694,15 @@ namespace Utilities.WebRequestRest
                 await Awaiters.UnityMainThread;
                 clip = downloadHandler.audioClip;
 
-                if (clip == null ||
-                    clip.loadState == AudioDataLoadState.Failed ||
-                    clip.loadState == AudioDataLoadState.Unloaded)
+                if (clip == null)
                 {
-                    throw new RestException(response, $"Failed to load audio clip from \"{url}\"!");
+                    throw new RestException(response, $"Failed to download audio clip from \"{url}\"!");
                 }
             }
             finally
             {
                 downloadHandler.Dispose();
+                uploadHandler?.Dispose();
             }
 
             clip.name = Path.GetFileNameWithoutExtension(cachePath);
@@ -667,7 +710,7 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Download a <see cref="AudioClip"/> from the provided <see cref="url"/>.
+        /// Stream a <see cref="AudioClip"/> from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the <see cref="AudioClip"/> from.</param>
         /// <param name="audioType"><see cref="AudioType"/> to download.</param>
@@ -680,7 +723,7 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>Raw downloaded bytes from the stream.</returns>
+        /// <returns>A new <see cref="AudioClip"/> instance.</returns>
         public static async Task<AudioClip> StreamAudioAsync(
             string url,
             AudioType audioType,
@@ -748,9 +791,8 @@ namespace Utilities.WebRequestRest
             parameters.DisposeUploadHandler = false;
             parameters.DisposeDownloadHandler = false;
             using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
-            downloadHandler.streamAudio = true; // BUG: Due to a Unity bug this is actually totally non-functional... https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
+            downloadHandler.streamAudio = true; // BUG: Due to a Unity bug this does not work with mp3s of indeterminate length. https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
-
             IProgress<Progress> progress = null;
 
             if (parameters.Progress != null)
@@ -894,19 +936,31 @@ namespace Utilities.WebRequestRest
 
 #endif // UNITY_ADDRESSABLES
 
+        [Obsolete("use new overload with debug support")]
+        public static async Task<string> DownloadFileAsync(
+            string url,
+            string fileName = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await DownloadFileAsync(url, fileName, parameters, false, cancellationToken);
+        }
+
         /// <summary>
         /// Download a file from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the file from.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The path to the downloaded file.</returns>
         public static async Task<string> DownloadFileAsync(
-            string url,
-            string fileName = null,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
+        string url,
+        string fileName = null,
+        RestParameters parameters = null,
+        bool debug = false,
+        CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -925,12 +979,7 @@ namespace Utilities.WebRequestRest
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
-
-            if (!response.Successful)
-            {
-                throw new RestException(response, $"Failed to download file from \"{url}\"!");
-            }
-
+            response.Validate(debug);
             return filePath;
         }
 
