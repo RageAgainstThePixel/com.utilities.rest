@@ -1138,7 +1138,7 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                return new Response(webRequest.url, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, e.ToString());
+                return new Response(webRequest.url, webRequest.method, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, e.ToString());
             }
 
             parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
@@ -1151,13 +1151,13 @@ namespace Utilities.WebRequestRest
             {
                 return webRequest.downloadHandler switch
                 {
-                    DownloadHandlerFile => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerTexture => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAudioClip => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAssetBundle => new Response(webRequest.url, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    _ => new Response(webRequest.url, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
+                    DownloadHandlerFile => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    _ => new Response(webRequest.url, webRequest.method, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
                 };
             }
 
@@ -1168,13 +1168,13 @@ namespace Utilities.WebRequestRest
 
             return webRequest.downloadHandler switch
             {
-                DownloadHandlerFile => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerTexture => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAudioClip => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAssetBundle => new Response(webRequest.url, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                _ => new Response(webRequest.url, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
+                DownloadHandlerFile => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
+                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders),
+                _ => new Response(webRequest.url, webRequest.method, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
 
             void SendServerEventCallback(bool isEnd)
