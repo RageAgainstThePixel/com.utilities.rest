@@ -74,8 +74,12 @@ namespace Utilities.Rest.Editor
                     {
                         AssetDatabase.DeleteAsset(currentPath);
                         var instances = AssetDatabase.FindAssets($"t:{typeof(TConfiguration).Name}");
-                        var path = AssetDatabase.GUIDToAssetPath(instances[0]);
-                        instance = AssetDatabase.LoadAssetAtPath<TConfiguration>(path);
+
+                        if (instances is { Length: > 0 })
+                        {
+                            var path = AssetDatabase.GUIDToAssetPath(instances[0]);
+                            instance = AssetDatabase.LoadAssetAtPath<TConfiguration>(path);
+                        }
                     }
 
                     update = true;
