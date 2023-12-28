@@ -16,6 +16,11 @@ namespace Utilities.WebRequestRest
         public string Request { get; }
 
         /// <summary>
+        /// The request method that prompted the response.
+        /// </summary>
+        public string Method { get; }
+
+        /// <summary>
         /// Was the REST call successful?
         /// </summary>
         public bool Successful { get; }
@@ -49,15 +54,17 @@ namespace Utilities.WebRequestRest
         /// Constructor.
         /// </summary>
         /// <param name="request">The request that prompted the response.</param>
+        /// <param name="method">The request method that prompted the response.</param>
         /// <param name="successful">Was the REST call successful?</param>
         /// <param name="body">Response body from the resource.</param>
         /// <param name="data">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
         /// <param name="headers">Response headers from the resource.</param>
         /// <param name="error">Optional, error message from the resource.</param>
-        public Response(string request, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        public Response(string request, string method, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
         {
             Request = request;
+            Method = method;
             Successful = successful;
             Body = body;
             Data = data;
@@ -77,13 +84,8 @@ namespace Utilities.WebRequestRest
                 debugMessage.Append($"{methodName} -> ");
             }
 
-            debugMessage.Append($"<b>[{(int)Code}]</b> <color=\"cyan\">{Request}</color>");
-
-            if (!Successful)
-            {
-                debugMessage.Append(" <color=\"red\">Failed!</color>");
-            }
-
+            debugMessage.Append($"<b>[{Method}:{(int)Code}]</b> <color=\"cyan\">{Request}</color>");
+            debugMessage.Append(!Successful ? " <color=\"red\">Failed!</color>" : " <color=\"green\">Success!</color>");
             debugMessage.Append("\n");
 
             if (Headers != null)
