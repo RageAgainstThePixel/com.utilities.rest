@@ -196,8 +196,8 @@ var audioClip = await Rest.DownloadAudioClipAsync("www.your.api/your_file.ogg", 
 
 if (audioClip != null)
 {
-// assign it to your audio source
-audioSource.clip = audioClip;
+    // assign it to your audio source
+    audioSource.clip = audioClip;
     audioSource.PlayOneShot(audioClip);
 }
 ```
@@ -208,9 +208,10 @@ Streams an audio file from disk or remote resource as soon as enough data has be
 
 > Unsure if this is working correctly as Unity doesn't seem to respect streaming when setting [`DownloadHandlerAudioClip.streamAudio`](https://docs.unity3d.com/ScriptReference/Networking.DownloadHandlerAudioClip-streamAudio.html) to true.
 > Seems to work better for local files on disk than remote resources.
+> Seems to only work for mp3 files.
 
 ```csharp
-var audioClip = await Rest.StreamAudioAsync("local/path/to/your_file.ogg", AudioType.OGGVORBIS, onStreamPlaybackReady =>
+var audioClip = await Rest.StreamAudioAsync("local/path/to/your_file.mp3", AudioType.MPEG, onStreamPlaybackReady =>
 {
     audioSource.PlayOneShot(onStreamPlaybackReady);
 });
