@@ -43,8 +43,8 @@ namespace Utilities.WebRequestRest.Interfaces
         public virtual TAuthentication LoadDefaultsReversed()
             => LoadFromEnvironment() ??
                LoadFromDirectory(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ??
-               LoadFromAsset() ??
-               LoadFromDirectory();
+               LoadFromDirectory() ??
+               LoadFromAsset();
 
         [Obsolete("Use LoadFromAsset (remove angle bracket type specification)")]
         public TAuthentication LoadFromAsset<T>() => LoadFromAsset();
