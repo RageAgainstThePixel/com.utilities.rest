@@ -6,6 +6,10 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 ## Installing
 
+Requires Unity 2021.3 LTS or higher.
+
+The recommended installation method is though the unity package manager and [OpenUPM](https://openupm.com/packages/com.utilities.rest).
+
 ### Via Unity Package Manager and OpenUPM
 
 - Open your Unity project settings
@@ -43,6 +47,7 @@ Advanced features includes progress notifications, authentication and native mul
 - [Get](#get)
 - [Post](#post)
   - [Server Sent Events](#server-sent-events)
+  - [Data Received Callbacks](#data-received-callbacks)
 - [Put](#put)
 - [Patch](#patch)
 - [Delete](#delete)
@@ -104,6 +109,18 @@ response.Validate(debug: true);
 var jsonData = "{\"data\":\"content\"}";
 var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, eventData => {
     Debug.Log(eventData);
+});
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
+```
+
+#### Data Received Callbacks
+
+```csharp
+var jsonData = "{\"data\":\"content\"}";
+var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, dataReceivedEventCallback => {
+    // eventCallback type is Rest.Response
+    Debug.Log(dataReceivedEventCallback.Body);
 });
 // Validates the response for you and will throw a RestException if the response is unsuccessful.
 response.Validate(debug: true);
