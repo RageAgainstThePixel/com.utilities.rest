@@ -43,6 +43,7 @@ Advanced features includes progress notifications, authentication and native mul
 - [Get](#get)
 - [Post](#post)
   - [Server Sent Events](#server-sent-events)
+  - [Data Received Callbacks](#data-received-callbacks)
 - [Put](#put)
 - [Patch](#patch)
 - [Delete](#delete)
@@ -104,6 +105,18 @@ response.Validate(debug: true);
 var jsonData = "{\"data\":\"content\"}";
 var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, eventData => {
     Debug.Log(eventData);
+});
+// Validates the response for you and will throw a RestException if the response is unsuccessful.
+response.Validate(debug: true);
+```
+
+#### Data Received Callbacks
+
+```csharp
+var jsonData = "{\"data\":\"content\"}";
+var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, dataReceivedEventCallback => {
+    // eventCallback type is Rest.Response
+    Debug.Log(dataReceivedEventCallback.Body);
 });
 // Validates the response for you and will throw a RestException if the response is unsuccessful.
 response.Validate(debug: true);
