@@ -2,6 +2,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Networking;
 using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
@@ -44,7 +45,7 @@ namespace Utilities.WebRequestRest
 
             if (queryParameters is { Count: not 0 })
             {
-                result += $"?{string.Join("&", queryParameters.Select(parameter => $"{parameter.Key}={parameter.Value}"))}";
+                result += $"?{string.Join("&", queryParameters.Select(parameter => $"{UnityWebRequest.EscapeURL(parameter.Key)}={UnityWebRequest.EscapeURL(parameter.Value)}"))}";
             }
 
             return result;
