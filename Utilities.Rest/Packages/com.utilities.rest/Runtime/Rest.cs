@@ -474,16 +474,6 @@ namespace Utilities.WebRequestRest
 
         #endregion Download Cache
 
-        [Obsolete("use new overload with debug support")]
-        public static async Task<Texture2D> DownloadTextureAsync(
-            string url,
-            string fileName = null,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadTextureAsync(url, fileName, parameters, false, cancellationToken);
-        }
-
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
@@ -554,16 +544,6 @@ namespace Utilities.WebRequestRest
 
             texture.name = Path.GetFileNameWithoutExtension(cachePath);
             return texture;
-        }
-
-        [Obsolete("Use new overload with debug support")]
-        public static async Task<AudioClip> DownloadAudioClipAsync(
-            string url,
-            AudioType audioType,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadAudioClipAsync(url, audioType, httpMethod: UnityWebRequest.kHttpVerbGET, parameters: parameters, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -911,16 +891,6 @@ namespace Utilities.WebRequestRest
         }
 
 #endif // UNITY_ADDRESSABLES
-
-        [Obsolete("use new overload with debug support")]
-        public static async Task<string> DownloadFileAsync(
-            string url,
-            string fileName = null,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadFileAsync(url, fileName, parameters, false, cancellationToken);
-        }
 
         /// <summary>
         /// Download a file from the provided <see cref="url"/>.
