@@ -983,6 +983,15 @@ namespace Utilities.WebRequestRest
             return filePath;
         }
 
+        /// <summary>
+        /// Download a file from the provided <see cref="url"/> and return the <see cref="byte[]"/> array of its contents.
+        /// </summary>
+        /// <param name="url">The url to download the file from.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="debug">Optional, debug http request.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="byte[]"/> of the downloaded file.</returns>
         public static async Task<byte[]> DownloadFileBytesAsync(
         string url,
         string fileName = null,
@@ -1010,8 +1019,6 @@ namespace Utilities.WebRequestRest
 
             return bytes;
         }
-
-
         #endregion Get Multimedia Content
 
         /// <summary>
