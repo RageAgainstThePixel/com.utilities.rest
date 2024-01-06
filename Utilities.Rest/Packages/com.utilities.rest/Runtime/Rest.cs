@@ -1019,6 +1019,31 @@ namespace Utilities.WebRequestRest
 
             return bytes;
         }
+
+        /// <summary>
+        /// Download a <see cref="byte[]"/> from the provided <see cref="url"/>.
+        /// </summary>
+        /// <param name="url">The url to download from.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="debug">Optional, debug http request.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="byte[]"/> downloaded from the server.</returns>
+        /// <remarks>This call cannot be cached, if you want the cached version of a <see cref="byte[]"/>, then use the <see cref="DownloadFileBytesAsync"/> function.</remarks>
+        public static async Task<byte[]> DownloadBytesAsync(
+        string url,
+        RestParameters parameters = null,
+        bool debug = false,
+        CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+
+            using var webRequest = UnityWebRequest.Get(url);
+            using var downloadHandlerBuffer = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandlerBuffer;
+            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            response.Validate(debug);
+            return response.Data;
+        }
         #endregion Get Multimedia Content
 
         /// <summary>
