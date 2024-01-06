@@ -440,11 +440,37 @@ namespace Utilities.WebRequestRest
                 _ => new DiskDownloadCache()
             };
 
+        private static string downloadLocation = Application.temporaryCachePath;
+        private static List<string> allowedDownloadLocations = new()
+        {
+            Application.temporaryCachePath,
+            Application.persistentDataPath,
+            Application.dataPath,
+            Application.streamingAssetsPath
+        };
+
+        public static string DownloadLocation
+        {
+            get => downloadLocation;
+
+            set
+            {
+                if (allowedDownloadLocations.Contains(value))
+                {
+                    downloadLocation = value;
+                }
+                else
+                {
+                    Debug.LogError($"Invalid Download location specified");
+                }
+            }
+        }
+
         /// <summary>
         /// The download cache directory.<br/>
         /// </summary>
         public static string DownloadCacheDirectory
-            => Path.Combine(Application.temporaryCachePath, download_cache);
+            => Path.Combine(DownloadLocation, download_cache);
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
