@@ -1003,7 +1003,7 @@ namespace Utilities.WebRequestRest
             byte[] bytes = null;
 
             var filePath = await DownloadFileAsync(url, fileName, parameters, false, cancellationToken);
-            var absolutefilePath = filePath.Replace("file://", "");
+            var absolutefilePath = filePath.Replace("file://", string.Empty);
             if (File.Exists(absolutefilePath))
             {
                 try
