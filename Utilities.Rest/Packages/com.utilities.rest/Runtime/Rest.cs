@@ -983,6 +983,35 @@ namespace Utilities.WebRequestRest
             return filePath;
         }
 
+        public static async Task<byte[]> DownloadFileBytesAsync(
+        string url,
+        string fileName = null,
+        RestParameters parameters = null,
+        bool debug = false,
+        CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            byte[] bytes = null;
+
+            var filePath = await DownloadFileAsync(url, fileName, parameters, false, cancellationToken);
+            var absolutefilePath = filePath.Replace("file://", "");
+            if (File.Exists(absolutefilePath))
+            {
+                try
+                {
+                    bytes = File.ReadAllBytes(absolutefilePath);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError(ex);
+                    throw;
+                }
+            }
+
+            return bytes;
+        }
+
+
         #endregion Get Multimedia Content
 
         /// <summary>
