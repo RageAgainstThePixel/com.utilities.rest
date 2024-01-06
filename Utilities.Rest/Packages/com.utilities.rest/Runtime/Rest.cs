@@ -464,8 +464,8 @@ namespace Utilities.WebRequestRest
         /// <param name="uri">The uri key of the item.</param>
         /// <param name="filePath">The file path to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
-        public static bool TryGetDownloadCacheItem(string uri, out string filePath)
-            => Cache.TryGetDownloadCacheItem(uri, out filePath);
+        public static bool TryGetDownloadCacheItem(string uri, out string filePath, RestParameters restParameters)
+            => Cache.TryGetDownloadCacheItem(uri, out filePath, restParameters);
 
         /// <summary>
         /// Try to delete the cached item at the uri.
@@ -541,7 +541,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath, parameters);
             }
 
             if (isCached)
@@ -631,7 +631,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath, parameters);
             }
 
             if (isCached)
@@ -969,7 +969,7 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            if (TryGetDownloadCacheItem(fileName, out var filePath))
+            if (TryGetDownloadCacheItem(fileName, out var filePath, parameters))
             {
                 return filePath;
             }

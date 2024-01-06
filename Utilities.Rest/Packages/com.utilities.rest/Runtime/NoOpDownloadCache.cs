@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Utilities.WebRequestRest.Interfaces;
 
-namespace Utilities.Rest
+namespace Utilities.WebRequestRest
 {
     internal class NoOpDownloadCache : IDownloadCache
     {
@@ -12,7 +12,7 @@ namespace Utilities.Rest
 
         public Task ValidateCacheDirectoryAsync() => Task.CompletedTask;
 
-        public bool TryGetDownloadCacheItem(string uri, out string filePath)
+        public bool TryGetDownloadCacheItem(string uri, out string filePath, RestParameters restParameters)
         {
             filePath = uri;
             return false;

@@ -21,6 +21,7 @@ namespace Utilities.WebRequestRest
         /// <param name="disposeUploadHandler">Optional, dispose the <see cref="UploadHandler"/>?<br/>Default is true.</param>
         /// <param name="certificateHandler">Optional, certificate handler for the request.</param>
         /// <param name="disposeCertificateHandler">Optional, dispose the <see cref="CertificateHandler"/>?<br/>Default is true.</param>
+        /// <param name="forceDownload">Optional, Force the download cache to invalidate the existing file and download the file fresh again<br/>Default is false.</param>
         public RestParameters(
             IReadOnlyDictionary<string, string> headers = null,
             IProgress<Progress> progress = null,
@@ -28,7 +29,8 @@ namespace Utilities.WebRequestRest
             bool disposeDownloadHandler = true,
             bool disposeUploadHandler = true,
             CertificateHandler certificateHandler = null,
-            bool disposeCertificateHandler = true)
+            bool disposeCertificateHandler = true,
+            bool forceDownload = false)
         {
             Headers = headers;
             Progress = progress;
@@ -37,6 +39,7 @@ namespace Utilities.WebRequestRest
             DisposeUploadHandler = disposeUploadHandler;
             CertificateHandler = certificateHandler;
             DisposeCertificateHandler = disposeCertificateHandler;
+            ForceDownload = forceDownload;
         }
 
         /// <summary>
@@ -76,6 +79,8 @@ namespace Utilities.WebRequestRest
         /// Default is true.
         /// </summary>
         public bool DisposeUploadHandler { get; internal set; }
+
+        public bool ForceDownload { get; internal set; }
 
         internal int ServerSentEventCount { get; set; }
     }

@@ -42,7 +42,7 @@ namespace Utilities.WebRequestRest
         }
 
         /// <inheritdoc />
-        public bool TryGetDownloadCacheItem(string uri, out string filePath)
+        public bool TryGetDownloadCacheItem(string uri, out string filePath, RestParameters restParameters)
         {
             ValidateCacheDirectory();
             bool exists;
@@ -66,6 +66,12 @@ namespace Utilities.WebRequestRest
 
             if (exists)
             {
+                if (restParameters != null && restParameters.ForceDownload)
+                {
+                    Debug.Log($"Force download of {uri}/{filePath}");
+                    return !TryDeleteCacheItem(uri);
+                }
+
                 filePath = $"{Rest.FileUriPrefix}{Path.GetFullPath(filePath)}";
             }
 
@@ -75,21 +81,26 @@ namespace Utilities.WebRequestRest
         /// <inheritdoc />
         public bool TryDeleteCacheItem(string uri)
         {
-            if (!TryGetDownloadCacheItem(uri, out var filePath))
+            if (!TryGetDownloadCacheItem(uri, out var filePath, null))
             {
                 return false;
             }
 
+            var absoluteFilePath = filePath.Replace(Rest.FileUriPrefix, string.Empty);
+
             try
             {
-                File.Delete(filePath);
+                if (File.Exists(absoluteFilePath))
+                {
+                    File.Delete(absoluteFilePath);
+                }
             }
             catch (Exception e)
             {
                 Debug.LogError(e);
             }
 
-            return !File.Exists(filePath);
+            return !File.Exists(absoluteFilePath);
         }
 
         /// <inheritdoc />
