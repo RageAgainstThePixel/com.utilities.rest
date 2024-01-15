@@ -416,8 +416,7 @@ namespace Utilities.WebRequestRest
                 _ => new DiskDownloadCache()
             };
 
-        private static string downloadLocation = Application.temporaryCachePath;
-        private static List<string> allowedDownloadLocations = new()
+        private static readonly List<string> allowedDownloadLocations = new()
         {
             Application.temporaryCachePath,
             Application.persistentDataPath,
@@ -425,10 +424,11 @@ namespace Utilities.WebRequestRest
             Application.streamingAssetsPath
         };
 
+        private static string downloadLocation = Application.temporaryCachePath;
+
         public static string DownloadLocation
         {
             get => downloadLocation;
-
             set
             {
                 if (allowedDownloadLocations.Contains(value))
@@ -437,7 +437,7 @@ namespace Utilities.WebRequestRest
                 }
                 else
                 {
-                    Debug.LogError($"Invalid Download location specified");
+                    Debug.LogError($"Invalid Download location specified. Must be one of: {string.Join(", ", allowedDownloadLocations)}");
                 }
             }
         }
