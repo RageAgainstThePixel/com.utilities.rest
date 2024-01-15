@@ -22,7 +22,7 @@ namespace Utilities.WebRequestRest
         /// <param name="certificateHandler">Optional, certificate handler for the request.</param>
         /// <param name="disposeCertificateHandler">Optional, dispose the <see cref="CertificateHandler"/>?<br/>Default is true.</param>
         /// <param name="cacheDownloads">Optional, cache downloaded content.<br/>Default is true.</param>
-        /// <param name="debug">Optional,Enabled printing for the debug output of the request.</param>
+        /// <param name="debug">Optional, enable debug output of the request.<br/>Default is false.</param>
         public RestParameters(
             IReadOnlyDictionary<string, string> headers = null,
             IProgress<Progress> progress = null,
@@ -92,7 +92,7 @@ namespace Utilities.WebRequestRest
         public bool CacheDownloads { get; set; }
 
         /// <summary>
-        /// Enabled printing for the debug output of the request.
+        /// Enable debug output of the request.
         /// </summary>
         public bool Debug { get; set; }
     }

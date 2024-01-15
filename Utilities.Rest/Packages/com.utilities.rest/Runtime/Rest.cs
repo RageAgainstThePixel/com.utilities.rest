@@ -26,6 +26,10 @@ namespace Utilities.WebRequestRest
         private const string kHttpVerbPATCH = "PATCH";
         private const string eventDelimiter = "data: ";
         private const string stopEventDelimiter = "[DONE]";
+        private const string content_type = "Content-Type";
+        private const string content_length = "Content-Length";
+        private const string application_json = "application/json";
+        private const string application_octet_stream = "application/octet-stream";
 
         #region Authentication
 
@@ -174,7 +178,7 @@ namespace Utilities.WebRequestRest
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
-            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -200,7 +204,7 @@ namespace Utilities.WebRequestRest
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
-            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
         }
 
@@ -231,7 +235,7 @@ namespace Utilities.WebRequestRest
                 : new DownloadHandlerCallback(webRequest);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
             webRequest.downloadHandler = downloadHandler;
-            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader(content_type, application_json);
 
             try
             {
@@ -262,7 +266,7 @@ namespace Utilities.WebRequestRest
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
-            webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            webRequest.SetRequestHeader(content_type, application_octet_stream);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -310,7 +314,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Put(query, jsonData);
-            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -329,7 +333,7 @@ namespace Utilities.WebRequestRest
             CancellationToken cancellationToken = default)
         {
             using var webRequest = UnityWebRequest.Put(query, bodyData);
-            webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            webRequest.SetRequestHeader(content_type, application_octet_stream);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -353,7 +357,7 @@ namespace Utilities.WebRequestRest
         {
             using var webRequest = UnityWebRequest.Put(query, jsonData);
             webRequest.method = kHttpVerbPATCH;
-            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -373,7 +377,7 @@ namespace Utilities.WebRequestRest
         {
             using var webRequest = UnityWebRequest.Put(query, bodyData);
             webRequest.method = kHttpVerbPATCH;
-            webRequest.SetRequestHeader("Content-Type", "application/octet-stream");
+            webRequest.SetRequestHeader(content_type, application_octet_stream);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -523,6 +527,7 @@ namespace Utilities.WebRequestRest
 
             bool isCached;
             string cachePath;
+            parameters ??= new RestParameters();
 
             if (url.Contains(FileUriPrefix))
             {
@@ -531,7 +536,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && (parameters?.CacheDownloads ?? true);
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && parameters.CacheDownloads;
             }
 
             if (isCached)
@@ -540,7 +545,6 @@ namespace Utilities.WebRequestRest
             }
 
             Texture2D texture;
-            parameters ??= new RestParameters();
             parameters.DisposeDownloadHandler = true;
             using var webRequest = UnityWebRequestTexture.GetTexture(url);
 
@@ -549,7 +553,7 @@ namespace Utilities.WebRequestRest
                 var response = await webRequest.SendAsync(parameters, cancellationToken);
                 response.Validate(parameters.Debug);
 
-                if (!isCached)
+                if (!isCached && parameters.CacheDownloads)
                 {
                     await Cache.WriteCacheItemAsync(webRequest.downloadHandler.data, cachePath, cancellationToken).ConfigureAwait(true);
                 }
@@ -601,6 +605,7 @@ namespace Utilities.WebRequestRest
 
             bool isCached;
             string cachePath;
+            parameters ??= new RestParameters();
 
             if (url.Contains(FileUriPrefix))
             {
@@ -609,7 +614,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && (parameters?.CacheDownloads ?? true);
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && parameters.CacheDownloads;
             }
 
             if (isCached)
@@ -633,28 +638,21 @@ namespace Utilities.WebRequestRest
 
                     var jsonHeaders = new Dictionary<string, string>
                     {
-                        { "Content-Type", "application/json" }
+                        { content_type, application_json }
                     };
 
-                    if (parameters is { Headers: not null })
+                    foreach (var header in parameters.Headers)
                     {
-                        foreach (var header in parameters.Headers)
-                        {
-                            jsonHeaders.Add(header.Key, header.Value);
-                        }
+                        jsonHeaders.Add(header.Key, header.Value);
                     }
 
-                    if (parameters != null)
-                    {
-                        parameters.Headers = jsonHeaders;
-                    }
+                    parameters.Headers = jsonHeaders;
                 }
 
                 uploadHandler = new UploadHandlerRaw(payload);
             }
 
             AudioClip clip;
-            parameters ??= new RestParameters();
             parameters.DisposeUploadHandler = false;
             parameters.DisposeDownloadHandler = false;
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
@@ -664,7 +662,7 @@ namespace Utilities.WebRequestRest
                 var response = await webRequest.SendAsync(parameters, cancellationToken);
                 response.Validate(parameters.Debug);
 
-                if (!isCached)
+                if (!isCached && parameters.CacheDownloads)
                 {
                     await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
                 }
@@ -743,7 +741,7 @@ namespace Utilities.WebRequestRest
 
                     var jsonHeaders = new Dictionary<string, string>
                     {
-                        { "Content-Type", "application/json" }
+                        { content_type, application_json }
                     };
 
                     if (parameters is { Headers: not null })
@@ -1040,13 +1038,12 @@ namespace Utilities.WebRequestRest
             // HACK: Workaround for extra quotes around boundary.
             if (hasUpload)
             {
-                const string CONTENT_TYPE = "Content-Type";
-                var contentType = webRequest.GetRequestHeader(CONTENT_TYPE);
+                var contentType = webRequest.GetRequestHeader(content_type);
 
                 if (!string.IsNullOrWhiteSpace(contentType))
                 {
                     contentType = contentType.Replace("\"", string.Empty);
-                    webRequest.SetRequestHeader(CONTENT_TYPE, contentType);
+                    webRequest.SetRequestHeader(content_type, contentType);
                 }
             }
 
@@ -1106,10 +1103,9 @@ namespace Utilities.WebRequestRest
                                 var percentage = hasUpload && webRequest.uploadProgress > 1f
                                     ? webRequest.uploadProgress
                                     : webRequest.downloadProgress;
-                                // Get the content length of the download
-                                const string CONTENT_LENGTH = "Content-Length";
 
-                                if (!ulong.TryParse(webRequest.GetResponseHeader(CONTENT_LENGTH), out var length))
+                                // Get the content length of the download
+                                if (!ulong.TryParse(webRequest.GetResponseHeader(content_length), out var length))
                                 {
                                     length = webRequest.downloadedBytes;
                                 }
@@ -1132,13 +1128,18 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-#pragma warning disable CS4014
+#pragma warning disable CS4014 // We purposefully don't await this task so it will run on a background thread.
                 Task.Run(CallbackThread, cancellationToken);
 #pragma warning restore CS4014
             }
 
             try
             {
+                if (parameters is { Debug: true })
+                {
+                    Debug.Log($"[{webRequest.method}] {webRequest.url}");
+                }
+
                 await webRequest.SendWebRequest();
             }
             catch (Exception e)
