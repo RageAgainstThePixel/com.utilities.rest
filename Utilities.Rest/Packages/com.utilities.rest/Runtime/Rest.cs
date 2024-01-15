@@ -913,32 +913,30 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Download a file from the provided <see cref="url"/> and return the <see cref="byte[]"/> array of its contents.
+        /// Download a file from the provided <see cref="url"/> and return the contents as bytes.
         /// </summary>
         /// <param name="url">The url to download the file from.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="byte[]"/> of the downloaded file.</returns>
+        /// <returns>The bytes of the downloaded file.</returns>
         public static async Task<byte[]> DownloadFileBytesAsync(
-        string url,
-        string fileName = null,
-        RestParameters parameters = null,
-        bool debug = false,
-        CancellationToken cancellationToken = default)
+            string url,
+            string fileName = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
             byte[] bytes = null;
 
-            var filePath = await DownloadFileAsync(url, fileName, parameters, false, cancellationToken);
+            var filePath = await DownloadFileAsync(url, fileName, parameters, cancellationToken);
             var absolutefilePath = filePath.Replace("file://", string.Empty);
 
             if (File.Exists(absolutefilePath))
             {
                 try
                 {
-                    bytes = File.ReadAllBytes(absolutefilePath);
+                    bytes = await File.ReadAllBytesAsync(absolutefilePath, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -951,19 +949,17 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Download a <see cref="byte[]"/> from the provided <see cref="url"/>.
+        /// Download raw file contents from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download from.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="byte[]"/> downloaded from the server.</returns>
-        /// <remarks>This call cannot be cached, if you want the cached version of a <see cref="byte[]"/>, then use the <see cref="DownloadFileBytesAsync"/> function.</remarks>
+        /// <returns>The bytes downloaded from the server.</returns>
+        /// <remarks>This call cannot be cached, if you want the cached version of the file, then use the <see cref="DownloadFileBytesAsync"/> function.</remarks>
         public static async Task<byte[]> DownloadBytesAsync(
-        string url,
-        RestParameters parameters = null,
-        bool debug = false,
-        CancellationToken cancellationToken = default)
+            string url,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -971,9 +967,10 @@ namespace Utilities.WebRequestRest
             using var downloadHandlerBuffer = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandlerBuffer;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
-            response.Validate(debug);
+            response.Validate(parameters?.Debug ?? false);
             return response.Data;
         }
+
         #endregion Get Multimedia Content
 
         /// <summary>
