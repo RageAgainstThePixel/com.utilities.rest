@@ -928,21 +928,12 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
             byte[] bytes = null;
-
             var filePath = await DownloadFileAsync(url, fileName, parameters, cancellationToken);
-            var absolutefilePath = filePath.Replace("file://", string.Empty);
+            var localPath = filePath.Replace("file://", string.Empty);
 
-            if (File.Exists(absolutefilePath))
+            if (File.Exists(localPath))
             {
-                try
-                {
-                    bytes = await File.ReadAllBytesAsync(absolutefilePath, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError(ex);
-                    throw;
-                }
+                bytes = await File.ReadAllBytesAsync(localPath, cancellationToken).ConfigureAwait(true);
             }
 
             return bytes;
@@ -955,14 +946,13 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The bytes downloaded from the server.</returns>
-        /// <remarks>This call cannot be cached, if you want the cached version of the file, then use the <see cref="DownloadFileBytesAsync"/> function.</remarks>
+        /// <remarks>This request does not cache results.</remarks>
         public static async Task<byte[]> DownloadBytesAsync(
             string url,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
-
             using var webRequest = UnityWebRequest.Get(url);
             using var downloadHandlerBuffer = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandlerBuffer;
