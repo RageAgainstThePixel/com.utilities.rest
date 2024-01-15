@@ -22,6 +22,7 @@ namespace Utilities.WebRequestRest
         /// <param name="certificateHandler">Optional, certificate handler for the request.</param>
         /// <param name="disposeCertificateHandler">Optional, dispose the <see cref="CertificateHandler"/>?<br/>Default is true.</param>
         /// <param name="forceDownload">Optional, Force the download cache to invalidate the existing file and download the file fresh again<br/>Default is false.</param>
+        /// <param name="debug">Optional,Enabled printing for the debug output of the request.</param>
         public RestParameters(
             IReadOnlyDictionary<string, string> headers = null,
             IProgress<Progress> progress = null,
@@ -30,7 +31,8 @@ namespace Utilities.WebRequestRest
             bool disposeUploadHandler = true,
             CertificateHandler certificateHandler = null,
             bool disposeCertificateHandler = true,
-            bool forceDownload = false)
+            bool forceDownload = false,
+            bool debug = false)
         {
             Headers = headers;
             Progress = progress;
@@ -40,6 +42,7 @@ namespace Utilities.WebRequestRest
             CertificateHandler = certificateHandler;
             DisposeCertificateHandler = disposeCertificateHandler;
             ForceDownload = forceDownload;
+            Debug = debug;
         }
 
         /// <summary>
@@ -80,8 +83,16 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public bool DisposeUploadHandler { get; internal set; }
 
+        internal int ServerSentEventCount { get; set; }
+
+        /// <summary>
+        /// Force the download cache to invalidate the existing file and download the file fresh again<br/>Default is false.
+        /// </summary>
         public bool ForceDownload { get; internal set; }
 
-        internal int ServerSentEventCount { get; set; }
+        /// <summary>
+        /// Enabled printing for the debug output of the request.
+        /// </summary>
+        public bool Debug { get; set; }
     }
 }

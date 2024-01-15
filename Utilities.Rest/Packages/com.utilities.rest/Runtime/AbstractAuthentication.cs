@@ -46,9 +46,6 @@ namespace Utilities.WebRequestRest.Interfaces
                LoadFromDirectory() ??
                LoadFromAsset();
 
-        [Obsolete("Use LoadFromAsset (remove angle bracket type specification)")]
-        public TAuthentication LoadFromAsset<T>() => LoadFromAsset();
-
         /// <summary>
         /// Attempts to load the authentication from a <see cref="ScriptableObject"/> asset that implements <see cref="IConfiguration"/>.
         /// </summary>
