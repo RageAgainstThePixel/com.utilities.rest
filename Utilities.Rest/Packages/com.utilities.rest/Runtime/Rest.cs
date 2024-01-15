@@ -132,11 +132,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -172,11 +168,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
@@ -202,11 +194,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
@@ -234,11 +222,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
@@ -273,11 +257,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             using var uploadHandler = new UploadHandlerRaw(bodyData);
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
@@ -300,11 +280,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var boundary = UnityWebRequest.GenerateBoundary();
             var formSections = UnityWebRequest.SerializeFormSections(form, boundary);
             using var uploadHandler = new UploadHandlerRaw(formSections);
