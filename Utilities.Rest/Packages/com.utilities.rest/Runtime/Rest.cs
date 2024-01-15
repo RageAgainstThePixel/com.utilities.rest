@@ -132,11 +132,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -172,11 +168,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
@@ -202,11 +194,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
@@ -234,11 +222,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
@@ -273,11 +257,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             using var uploadHandler = new UploadHandlerRaw(bodyData);
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
@@ -300,11 +280,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
-#if UNITY_2022_2_OR_NEWER
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#else
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-#endif
             var boundary = UnityWebRequest.GenerateBoundary();
             var formSections = UnityWebRequest.SerializeFormSections(form, boundary);
             using var uploadHandler = new UploadHandlerRaw(formSections);
@@ -498,31 +474,19 @@ namespace Utilities.WebRequestRest
 
         #endregion Download Cache
 
-        [Obsolete("use new overload with debug support")]
-        public static async Task<Texture2D> DownloadTextureAsync(
-            string url,
-            string fileName = null,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadTextureAsync(url, fileName, parameters, false, cancellationToken);
-        }
-
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
         /// </summary>
         /// <param name="url">The url to download the <see cref="Texture2D"/> from.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="Texture2D"/> instance.</returns>
         public static async Task<Texture2D> DownloadTextureAsync(
-        string url,
-        string fileName = null,
-        RestParameters parameters = null,
-        bool debug = false,
-        CancellationToken cancellationToken = default)
+            string url,
+            string fileName = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -557,7 +521,7 @@ namespace Utilities.WebRequestRest
             try
             {
                 var response = await webRequest.SendAsync(parameters, cancellationToken);
-                response.Validate(debug);
+                response.Validate(parameters.Debug);
 
                 if (!isCached)
                 {
@@ -580,16 +544,6 @@ namespace Utilities.WebRequestRest
             return texture;
         }
 
-        [Obsolete("Use new overload with debug support")]
-        public static async Task<AudioClip> DownloadAudioClipAsync(
-            string url,
-            AudioType audioType,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadAudioClipAsync(url, audioType, httpMethod: UnityWebRequest.kHttpVerbGET, parameters: parameters, cancellationToken: cancellationToken);
-        }
-
         /// <summary>
         /// Download a <see cref="AudioClip"/> from the provided <see cref="url"/>.
         /// </summary>
@@ -600,7 +554,6 @@ namespace Utilities.WebRequestRest
         /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
         /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
         public static async Task<AudioClip> DownloadAudioClipAsync(
@@ -611,7 +564,6 @@ namespace Utilities.WebRequestRest
             string jsonData = null,
             byte[] payload = null,
             RestParameters parameters = null,
-            bool debug = false,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -684,7 +636,7 @@ namespace Utilities.WebRequestRest
             try
             {
                 var response = await webRequest.SendAsync(parameters, cancellationToken);
-                response.Validate(debug);
+                response.Validate(parameters.Debug);
 
                 if (!isCached)
                 {
@@ -721,7 +673,6 @@ namespace Utilities.WebRequestRest
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="playbackAmountThreshold">Optional, the amount of data to to download before signaling that streaming is ready.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
         public static async Task<AudioClip> StreamAudioAsync(
@@ -734,7 +685,6 @@ namespace Utilities.WebRequestRest
             byte[] payload = null,
             ulong playbackAmountThreshold = 10000,
             RestParameters parameters = null,
-            bool debug = false,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -828,7 +778,7 @@ namespace Utilities.WebRequestRest
 
             var response = await webRequest.SendAsync(parameters, cancellationToken);
             uploadHandler?.Dispose();
-            response.Validate(debug);
+            response.Validate(parameters.Debug);
 
             var loadedClip = downloadHandler.audioClip;
 
@@ -906,45 +856,26 @@ namespace Utilities.WebRequestRest
 
             using (webRequest)
             {
-                Response response;
-
-                try
-                {
-                    parameters ??= new RestParameters();
-                    parameters.Timeout = options?.Timeout ?? -1;
-                    parameters.DisposeDownloadHandler = false;
-                    response = await webRequest.SendAsync(parameters, cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError(e);
-                    throw;
-                }
-
-                if (!response.Successful)
-                {
-                    Debug.LogError($"Failed to download asset bundle from \"{url}\"!\n{response.Code}:{response.Body}");
-                    return null;
-                }
+                parameters ??= new RestParameters();
+                parameters.Timeout = options?.Timeout ?? -1;
+                parameters.DisposeDownloadHandler = false;
+                var response = await webRequest.SendAsync(parameters, cancellationToken);
+                response.Validate(parameters.Debug);
 
                 var downloadHandler = (DownloadHandlerAssetBundle)webRequest.downloadHandler;
                 var assetBundle = downloadHandler.assetBundle;
                 downloadHandler.Dispose();
+
+                if (assetBundle == null)
+                {
+                    throw new RestException(response, $"Failed to download asset bundle from \"{url}\"!");
+                }
+
                 return assetBundle;
             }
         }
 
 #endif // UNITY_ADDRESSABLES
-
-        [Obsolete("use new overload with debug support")]
-        public static async Task<string> DownloadFileAsync(
-            string url,
-            string fileName = null,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await DownloadFileAsync(url, fileName, parameters, false, cancellationToken);
-        }
 
         /// <summary>
         /// Download a file from the provided <see cref="url"/>.
@@ -952,15 +883,13 @@ namespace Utilities.WebRequestRest
         /// <param name="url">The url to download the file from.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="debug">Optional, debug http request.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The path to the downloaded file.</returns>
         public static async Task<string> DownloadFileAsync(
-        string url,
-        string fileName = null,
-        RestParameters parameters = null,
-        bool debug = false,
-        CancellationToken cancellationToken = default)
+            string url,
+            string fileName = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
 
@@ -979,7 +908,7 @@ namespace Utilities.WebRequestRest
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
-            response.Validate(debug);
+            response.Validate(parameters?.Debug ?? false);
             return filePath;
         }
 
