@@ -21,6 +21,7 @@ namespace Utilities.WebRequestRest
         /// <param name="disposeUploadHandler">Optional, dispose the <see cref="UploadHandler"/>?<br/>Default is true.</param>
         /// <param name="certificateHandler">Optional, certificate handler for the request.</param>
         /// <param name="disposeCertificateHandler">Optional, dispose the <see cref="CertificateHandler"/>?<br/>Default is true.</param>
+        /// <param name="cacheDownloads">Optional, cache downloaded content.<br/>Default is true.</param>
         /// <param name="debug">Optional,Enabled printing for the debug output of the request.</param>
         public RestParameters(
             IReadOnlyDictionary<string, string> headers = null,
@@ -30,6 +31,7 @@ namespace Utilities.WebRequestRest
             bool disposeUploadHandler = true,
             CertificateHandler certificateHandler = null,
             bool disposeCertificateHandler = true,
+            bool cacheDownloads = true,
             bool debug = false)
         {
             Headers = headers;
@@ -39,6 +41,7 @@ namespace Utilities.WebRequestRest
             DisposeUploadHandler = disposeUploadHandler;
             CertificateHandler = certificateHandler;
             DisposeCertificateHandler = disposeCertificateHandler;
+            CacheDownloads = cacheDownloads;
             Debug = debug;
         }
 
@@ -81,6 +84,12 @@ namespace Utilities.WebRequestRest
         public bool DisposeUploadHandler { get; internal set; }
 
         internal int ServerSentEventCount { get; set; }
+
+        /// <summary>
+        /// Cache downloaded content.<br/>
+        /// Default is true.
+        /// </summary>
+        public bool CacheDownloads { get; set; }
 
         /// <summary>
         /// Enabled printing for the debug output of the request.

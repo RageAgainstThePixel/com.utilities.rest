@@ -505,7 +505,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && (parameters?.CacheDownloads ?? true);
             }
 
             if (isCached)
@@ -583,7 +583,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && (parameters?.CacheDownloads ?? true);
             }
 
             if (isCached)
@@ -898,7 +898,8 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            if (TryGetDownloadCacheItem(fileName, out var filePath))
+            if (TryGetDownloadCacheItem(fileName, out var filePath) &&
+                (parameters?.CacheDownloads ?? true))
             {
                 return filePath;
             }
