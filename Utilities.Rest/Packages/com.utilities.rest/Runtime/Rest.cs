@@ -912,6 +912,55 @@ namespace Utilities.WebRequestRest
             return filePath;
         }
 
+        /// <summary>
+        /// Download a file from the provided <see cref="url"/> and return the contents as bytes.
+        /// </summary>
+        /// <param name="url">The url to download the file from.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The bytes of the downloaded file.</returns>
+        public static async Task<byte[]> DownloadFileBytesAsync(
+            string url,
+            string fileName = null,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            byte[] bytes = null;
+            var filePath = await DownloadFileAsync(url, fileName, parameters, cancellationToken);
+            var localPath = filePath.Replace("file://", string.Empty);
+
+            if (File.Exists(localPath))
+            {
+                bytes = await File.ReadAllBytesAsync(localPath, cancellationToken).ConfigureAwait(true);
+            }
+
+            return bytes;
+        }
+
+        /// <summary>
+        /// Download raw file contents from the provided <see cref="url"/>.
+        /// </summary>
+        /// <param name="url">The url to download from.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The bytes downloaded from the server.</returns>
+        /// <remarks>This request does not cache results.</remarks>
+        public static async Task<byte[]> DownloadBytesAsync(
+            string url,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = UnityWebRequest.Get(url);
+            using var downloadHandlerBuffer = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandlerBuffer;
+            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            response.Validate(parameters?.Debug ?? false);
+            return response.Data;
+        }
+
         #endregion Get Multimedia Content
 
         /// <summary>
