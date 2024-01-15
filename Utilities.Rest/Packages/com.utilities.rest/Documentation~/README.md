@@ -6,6 +6,10 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 ## Installing
 
+Requires Unity 2021.3 LTS or higher.
+
+The recommended installation method is though the unity package manager and [OpenUPM](https://openupm.com/packages/com.utilities.rest).
+
 ### Via Unity Package Manager and OpenUPM
 
 - Open your Unity project settings
@@ -77,7 +81,9 @@ var restParameters = new RestParameters(
     disposeDownloadHandler, // Optional, dispose the DownloadHandler. Default is true.
     disposeUploadHandler, // Optional, dispose the UploadHandler. Default is true.
     certificateHandler, // Optional, certificate handler for the request.
-    disposeCertificateHandler); // Optional, dispose the CertificateHandler. Default is true.
+    disposeCertificateHandler, // Optional, dispose the CertificateHandler. Default is true.
+    cacheDownloads, // Optional, cache downloaded content. Default is true
+    debug); // Optional, enable debug output of the request. Default is false.
 var response = await Rest.GetAsync("www.your.api/endpoint", restParameters);
 ```
 
@@ -154,8 +160,14 @@ response.Validate(debug: true);
 
 ```csharp
 // cache directory defaults to {Application.temporaryCachePath}/download_cache/
-// it is currently not possible to set this value, but is likely a nice feature request.
 Debug.Log(Rest.DownloadCacheDirectory);
+
+// cache directory can be set to one of:
+// Application.temporaryCachePath,
+// Application.persistentDataPath,
+// Application.dataPath,
+// Application.streamingAssetsPath
+Rest.DownloadCacheDirectory = Application.dataPath;
 
 var uri = "www.url.to/remote/resource";
 
@@ -177,12 +189,38 @@ Rest.DeleteDownloadCache();
 
 #### Files
 
+Download a file.
+
 ```csharp
 var downloadedFilePath = await Rest.DownloadFileAsync("www.your.api/your_file.pdf");
 
 if (!string.IsNullOrWhiteSpace(downloadedFilePath))
 {
     Debug.Log(downloadedFilePath);
+}
+```
+
+Download a file, and get the raw byte data.
+
+```csharp
+var downloadedBytes = await Rest.DownloadFileBytesAsync("www.your.api/your_file.pdf");
+
+if (downloadedBytes != null && downloadedBytes.Length > 0)
+{
+    Debug.Log(downloadedBytes.Length);
+}
+```
+
+Download raw file bytes.
+
+> This request does not cache data
+
+```csharp
+var downloadedBytes = await Rest.DownloadBytesAsync("www.your.api/your_file.pdf");
+
+if (downloadedBytes != null && downloadedBytes.Length > 0)
+{
+    Debug.Log(downloadedBytes.Length);
 }
 ```
 
