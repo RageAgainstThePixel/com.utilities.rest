@@ -6,6 +6,10 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 ## Installing
 
+Requires Unity 2021.3 LTS or higher.
+
+The recommended installation method is though the unity package manager and [OpenUPM](https://openupm.com/packages/com.utilities.rest).
+
 ### Via Unity Package Manager and OpenUPM
 
 - Open your Unity project settings
@@ -78,7 +82,7 @@ var restParameters = new RestParameters(
     disposeUploadHandler, // Optional, dispose the UploadHandler. Default is true.
     certificateHandler, // Optional, certificate handler for the request.
     disposeCertificateHandler, // Optional, dispose the CertificateHandler. Default is true.
-    cacheDownloads, //Optional, cache downloaded content. Default is true
+    cacheDownloads, // Optional, cache downloaded content. Default is true
     debug); // Optional, enable debug output of the request. Default is false.
 var response = await Rest.GetAsync("www.your.api/endpoint", restParameters);
 ```
