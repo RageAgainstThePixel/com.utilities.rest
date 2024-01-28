@@ -583,6 +583,11 @@ namespace Utilities.WebRequestRest
         /// <param name="httpMethod">Optional, must be either GET or POST.</param>
         /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
         /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
+        /// <param name="compressed">Optional, Create AudioClip that is compressed in memory.<br/>
+        /// Note: When <see cref="streamingAudio"/> is true, it supersedes compression, and the download handler creates an AudioClip similar
+        /// to an imported clip with the loadType AudioClipLoadType.Streaming.
+        /// </param>
+        /// <param name="streamingAudio">Optional, Create a streaming audio clip.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
@@ -593,6 +598,8 @@ namespace Utilities.WebRequestRest
             string fileName = null,
             string jsonData = null,
             byte[] payload = null,
+            bool compressed = false,
+            bool streamingAudio = false,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -624,6 +631,8 @@ namespace Utilities.WebRequestRest
 
             UploadHandler uploadHandler = null;
             using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
+            downloadHandler.compressed = compressed;
+            downloadHandler.streamAudio = streamingAudio;
 
             if (httpMethod == UnityWebRequest.kHttpVerbPOST)
             {
@@ -634,7 +643,7 @@ namespace Utilities.WebRequestRest
                         throw new ArgumentException($"{nameof(payload)} and {nameof(jsonData)} cannot be supplied in the same request. Choose either one or the other.", nameof(jsonData));
                     }
 
-                    payload = new UTF8Encoding().GetBytes(jsonData);
+                    payload = new UTF8Encoding().GetBytes(jsonData!);
 
                     var jsonHeaders = new Dictionary<string, string>
                     {
@@ -737,7 +746,7 @@ namespace Utilities.WebRequestRest
                         throw new ArgumentException($"{nameof(payload)} and {nameof(jsonData)} cannot be supplied in the same request. Choose either one or the other.", nameof(jsonData));
                     }
 
-                    payload = new UTF8Encoding().GetBytes(jsonData);
+                    payload = new UTF8Encoding().GetBytes(jsonData!);
 
                     var jsonHeaders = new Dictionary<string, string>
                     {
