@@ -1,5 +1,8 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -14,6 +17,11 @@ namespace Utilities.WebRequestRest
         /// The original request that prompted the response.
         /// </summary>
         public string Request { get; }
+
+        /// <summary>
+        /// The original request body.
+        /// </summary>
+        public string RequestBody { get; }
 
         /// <summary>
         /// The request method that prompted the response.
@@ -55,12 +63,38 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="request">The request that prompted the response.</param>
         /// <param name="method">The request method that prompted the response.</param>
+        /// <param name="requestBody">The request body that prompted the response.</param>
         /// <param name="successful">Was the REST call successful?</param>
         /// <param name="body">Response body from the resource.</param>
         /// <param name="data">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
         /// <param name="headers">Response headers from the resource.</param>
         /// <param name="error">Optional, error message from the resource.</param>
+        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        {
+            Request = request;
+            RequestBody = requestBody;
+            Method = method;
+            Successful = successful;
+            Body = body;
+            Data = data;
+            Code = responseCode;
+            Headers = headers;
+            Error = error;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="request">The request that prompted the response.</param>
+        /// <param name="method">The request method that prompted the response.</param>
+        /// <param name="successful">Was the REST call successful?</param>
+        /// <param name="body">Response body from the resource.</param>
+        /// <param name="data">Response data from the resource.</param>
+        /// <param name="responseCode">Response code from the resource.</param>
+        /// <param name="headers">Response headers from the resource.</param>
+        /// <param name="error">Optional, error message from the resource.</param>
+        [Obsolete("Use new .ctr with requestBody")]
         public Response(string request, string method, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
         {
             Request = request;
@@ -88,35 +122,87 @@ namespace Utilities.WebRequestRest
             debugMessage.Append(!Successful ? " <color=\"red\">Failed!</color>" : " <color=\"green\">Success!</color>");
             debugMessage.Append("\n");
 
+            var debugMessageObject = new Dictionary<string, Dictionary<string, object>>
+            {
+                ["request"] = new()
+                {
+                    ["url"] = Request
+                }
+            };
+
+            if (!string.IsNullOrWhiteSpace(RequestBody))
+            {
+                try
+                {
+                    debugMessageObject["request"]["body"] = JObject.Parse(RequestBody);
+                }
+                catch
+                {
+                    debugMessageObject["request"]["body"] = RequestBody;
+                }
+            }
+
+            debugMessageObject["response"] = new()
+            {
+                ["code"] = Code,
+            };
+
             if (Headers != null)
             {
-                debugMessage.AppendLine("[Headers]");
-
-                foreach (var header in Headers)
-                {
-                    debugMessage.AppendLine($"{header.Key}: {header.Value}");
-                }
+                debugMessageObject["response"]["headers"] = Headers;
             }
 
             if (Data is { Length: > 0 })
             {
-                debugMessage.AppendLine($"[Data] {Data.Length} bytes");
+                debugMessageObject["response"]["data"] = Data.Length;
             }
 
             if (!string.IsNullOrWhiteSpace(Body))
             {
-                debugMessage.AppendLine("[Body]");
-                debugMessage.Append(Body);
-                debugMessage.Append("\n");
+                var parts = Body.Split("data: ");
+
+                if (parts.Length > 0)
+                {
+                    debugMessageObject["response"]["body"] = new JArray();
+
+                    foreach (var part in parts)
+                    {
+                        if (string.IsNullOrWhiteSpace(part) || part.Contains("[DONE]\n\n")) { continue; }
+
+                        try
+                        {
+                            ((JArray)debugMessageObject["response"]["body"]).Add(JObject.Parse(part));
+                        }
+                        catch
+                        {
+                            ((JArray)debugMessageObject["response"]["body"]).Add(new JValue(part));
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        debugMessageObject["response"]["body"] = JObject.Parse(Body);
+                    }
+                    catch
+                    {
+                        debugMessageObject["response"]["body"] = Body;
+                    }
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(Error))
             {
-                debugMessage.AppendLine("[Errors]");
-                debugMessage.Append(Error);
-                debugMessage.Append("\n");
+                debugMessageObject["response"]["error"] = Error;
             }
 
+            var jsonSettings = new JsonSerializerSettings
+            {
+                StringEscapeHandling = StringEscapeHandling.EscapeNonAscii,
+                Formatting = Formatting.Indented
+            };
+            debugMessage.Append(JsonConvert.SerializeObject(debugMessageObject, jsonSettings));
             return debugMessage.ToString();
         }
     }
