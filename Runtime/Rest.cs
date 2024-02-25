@@ -1142,18 +1142,22 @@ namespace Utilities.WebRequestRest
 #pragma warning restore CS4014
             }
 
+            var requestBody = string.Empty;
+
+            if (hasUpload && webRequest.uploadHandler != null)
+            {
+                requestBody = webRequest.uploadHandler.data is { Length: > 0 }
+                    ? Encoding.UTF8.GetString(webRequest.uploadHandler.data)
+                    : string.Empty;
+            }
+
             try
             {
-                if (parameters is { Debug: true })
-                {
-                    Debug.Log($"[{webRequest.method}] {webRequest.url}");
-                }
-
                 await webRequest.SendWebRequest();
             }
             catch (Exception e)
             {
-                return new Response(webRequest.url, webRequest.method, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, e.ToString());
+                return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, e.ToString());
             }
 
             parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
@@ -1166,13 +1170,13 @@ namespace Utilities.WebRequestRest
             {
                 return webRequest.downloadHandler switch
                 {
-                    DownloadHandlerFile => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    _ => new Response(webRequest.url, webRequest.method, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
+                    DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    _ => new Response(webRequest.url, webRequest.method, requestBody, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
                 };
             }
 
@@ -1183,13 +1187,13 @@ namespace Utilities.WebRequestRest
 
             return webRequest.downloadHandler switch
             {
-                DownloadHandlerFile => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                _ => new Response(webRequest.url, webRequest.method, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
+                DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
+                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
+                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders),
+                _ => new Response(webRequest.url, webRequest.method, requestBody, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
             };
 
             void SendServerEventCallback(bool isEnd)
