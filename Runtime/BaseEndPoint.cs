@@ -27,6 +27,7 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// <see cref="IClient"/> for this endpoint.
         /// </summary>
+        /// ReSharper disable once InconsistentNaming
         protected readonly TClient client;
 
         /// <summary>
@@ -39,7 +40,7 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="endpoint">The endpoint url.</param>
         /// <param name="queryParameters">Optional, parameters to add to the endpoint.</param>
-        protected string GetUrl(string endpoint = "", Dictionary<string, string> queryParameters = null)
+        protected virtual string GetUrl(string endpoint = "", Dictionary<string, string> queryParameters = null)
         {
             var result = string.Format(client.Settings.BaseRequestUrlFormat, $"{Root}{endpoint}");
 
