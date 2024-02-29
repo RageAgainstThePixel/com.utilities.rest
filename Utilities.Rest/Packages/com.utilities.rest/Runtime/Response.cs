@@ -134,7 +134,7 @@ namespace Utilities.WebRequestRest
             {
                 try
                 {
-                    debugMessageObject["request"]["body"] = JObject.Parse(RequestBody);
+                    debugMessageObject["request"]["body"] = JToken.Parse(RequestBody);
                 }
                 catch
                 {
@@ -144,7 +144,7 @@ namespace Utilities.WebRequestRest
 
             debugMessageObject["response"] = new()
             {
-                ["code"] = Code,
+                ["code"] = Code
             };
 
             if (Headers != null)
@@ -171,7 +171,7 @@ namespace Utilities.WebRequestRest
 
                         try
                         {
-                            ((JArray)debugMessageObject["response"]["body"]).Add(JObject.Parse(part));
+                            ((JArray)debugMessageObject["response"]["body"]).Add(JToken.Parse(part));
                         }
                         catch
                         {
@@ -183,7 +183,7 @@ namespace Utilities.WebRequestRest
                 {
                     try
                     {
-                        debugMessageObject["response"]["body"] = JObject.Parse(Body);
+                        debugMessageObject["response"]["body"] = JToken.Parse(Body);
                     }
                     catch
                     {
