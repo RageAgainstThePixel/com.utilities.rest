@@ -1,5 +1,6 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1137,7 +1138,7 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-#pragma warning disable CS4014 // We purposefully don't await this task so it will run on a background thread.
+#pragma warning disable CS4014 // We purposefully don't await this task, so it will run on a background thread.
                 Task.Run(CallbackThread, cancellationToken);
 #pragma warning restore CS4014
             }
@@ -1146,9 +1147,39 @@ namespace Utilities.WebRequestRest
 
             if (hasUpload && webRequest.uploadHandler != null)
             {
-                requestBody = webRequest.uploadHandler.data is { Length: > 0 }
-                    ? Encoding.UTF8.GetString(webRequest.uploadHandler.data)
-                    : string.Empty;
+                var contentType = webRequest.GetRequestHeader(content_type);
+                if (webRequest.uploadHandler.data is { Length: > 0 } &&
+                    contentType.Contains("multipart/form-data"))
+                {
+                    var boundary = contentType.Split(';')[1].Split('=')[1];
+                    var encodedData = Encoding.UTF8.GetString(webRequest.uploadHandler.data);
+                    var formData = encodedData.Split(new[] { $"\r\n--{boundary}\r\n", $"\r\n--{boundary}--\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    var formParts = new Dictionary<string, string>();
+
+                    foreach (var form in formData)
+                    {
+                        var formFields = form.Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                        var fieldHeader = formFields[0];
+                        var key = fieldHeader.Split(new[] { "name=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
+
+                        if (fieldHeader.Contains("application/octet-stream"))
+                        {
+                            var fileName = fieldHeader.Split(new[] { "filename=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
+                            formParts.Add(key, fileName);
+                        }
+                        else
+                        {
+                            var value = formFields[1];
+                            formParts.Add(key, value);
+                        }
+                    }
+
+                    requestBody = JsonConvert.SerializeObject(new { contentType, formParts });
+                }
+                else
+                {
+                    requestBody = string.Empty;
+                }
             }
 
             try
