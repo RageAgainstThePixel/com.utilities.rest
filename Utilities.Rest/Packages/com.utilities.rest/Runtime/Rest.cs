@@ -67,6 +67,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
@@ -85,6 +86,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
             return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
         }
@@ -105,6 +107,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
@@ -137,6 +140,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
@@ -155,6 +159,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Post(query, formData);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
@@ -173,6 +178,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
@@ -199,6 +205,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
@@ -227,6 +234,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
@@ -262,6 +270,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
             using var uploadHandler = new UploadHandlerRaw(bodyData);
             webRequest.uploadHandler = uploadHandler;
@@ -285,6 +294,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
             var boundary = UnityWebRequest.GenerateBoundary();
             var formSections = UnityWebRequest.SerializeFormSections(form, boundary);
@@ -314,6 +324,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Put(query, jsonData);
             webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, cancellationToken);
@@ -333,6 +344,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Put(query, bodyData);
             webRequest.SetRequestHeader(content_type, application_octet_stream);
             return await webRequest.SendAsync(parameters, cancellationToken);
@@ -356,6 +368,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Put(query, jsonData);
             webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader(content_type, application_json);
@@ -376,6 +389,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Put(query, bodyData);
             webRequest.method = kHttpVerbPATCH;
             webRequest.SetRequestHeader(content_type, application_octet_stream);
@@ -398,6 +412,7 @@ namespace Utilities.WebRequestRest
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
+            await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Delete(query);
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
