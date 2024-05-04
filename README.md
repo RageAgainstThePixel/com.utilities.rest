@@ -190,6 +190,10 @@ if (Rest.TryGetDownloadCacheItem(uri, out var cachedFilePath))
         Debug.Log($"Deleted {cachedFilePath}");
     }
 }
+else
+{
+    Debug.Log($"Unable to download from {uri}");
+}
 
 // Clear the whole download cache directory
 Rest.DeleteDownloadCache();
@@ -206,6 +210,10 @@ if (!string.IsNullOrWhiteSpace(downloadedFilePath) && File.Exists(downloadedFile
 {
     Debug.Log(downloadedFilePath);
 }
+else
+{
+    Debug.Log($"Unable to download file to {downloadedFilePath}");
+}
 ```
 
 Download a file, and get the raw byte data.
@@ -216,6 +224,10 @@ var downloadedBytes = await Rest.DownloadFileBytesAsync("www.your.api/your_file.
 if (downloadedBytes != null && downloadedBytes.Length > 0)
 {
     Debug.Log(downloadedBytes.Length);
+}
+else
+{
+    Debug.Log($"Unable to download file");
 }
 ```
 
@@ -229,6 +241,10 @@ var downloadedBytes = await Rest.DownloadBytesAsync("www.your.api/your_file.pdf"
 if (downloadedBytes != null && downloadedBytes.Length > 0)
 {
     Debug.Log(downloadedBytes.Length);
+}
+else
+{
+    Debug.Log($"Unable to download file");
 }
 ```
 
@@ -244,6 +260,10 @@ if (texture != null)
     // assign it to your renderer
     rawImage.texture = texture;
 }
+else
+{
+    Debug.Log($"Unable to download texture");
+}
 ```
 
 #### Audio
@@ -258,6 +278,10 @@ if (audioClip != null)
     // assign it to your audio source
     audioSource.clip = audioClip;
     audioSource.PlayOneShot(audioClip);
+}
+else
+{
+    Debug.Log($"Unable to download audio clip");
 }
 ```
 
@@ -288,5 +312,9 @@ if (assetBundle != null)
 {
     var cube = assetBundle.LoadAsset<GameObject>("Cube");
     Instantiate(cube);
+}
+else
+{
+    Debug.Log($"Unable to download asset bundle");
 }
 ```
