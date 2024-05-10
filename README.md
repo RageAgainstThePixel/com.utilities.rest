@@ -84,7 +84,7 @@ var restParameters = new RestParameters(
     disposeUploadHandler, // Optional, dispose the UploadHandler. Default is true.
     certificateHandler, // Optional, certificate handler for the request.
     disposeCertificateHandler, // Optional, dispose the CertificateHandler. Default is true.
-    cacheDownloads, // Optional, cache downloaded content. Default is true
+    cacheDownloads, // Optional, cache downloaded content. Default is true.
     debug); // Optional, enable debug output of the request. Default is false.
 
 // Rest call passing a pre-configured set of RestParameters
@@ -175,7 +175,7 @@ Debug.Log(Rest.DownloadCacheDirectory);
 // Application.persistentDataPath,
 // Application.dataPath,
 // Application.streamingAssetsPath
-Rest.DownloadLocation = Application.dataPath;
+Rest.DownloadLocation = Application.streamingAssetsPath;
 
 var uri = "www.url.to/remote/resource";
 
@@ -212,26 +212,27 @@ if (!string.IsNullOrWhiteSpace(downloadedFilePath) && File.Exists(downloadedFile
 }
 else
 {
-    Debug.Log($"Unable to download file to {downloadedFilePath}");
+    Debug.LogError($"Failed to download file!");
 }
 ```
 
-Download a file, and get the raw byte data.
+Download a file, then return the raw byte data.
 
 ```csharp
 var downloadedBytes = await Rest.DownloadFileBytesAsync("www.your.api/your_file.pdf");
 
 if (downloadedBytes != null && downloadedBytes.Length > 0)
 {
+    // do some custom loading of your binary file.
     Debug.Log(downloadedBytes.Length);
 }
 else
 {
-    Debug.Log($"Unable to download file");
+    Debug.LogError($"Failed to download file!");
 }
 ```
 
-Download raw file bytes.
+Download raw file bytes directly into memory.
 
 > This request does not cache data
 
@@ -244,7 +245,7 @@ if (downloadedBytes != null && downloadedBytes.Length > 0)
 }
 else
 {
-    Debug.Log($"Unable to download file");
+    Debug.LogError($"Failed to download file!");
 }
 ```
 
@@ -262,7 +263,7 @@ if (texture != null)
 }
 else
 {
-    Debug.Log($"Unable to download texture");
+    Debug.LogError($"Failed to download texture!");
 }
 ```
 
@@ -281,7 +282,7 @@ if (audioClip != null)
 }
 else
 {
-    Debug.Log($"Unable to download audio clip");
+    Debug.LogError($"Failed to download audio clip!");
 }
 ```
 
@@ -315,6 +316,6 @@ if (assetBundle != null)
 }
 else
 {
-    Debug.Log($"Unable to download asset bundle");
+    Debug.LogError($"Failed to download and load asset bundle!");
 }
 ```
