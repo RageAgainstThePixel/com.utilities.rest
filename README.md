@@ -69,9 +69,11 @@ var basicAuthentication = Rest.GetBasicAuthentication("username", "password");
 var bearerToken = Rest.GetBearerOAuthToken("authToken");
 ```
 
+These methods will generate the necessary data to apply to your authentication headers, they DO NOT set the authentication for any Rest calls.
+
 ### Rest Parameters
 
-Rest parameters have been bundled into a single object to make the method signatures a bit more uniform.
+Rest parameters have been bundled into a single object to make the method signatures a bit more uniform, these can be provided with all requests made using the `com.utilities.rest` library to control how the operation performs.
 
 ```csharp
 var restParameters = new RestParameters(
@@ -82,10 +84,16 @@ var restParameters = new RestParameters(
     disposeUploadHandler, // Optional, dispose the UploadHandler. Default is true.
     certificateHandler, // Optional, certificate handler for the request.
     disposeCertificateHandler, // Optional, dispose the CertificateHandler. Default is true.
-    cacheDownloads, // Optional, cache downloaded content. Default is true
+    cacheDownloads, // Optional, cache downloaded content. Default is true.
     debug); // Optional, enable debug output of the request. Default is false.
+
+// Rest call passing a pre-configured set of RestParameters
 var response = await Rest.GetAsync("www.your.api/endpoint", restParameters);
 ```
+
+If you require any of the above options when making calls, ensure to add a `RestParameters` construct to the request, as shown above.
+
+> Pro Tip: If you have multiple requests using the same "Parameters", then cache a single instance of the `RestParameters` and use this for all calls instead of recreating it for each request.
 
 ### Get
 
@@ -149,7 +157,7 @@ response.Validate(debug: true);
 ### Delete
 
 ```csharp
-var response = await Rest.DeleteAsync("www.your.api/endpoint", restParameters);
+var response = await Rest.DeleteAsync("www.your.api/endpoint");
 // Validates the response for you and will throw a RestException if the response is unsuccessful.
 response.Validate(debug: true);
 ```
@@ -167,7 +175,7 @@ Debug.Log(Rest.DownloadCacheDirectory);
 // Application.persistentDataPath,
 // Application.dataPath,
 // Application.streamingAssetsPath
-Rest.DownloadCacheDirectory = Application.dataPath;
+Rest.DownloadLocation = Application.streamingAssetsPath;
 
 var uri = "www.url.to/remote/resource";
 
@@ -182,6 +190,10 @@ if (Rest.TryGetDownloadCacheItem(uri, out var cachedFilePath))
         Debug.Log($"Deleted {cachedFilePath}");
     }
 }
+else
+{
+    Debug.Log($"Unable to download from {uri}");
+}
 
 // Clear the whole download cache directory
 Rest.DeleteDownloadCache();
@@ -194,24 +206,33 @@ Download a file.
 ```csharp
 var downloadedFilePath = await Rest.DownloadFileAsync("www.your.api/your_file.pdf");
 
-if (!string.IsNullOrWhiteSpace(downloadedFilePath))
+if (!string.IsNullOrWhiteSpace(downloadedFilePath) && File.Exists(downloadedFilePath))
 {
     Debug.Log(downloadedFilePath);
 }
+else
+{
+    Debug.LogError($"Failed to download file!");
+}
 ```
 
-Download a file, and get the raw byte data.
+Download a file, then return the raw byte data.
 
 ```csharp
 var downloadedBytes = await Rest.DownloadFileBytesAsync("www.your.api/your_file.pdf");
 
 if (downloadedBytes != null && downloadedBytes.Length > 0)
 {
+    // do some custom loading of your binary file.
     Debug.Log(downloadedBytes.Length);
+}
+else
+{
+    Debug.LogError($"Failed to download file!");
 }
 ```
 
-Download raw file bytes.
+Download raw file bytes directly into memory.
 
 > This request does not cache data
 
@@ -221,6 +242,10 @@ var downloadedBytes = await Rest.DownloadBytesAsync("www.your.api/your_file.pdf"
 if (downloadedBytes != null && downloadedBytes.Length > 0)
 {
     Debug.Log(downloadedBytes.Length);
+}
+else
+{
+    Debug.LogError($"Failed to download file!");
 }
 ```
 
@@ -236,6 +261,10 @@ if (texture != null)
     // assign it to your renderer
     rawImage.texture = texture;
 }
+else
+{
+    Debug.LogError($"Failed to download texture!");
+}
 ```
 
 #### Audio
@@ -250,6 +279,10 @@ if (audioClip != null)
     // assign it to your audio source
     audioSource.clip = audioClip;
     audioSource.PlayOneShot(audioClip);
+}
+else
+{
+    Debug.LogError($"Failed to download audio clip!");
 }
 ```
 
@@ -273,11 +306,16 @@ audioSource.clip = audioClip;
 #### Asset Bundles
 
 ```csharp
-var assetBundle = await Rest.DownloadAssetBundleAsync("www.your.api/asset.bundle");
+var bundleOptions = new AssetBundleRequestOptions();
+var assetBundle = await Rest.DownloadAssetBundleAsync("www.your.api/asset.bundle", bundleOptions);
 
 if (assetBundle != null)
 {
-    var cube = bundle.LoadAsset<GameObject>("Cube");
+    var cube = assetBundle.LoadAsset<GameObject>("Cube");
     Instantiate(cube);
+}
+else
+{
+    Debug.LogError($"Failed to download and load asset bundle!");
 }
 ```
