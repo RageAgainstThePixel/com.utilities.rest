@@ -4,9 +4,9 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -25,12 +25,13 @@ namespace Utilities.WebRequestRest
     {
         internal const string FileUriPrefix = "file://";
         private const string kHttpVerbPATCH = "PATCH";
-        private const string eventDelimiter = "data: ";
-        private const string stopEventDelimiter = "[DONE]";
         private const string content_type = "Content-Type";
         private const string content_length = "Content-Length";
         private const string application_json = "application/json";
         private const string application_octet_stream = "application/octet-stream";
+        private const string ssePattern = @"(?:(?:(?<type>[^:\n]*):)(?<value>(?:(?!\n\n|\ndata:).)*)(?:\ndata:(?<data>(?:(?!\n\n).)*))?\n\n)";
+
+        private static readonly Regex sseRegex = new(ssePattern);
 
         #region Authentication
 
@@ -1203,7 +1204,7 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, e.ToString());
+                return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, parameters, e.ToString());
             }
 
             parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
@@ -1216,13 +1217,13 @@ namespace Utilities.WebRequestRest
             {
                 return webRequest.downloadHandler switch
                 {
-                    DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    _ => new Response(webRequest.url, webRequest.method, requestBody, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
+                    DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
+                    _ => new Response(webRequest.url, webRequest.method, requestBody, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
                 };
             }
 
@@ -1233,35 +1234,58 @@ namespace Utilities.WebRequestRest
 
             return webRequest.downloadHandler switch
             {
-                DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders),
-                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders),
-                _ => new Response(webRequest.url, webRequest.method, requestBody, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders)
+                DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
+                DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
+                DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
+                DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
+                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters),
+                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters),
+                _ => new Response(webRequest.url, webRequest.method, requestBody, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, parameters)
             };
 
             void SendServerEventCallback(bool isEnd)
             {
+                var allEventMessages = webRequest.downloadHandler?.text;
+                if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
+
+                var matches = sseRegex.Matches(allEventMessages!);
+                var stride = isEnd ? 0 : 1;
                 parameters ??= new RestParameters();
-                var lines = webRequest.downloadHandler?.text
-                    .Split(eventDelimiter, StringSplitOptions.RemoveEmptyEntries)
-                    .ToArray();
 
-                if (lines is { Length: > 1 })
+                for (var i = parameters.ServerSentEventCount; i < matches.Count - stride; i++)
                 {
-                    var stride = isEnd ? 0 : 1;
-                    for (var i = parameters.ServerSentEventCount; i < lines.Length - stride; i++)
-                    {
-                        var line = lines[i];
+                    string type;
+                    string value;
+                    string data;
 
-                        if (!line.Contains(stopEventDelimiter))
-                        {
-                            parameters.ServerSentEventCount++;
-                            serverSentEventCallback.Invoke(line);
-                        }
+                    var match = matches[i];
+
+                    const string comment = nameof(comment);
+                    type = match.Groups[nameof(type)].Value.Trim();
+                    // If the field type is not provided, treat it as a comment
+                    type = string.IsNullOrEmpty(type) ? comment : type;
+                    value = match.Groups[nameof(value)].Value.Trim();
+                    data = match.Groups[nameof(data)].Value.Trim();
+
+                    if ((type.Equals("event") && value.Equals("done") && data.Equals("[DONE]")) ||
+                        (type.Equals("data") && value.Equals("[DONE]")))
+                    {
+                        return;
                     }
+
+                    var eventStringBuilder = new StringBuilder();
+                    eventStringBuilder.Append("{");
+                    eventStringBuilder.Append($"\"{type}\":\"{value}\"");
+
+                    if (!string.IsNullOrWhiteSpace(data))
+                    {
+                        eventStringBuilder.Append($",\"{nameof(data)}\":\"{data}\"");
+                    }
+
+                    eventStringBuilder.Append("}");
+                    serverSentEventCallback.Invoke(eventStringBuilder.ToString());
+                    parameters.ServerSentEventCount++;
+                    parameters.ServerSentEvents.Add(new Tuple<string, string, string>(type, value, data));
                 }
             }
         }

@@ -59,6 +59,11 @@ namespace Utilities.WebRequestRest
         public string Error { get; }
 
         /// <summary>
+        /// Request parameters.
+        /// </summary>
+        public RestParameters Parameters { get; }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="request">The request that prompted the response.</param>
@@ -69,8 +74,9 @@ namespace Utilities.WebRequestRest
         /// <param name="data">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
         /// <param name="headers">Response headers from the resource.</param>
+        /// <param name="parameters">The parameters of the request.</param>
         /// <param name="error">Optional, error message from the resource.</param>
-        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters parameters, string error = null)
         {
             Request = request;
             RequestBody = requestBody;
@@ -81,23 +87,14 @@ namespace Utilities.WebRequestRest
             Code = responseCode;
             Headers = headers;
             Error = error;
+            Parameters = parameters;
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="request">The request that prompted the response.</param>
-        /// <param name="method">The request method that prompted the response.</param>
-        /// <param name="successful">Was the REST call successful?</param>
-        /// <param name="body">Response body from the resource.</param>
-        /// <param name="data">Response data from the resource.</param>
-        /// <param name="responseCode">Response code from the resource.</param>
-        /// <param name="headers">Response headers from the resource.</param>
-        /// <param name="error">Optional, error message from the resource.</param>
-        [Obsolete("Use new .ctr with requestBody")]
-        public Response(string request, string method, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        [Obsolete("Use new .ctr with parameters")]
+        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
         {
             Request = request;
+            RequestBody = requestBody;
             Method = method;
             Successful = successful;
             Body = body;
@@ -159,24 +156,30 @@ namespace Utilities.WebRequestRest
 
             if (!string.IsNullOrWhiteSpace(Body))
             {
-                var parts = Body.Split("data: ");
-
-                if (parts.Length > 0)
+                if (Parameters.ServerSentEvents.Count > 0)
                 {
                     debugMessageObject["response"]["body"] = new JArray();
 
-                    foreach (var part in parts)
+                    foreach (var (type, value, data) in Parameters.ServerSentEvents)
                     {
-                        if (string.IsNullOrWhiteSpace(part) || part.Contains("[DONE]\n\n")) { continue; }
+                        var eventObject = new JObject
+                        {
+                            [type] = value
+                        };
 
-                        try
+                        if (!string.IsNullOrWhiteSpace(data))
                         {
-                            ((JArray)debugMessageObject["response"]["body"]).Add(JToken.Parse(part));
+                            try
+                            {
+                                eventObject[nameof(data)] = JToken.Parse(data);
+                            }
+                            catch
+                            {
+                                eventObject[nameof(data)] = data;
+                            }
                         }
-                        catch
-                        {
-                            ((JArray)debugMessageObject["response"]["body"]).Add(new JValue(part));
-                        }
+
+                        ((JArray)debugMessageObject["response"]["body"]).Add(eventObject);
                     }
                 }
                 else

@@ -48,7 +48,7 @@ namespace Utilities.WebRequestRest
                     var buffer = new byte[bytesToRead];
                     var bytesRead = stream.Read(buffer, 0, (int)bytesToRead);
                     streamPosition += bytesRead;
-                    OnDataReceived?.Invoke(new Response(webRequest.url, webRequest.method, null, true, null, buffer, webRequest.responseCode, webRequest.GetResponseHeaders()));
+                    OnDataReceived?.Invoke(new Response(webRequest.url, webRequest.method, null, true, null, buffer, webRequest.responseCode, webRequest.GetResponseHeaders(), null, null));
                 }
             }
             catch (Exception e)
@@ -69,7 +69,7 @@ namespace Utilities.WebRequestRest
                     var buffer = new byte[StreamOffset];
                     var bytesRead = stream.Read(buffer);
                     streamPosition += bytesRead;
-                    OnDataReceived?.Invoke(new Response(webRequest.url, webRequest.method, null, true, null, buffer, webRequest.responseCode, webRequest.GetResponseHeaders()));
+                    OnDataReceived?.Invoke(new Response(webRequest.url, webRequest.method, null, true, null, buffer, webRequest.responseCode, webRequest.GetResponseHeaders(), null, null));
                 }
             }
             catch (Exception e)
