@@ -1,6 +1,7 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1273,17 +1274,30 @@ namespace Utilities.WebRequestRest
                         return;
                     }
 
-                    var eventStringBuilder = new StringBuilder();
-                    eventStringBuilder.Append("{");
-                    eventStringBuilder.Append($"\"{type}\":\"{value}\"");
+                    var eventObject = new Dictionary<string, object>();
+
+                    try
+                    {
+                        eventObject[type] = JToken.Parse(value);
+                    }
+                    catch
+                    {
+                        eventObject[type] = value;
+                    }
 
                     if (!string.IsNullOrWhiteSpace(data))
                     {
-                        eventStringBuilder.Append($",\"{nameof(data)}\":\"{data}\"");
+                        try
+                        {
+                            eventObject[nameof(data)] = JToken.Parse(data);
+                        }
+                        catch
+                        {
+                            eventObject[nameof(data)] = data;
+                        }
                     }
 
-                    eventStringBuilder.Append("}");
-                    serverSentEventCallback.Invoke(eventStringBuilder.ToString());
+                    serverSentEventCallback.Invoke(JsonConvert.SerializeObject(eventObject));
                     parameters.ServerSentEventCount++;
                     parameters.ServerSentEvents.Add(new Tuple<string, string, string>(type, value, data));
                 }
