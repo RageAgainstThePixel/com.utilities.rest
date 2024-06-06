@@ -85,6 +85,8 @@ namespace Utilities.WebRequestRest
 
         internal int ServerSentEventCount { get; set; }
 
+        internal readonly List<Tuple<string, string, string>> ServerSentEvents = new();
+
         /// <summary>
         /// Cache downloaded content.<br/>
         /// Default is true.
