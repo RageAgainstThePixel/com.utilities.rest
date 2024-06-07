@@ -1305,8 +1305,9 @@ namespace Utilities.WebRequestRest
                     data = match.Groups[nameof(data)].Value;
 
                     const string doneTag = "[DONE]";
-                    // if either value or data equals doneTag then stop processing events.
-                    if (value.Equals(doneTag) || data.Equals(doneTag)) { return; }
+                    const string doneEvent = "done";
+                    // if either value or data equals doneTag or doneEvent then stop processing events.
+                    if (value.Equals(doneTag) || data.Equals(doneTag) || value.Equals(doneEvent)) { return; }
 
                     var @event = new ServerSentEvent(type);
 
