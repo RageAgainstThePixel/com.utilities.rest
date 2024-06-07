@@ -12,7 +12,7 @@ namespace Utilities.Rest.Extensions
     /// Converts empty strings to null values so they are properly ignored by the serializer.
     /// https://stackoverflow.com/questions/39855694/convert-empty-strings-to-null-with-json-net
     /// </summary>
-    public class EmptyToNullStringContractResolver : DefaultContractResolver
+    public sealed class EmptyToNullStringContractResolver : DefaultContractResolver
     {
         protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
             => type.GetProperties()

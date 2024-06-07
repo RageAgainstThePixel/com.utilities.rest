@@ -9,7 +9,7 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// A common class for restful parameters
     /// </summary>
-    public class RestParameters
+    public sealed class RestParameters
     {
         /// <summary>
         /// Constructor.
@@ -85,7 +85,8 @@ namespace Utilities.WebRequestRest
 
         internal int ServerSentEventCount { get; set; }
 
-        internal readonly List<Tuple<string, string, string>> ServerSentEvents = new();
+        // ReSharper disable once InconsistentNaming
+        internal readonly List<ServerSentEvent> ServerSentEvents = new();
 
         /// <summary>
         /// Cache downloaded content.<br/>

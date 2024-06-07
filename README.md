@@ -46,7 +46,7 @@ Advanced features includes progress notifications, authentication and native mul
 - [Rest Parameters](#rest-parameters)
 - [Get](#get)
 - [Post](#post)
-  - [Server Sent Events](#server-sent-events)
+  - [Server Sent Events](#server-sent-events) :new:
   - [Data Received Callbacks](#data-received-callbacks)
 - [Put](#put)
 - [Patch](#patch)
@@ -115,25 +115,10 @@ response.Validate(debug: true);
 
 #### Server Sent Events
 
-> [!WARNING]
-> Breaking change. `eventData` payloads are now json objects where the type is the key and field data is value.
-> For existing data callbacks, they are now nested: `{"data":"{<payload data>}"}`
-
-Handles [server sent event](https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events) messages.
-
-`eventData` json Schema:
-
-```json
-{
-  "type":"value",
-  "data":"{<payload data>}" // nullable
-}
-```
-
 ```csharp
 var jsonData = "{\"data\":\"content\"}";
-var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, eventData => {
-    Debug.Log(eventData);
+var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, (sseResponse, ssEvent) => {
+    Debug.Log(ssEvent);
 });
 // Validates the response for you and will throw a RestException if the response is unsuccessful.
 response.Validate(debug: true);
