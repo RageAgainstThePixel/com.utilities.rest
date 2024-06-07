@@ -8,7 +8,7 @@ namespace Utilities.Rest.Extensions
     /// <summary>
     /// https://stackoverflow.com/questions/39855694/convert-empty-strings-to-null-with-json-net
     /// </summary>
-    public class EmptyToNullStringValueProvider : IValueProvider
+    public sealed class EmptyToNullStringValueProvider : IValueProvider
     {
         private readonly PropertyInfo memberInfo;
 

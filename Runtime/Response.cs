@@ -5,14 +5,17 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine.Networking;
 
 namespace Utilities.WebRequestRest
 {
     /// <summary>
     /// Response to a REST Call.
     /// </summary>
-    public class Response
+    public sealed class Response
     {
+        private static readonly Dictionary<string, string> invalidHeaders = new() { { "Invalid Headers", "Invalid Headers" } };
+
         /// <summary>
         /// The original request that prompted the response.
         /// </summary>
@@ -62,6 +65,66 @@ namespace Utilities.WebRequestRest
         /// Request parameters.
         /// </summary>
         public RestParameters Parameters { get; }
+
+        /// <summary>
+        /// Full list of server sent events.
+        /// </summary>
+        public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents;
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="webRequest">The request that prompted the response.</param>
+        /// <param name="requestBody">The request body that prompted the response.</param>
+        /// <param name="successful">Was the request successful?</param>
+        /// <param name="parameters">The parameters of the request.</param>
+        /// <param name="responseBody">Optional, response body override.</param>
+        public Response(UnityWebRequest webRequest, string requestBody, bool successful, RestParameters parameters, string responseBody = null)
+        {
+            Request = webRequest.url;
+            RequestBody = requestBody;
+            Method = webRequest.method;
+            Successful = successful;
+
+            if (string.IsNullOrWhiteSpace(responseBody))
+            {
+                switch (webRequest.downloadHandler)
+                {
+                    case DownloadHandlerFile:
+                    case DownloadHandlerTexture:
+                    case DownloadHandlerAudioClip:
+                    case DownloadHandlerAssetBundle:
+                        Body = null;
+                        Data = null;
+                        break;
+                    case DownloadHandlerBuffer downloadHandlerBuffer:
+                        Body = downloadHandlerBuffer.text;
+                        Data = downloadHandlerBuffer.data;
+                        break;
+                    case DownloadHandlerScript downloadHandlerScript:
+                        Body = downloadHandlerScript.text;
+                        Data = downloadHandlerScript.data;
+                        break;
+                    default:
+                        Body = webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text;
+                        Data = webRequest.downloadHandler?.data;
+                        break;
+                }
+            }
+            else
+            {
+                Body = responseBody;
+            }
+
+            Code = webRequest.responseCode;
+            Headers = webRequest.GetResponseHeaders() ?? invalidHeaders;
+            Parameters = parameters;
+
+            if (!successful)
+            {
+                Error = $"{webRequest.error}\n{webRequest.downloadHandler?.error}";
+            }
+        }
 
         /// <summary>
         /// Constructor.
@@ -158,29 +221,27 @@ namespace Utilities.WebRequestRest
             {
                 if (Parameters.ServerSentEvents.Count > 0)
                 {
-                    debugMessageObject["response"]["body"] = new JArray();
+                    var array = new JArray();
 
-                    foreach (var (type, value, data) in Parameters.ServerSentEvents)
+                    foreach (var @event in Parameters.ServerSentEvents)
                     {
                         var eventObject = new JObject
                         {
-                            [type] = value
+                            [@event.Event.ToString().ToLower()] = @event.Value
                         };
 
-                        if (!string.IsNullOrWhiteSpace(data))
+                        if (@event.Data != null)
                         {
-                            try
-                            {
-                                eventObject[nameof(data)] = JToken.Parse(data);
-                            }
-                            catch
-                            {
-                                eventObject[nameof(data)] = data;
-                            }
+                            eventObject["data"] = @event.Data;
                         }
 
-                        ((JArray)debugMessageObject["response"]["body"]).Add(eventObject);
+                        array.Add(eventObject);
                     }
+
+                    debugMessageObject["response"]["body"] = new JObject
+                    {
+                        ["events"] = array
+                    };
                 }
                 else
                 {

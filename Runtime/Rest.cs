@@ -78,10 +78,22 @@ namespace Utilities.WebRequestRest
         /// Rest GET.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="serverSentEventCallback"><see cref="Action{T}"/> server sent event callback.</param>
+        /// <param name="serverSentEventHandler"><see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
+        public static async Task<Response> GetAsync(
+            string query,
+            Action<Response, ServerSentEvent> serverSentEventHandler,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = UnityWebRequest.Get(query);
+            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
+        }
+
+        [Obsolete("use new overload with serverSentEventHandler")]
         public static async Task<Response> GetAsync(
             string query,
             Action<string> serverSentEventCallback,
@@ -196,10 +208,29 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="serverSentEventCallback"><see cref="Action{T}"/> server sent event callback.</param>
+        /// <param name="serverSentEventHandler"><see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            string query,
+            string jsonData,
+            Action<Response, ServerSentEvent> serverSentEventHandler,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+            var data = new UTF8Encoding().GetBytes(jsonData);
+            using var uploadHandler = new UploadHandlerRaw(data);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
+            webRequest.SetRequestHeader(content_type, application_json);
+            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
+        }
+
+        [Obsolete("use new overload with serverSentEventHandler")]
         public static async Task<Response> PostAsync(
             string query,
             string jsonData,
@@ -250,7 +281,7 @@ namespace Utilities.WebRequestRest
 
             try
             {
-                return await webRequest.SendAsync(parameters, null, cancellationToken);
+                return await webRequest.SendAsync(parameters, serverSentEventHandler: null, cancellationToken);
             }
             finally
             {
@@ -1026,20 +1057,43 @@ namespace Utilities.WebRequestRest
             this UnityWebRequest webRequest,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
-            => await SendAsync(webRequest, parameters, null, cancellationToken);
+            => await SendAsync(webRequest, parameters, serverSentEventHandler: null, cancellationToken);
+
+        [Obsolete("Use new overload with serverSentEventHandler")]
+        public static async Task<Response> SendAsync(
+            this UnityWebRequest webRequest,
+            RestParameters parameters = null,
+            Action<string> serverSentEventCallback = null,
+            CancellationToken cancellationToken = default)
+        {
+            Action<Response, ServerSentEvent> serverSentEventHandler = null;
+
+            if (serverSentEventCallback != null)
+            {
+                serverSentEventHandler = (_, @event) =>
+                {
+                    if (@event.Value != null)
+                    {
+                        serverSentEventCallback.Invoke(@event.Value.ToString(Formatting.None));
+                    }
+                };
+            }
+
+            return await SendAsync(webRequest, parameters, serverSentEventHandler, cancellationToken);
+        }
 
         /// <summary>
         /// Process a <see cref="UnityWebRequest"/> asynchronously.
         /// </summary>
         /// <param name="webRequest">The <see cref="UnityWebRequest"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="serverSentEventCallback">Optional, <see cref="Action{T}"/> server sent event callback.</param>
+        /// <param name="serverSentEventHandler">Optional, <see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
         /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
         /// <returns><see cref="Response"/></returns>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
             RestParameters parameters = null,
-            Action<string> serverSentEventCallback = null,
+            Action<Response, ServerSentEvent> serverSentEventHandler = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -1079,8 +1133,48 @@ namespace Utilities.WebRequestRest
             webRequest.disposeDownloadHandlerOnDispose = parameters?.DisposeDownloadHandler ?? true;
             webRequest.disposeUploadHandlerOnDispose = parameters?.DisposeUploadHandler ?? true;
 
+            var requestBody = string.Empty;
+
+            if (hasUpload && webRequest.uploadHandler != null)
+            {
+                var contentType = webRequest.GetRequestHeader(content_type);
+                if (webRequest.uploadHandler.data is { Length: > 0 } &&
+                    contentType.Contains("multipart/form-data"))
+                {
+                    var boundary = contentType.Split(';')[1].Split('=')[1];
+                    var encodedData = Encoding.UTF8.GetString(webRequest.uploadHandler.data);
+                    var formData = encodedData.Split(new[] { $"\r\n--{boundary}\r\n", $"\r\n--{boundary}--\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    var formParts = new Dictionary<string, string>();
+
+                    foreach (var form in formData)
+                    {
+                        var formFields = form.Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                        var fieldHeader = formFields[0];
+                        var key = fieldHeader.Split(new[] { "name=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
+
+                        if (fieldHeader.Contains("application/octet-stream"))
+                        {
+                            var fileName = fieldHeader.Split(new[] { "filename=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
+                            formParts.Add(key, fileName);
+                        }
+                        else
+                        {
+                            var value = formFields[1];
+                            formParts.Add(key, value);
+                        }
+                    }
+
+                    requestBody = JsonConvert.SerializeObject(new { contentType, formParts });
+                }
+                else
+                {
+                    requestBody = string.Empty;
+                }
+            }
+
+
             if (parameters is { Progress: not null } ||
-                serverSentEventCallback != null)
+                serverSentEventHandler != null)
             {
                 async void CallbackThread()
                 {
@@ -1098,9 +1192,9 @@ namespace Utilities.WebRequestRest
 
                         while (!webRequest.isDone)
                         {
-                            if (serverSentEventCallback != null)
+                            if (serverSentEventHandler != null)
                             {
-                                SendServerEventCallback(false);
+                                SendServerEventCallback(false, requestBody);
                             }
 
                             if (parameters is { Progress: not null })
@@ -1160,91 +1254,34 @@ namespace Utilities.WebRequestRest
 #pragma warning restore CS4014
             }
 
-            var requestBody = string.Empty;
-
-            if (hasUpload && webRequest.uploadHandler != null)
-            {
-                var contentType = webRequest.GetRequestHeader(content_type);
-                if (webRequest.uploadHandler.data is { Length: > 0 } &&
-                    contentType.Contains("multipart/form-data"))
-                {
-                    var boundary = contentType.Split(';')[1].Split('=')[1];
-                    var encodedData = Encoding.UTF8.GetString(webRequest.uploadHandler.data);
-                    var formData = encodedData.Split(new[] { $"\r\n--{boundary}\r\n", $"\r\n--{boundary}--\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    var formParts = new Dictionary<string, string>();
-
-                    foreach (var form in formData)
-                    {
-                        var formFields = form.Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                        var fieldHeader = formFields[0];
-                        var key = fieldHeader.Split(new[] { "name=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
-
-                        if (fieldHeader.Contains("application/octet-stream"))
-                        {
-                            var fileName = fieldHeader.Split(new[] { "filename=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
-                            formParts.Add(key, fileName);
-                        }
-                        else
-                        {
-                            var value = formFields[1];
-                            formParts.Add(key, value);
-                        }
-                    }
-
-                    requestBody = JsonConvert.SerializeObject(new { contentType, formParts });
-                }
-                else
-                {
-                    requestBody = string.Empty;
-                }
-            }
-
             try
             {
                 await webRequest.SendWebRequest();
             }
+
             catch (Exception e)
             {
                 return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, parameters, e.ToString());
             }
 
             parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
-            var responseHeaders = webRequest.GetResponseHeaders() ?? new Dictionary<string, string> { { "Invalid Headers", "Invalid Headers" } };
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
                 UnityWebRequest.Result.ProtocolError &&
                 webRequest.responseCode is 0 or >= 400)
             {
-                return webRequest.downloadHandler switch
-                {
-                    DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, false, null, null, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, false, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}"),
-                    _ => new Response(webRequest.url, webRequest.method, requestBody, false, webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, parameters, $"{webRequest.error}\n{webRequest.downloadHandler?.error}")
-                };
+                return new Response(webRequest, requestBody, false, parameters);
             }
 
-            if (serverSentEventCallback != null)
+            if (serverSentEventHandler != null)
             {
-                SendServerEventCallback(true);
+                SendServerEventCallback(true, requestBody);
             }
 
-            return webRequest.downloadHandler switch
-            {
-                DownloadHandlerFile => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
-                DownloadHandlerTexture => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
-                DownloadHandlerAudioClip => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
-                DownloadHandlerAssetBundle => new Response(webRequest.url, webRequest.method, requestBody, true, null, null, webRequest.responseCode, responseHeaders, parameters),
-                DownloadHandlerBuffer bufferDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, bufferDownloadHandler.text, bufferDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters),
-                DownloadHandlerScript scriptDownloadHandler => new Response(webRequest.url, webRequest.method, requestBody, true, scriptDownloadHandler.text, scriptDownloadHandler.data, webRequest.responseCode, responseHeaders, parameters),
-                _ => new Response(webRequest.url, webRequest.method, requestBody, true, webRequest.downloadHandler?.text, webRequest.downloadHandler?.data, webRequest.responseCode, responseHeaders, parameters)
-            };
+            return new Response(webRequest, requestBody, true, parameters);
 
-            void SendServerEventCallback(bool isEnd)
+            void SendServerEventCallback(bool isEnd, string body)
             {
                 var allEventMessages = webRequest.downloadHandler?.text;
                 if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
@@ -1255,51 +1292,53 @@ namespace Utilities.WebRequestRest
 
                 for (var i = parameters.ServerSentEventCount; i < matches.Count - stride; i++)
                 {
-                    string type;
+                    ServerSentEventKind type;
                     string value;
                     string data;
 
                     var match = matches[i];
 
-                    const string comment = nameof(comment);
-                    type = match.Groups[nameof(type)].Value.Trim();
                     // If the field type is not provided, treat it as a comment
-                    type = string.IsNullOrEmpty(type) ? comment : type;
-                    value = match.Groups[nameof(value)].Value.Trim();
-                    data = match.Groups[nameof(data)].Value.Trim();
+                    type = ServerSentEvent.EventMap.GetValueOrDefault(match.Groups[nameof(type)].Value.Trim(), ServerSentEventKind.Comment);
+                    // The UTF-8 decode algorithm strips one leading UTF-8 Byte Order Mark (BOM), if any.
+                    value = match.Groups[nameof(value)].Value.TrimStart(' ');
+                    data = match.Groups[nameof(data)].Value;
 
-                    if ((type.Equals("event") && value.Equals("done") && data.Equals("[DONE]")) ||
-                        (type.Equals("data") && value.Equals("[DONE]")))
-                    {
-                        return;
-                    }
+                    const string doneTag = "[DONE]";
+                    // if either value or data equals doneTag then stop processing events.
+                    if (value.Equals(doneTag) || data.Equals(doneTag)) { return; }
 
-                    var eventObject = new Dictionary<string, object>();
+                    var @event = new ServerSentEvent(type);
 
                     try
                     {
-                        eventObject[type] = JToken.Parse(value);
+                        @event.Value = JToken.Parse(value);
                     }
                     catch
                     {
-                        eventObject[type] = value;
+                        @event.Value = new JValue(value);
                     }
 
                     if (!string.IsNullOrWhiteSpace(data))
                     {
                         try
                         {
-                            eventObject[nameof(data)] = JToken.Parse(data);
+                            @event.Data = JToken.Parse(data);
                         }
                         catch
                         {
-                            eventObject[nameof(data)] = data;
+                            @event.Data = string.IsNullOrWhiteSpace(data) ? null : new JValue(value);
                         }
                     }
+                    else
+                    {
+                        @event.Data = null;
+                    }
 
-                    serverSentEventCallback.Invoke(JsonConvert.SerializeObject(eventObject));
+                    var sseResponse = new Response(webRequest, body, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
+                    serverSentEventHandler.Invoke(sseResponse, @event);
                     parameters.ServerSentEventCount++;
-                    parameters.ServerSentEvents.Add(new Tuple<string, string, string>(type, value, data));
+                    parameters.ServerSentEvents.Add(@event);
                 }
             }
         }
