@@ -4,7 +4,7 @@ using System;
 
 namespace Utilities.WebRequestRest
 {
-    public class RestException : Exception
+    public sealed class RestException : Exception
     {
         public RestException(Response response, string message = null, Exception innerException = null)
             : base(string.IsNullOrWhiteSpace(message) ? response.ToString() : message, innerException)
