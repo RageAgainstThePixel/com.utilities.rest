@@ -5,11 +5,12 @@ using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Scripting;
+using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
 {
     [Preserve]
-    public sealed class ServerSentEvent
+    public sealed class ServerSentEvent : IServerSentEvent
     {
         [Preserve]
         internal static readonly Dictionary<string, ServerSentEventKind> EventMap = new()
@@ -34,7 +35,15 @@ namespace Utilities.WebRequestRest
         public JToken Data { get; internal set; }
 
         [Preserve]
+        [JsonIgnore]
+        public string Object => "stream.event";
+
+        [Preserve]
         public override string ToString()
+            => ToJsonString();
+
+        [Preserve]
+        public string ToJsonString()
         {
             var stringBuilder = new StringBuilder();
             stringBuilder.Append($"{{\"{Event.ToString().ToLower()}\": {Value.ToString(Formatting.None)}");
