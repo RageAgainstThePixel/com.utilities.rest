@@ -29,6 +29,7 @@ namespace Utilities.WebRequestRest
         private const string content_type = "Content-Type";
         private const string content_length = "Content-Length";
         private const string application_json = "application/json";
+        private const string multipart_form_data = "multipart/form-data";
         private const string application_octet_stream = "application/octet-stream";
         private const string ssePattern = @"(?:(?:(?<type>[^:\n]*):)(?<value>(?:(?!\n\n|\ndata:).)*)(?:\ndata:(?<data>(?:(?!\n\n).)*))?\n\n)";
 
@@ -74,6 +75,18 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
+        [Obsolete("use new overload with serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
+        public static async Task<Response> GetAsync(
+            string query,
+            Action<Response, ServerSentEvent> serverSentEventHandler,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = UnityWebRequest.Get(query);
+            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
+        }
+
         /// <summary>
         /// Rest GET.
         /// </summary>
@@ -84,7 +97,7 @@ namespace Utilities.WebRequestRest
         /// <returns>The response data.</returns>
         public static async Task<Response> GetAsync(
             string query,
-            Action<Response, ServerSentEvent> serverSentEventHandler,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -203,19 +216,38 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
+        [Obsolete("Use new overload with serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
+        public static async Task<Response> PostAsync(
+            string query,
+            string jsonData,
+            Action<Response, ServerSentEvent> serverSentEventHandler,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+            var data = new UTF8Encoding().GetBytes(jsonData);
+            using var uploadHandler = new UploadHandlerRaw(data);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
+            webRequest.SetRequestHeader(content_type, application_json);
+            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
+        }
+
         /// <summary>
         /// Rest POST.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="serverSentEventHandler"><see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
+        /// <param name="serverSentEventHandler"><see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
         public static async Task<Response> PostAsync(
             string query,
             string jsonData,
-            Action<Response, ServerSentEvent> serverSentEventHandler,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -1082,18 +1114,32 @@ namespace Utilities.WebRequestRest
             return await SendAsync(webRequest, parameters, serverSentEventHandler, cancellationToken);
         }
 
+        [Obsolete("use new .ctr with new serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
+        public static async Task<Response> SendAsync(
+            this UnityWebRequest webRequest,
+            RestParameters parameters = null,
+            Action<Response, ServerSentEvent> serverSentEventHandler = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await SendAsync(webRequest, parameters, (response, @event) =>
+             {
+                 serverSentEventHandler?.Invoke(response, @event);
+                 return Task.CompletedTask;
+             }, cancellationToken);
+        }
+
         /// <summary>
         /// Process a <see cref="UnityWebRequest"/> asynchronously.
         /// </summary>
         /// <param name="webRequest">The <see cref="UnityWebRequest"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="serverSentEventHandler">Optional, <see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
+        /// <param name="serverSentEventHandler">Optional, <see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
         /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
         /// <returns><see cref="Response"/></returns>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
             RestParameters parameters = null,
-            Action<Response, ServerSentEvent> serverSentEventHandler = null,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -1138,40 +1184,46 @@ namespace Utilities.WebRequestRest
             if (hasUpload && webRequest.uploadHandler != null)
             {
                 var contentType = webRequest.GetRequestHeader(content_type);
-                if (webRequest.uploadHandler.data is { Length: > 0 } &&
-                    contentType.Contains("multipart/form-data"))
+
+                if (webRequest.uploadHandler.data is { Length: > 0 })
                 {
-                    var boundary = contentType.Split(';')[1].Split('=')[1];
                     var encodedData = Encoding.UTF8.GetString(webRequest.uploadHandler.data);
-                    var formData = encodedData.Split(new[] { $"\r\n--{boundary}\r\n", $"\r\n--{boundary}--\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    var formParts = new Dictionary<string, string>();
 
-                    foreach (var form in formData)
+                    if (contentType.Contains(multipart_form_data))
                     {
-                        var formFields = form.Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                        var fieldHeader = formFields[0];
-                        var key = fieldHeader.Split(new[] { "name=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
+                        var boundary = contentType.Split(';')[1].Split('=')[1];
+                        var formData = encodedData.Split(new[] { $"\r\n--{boundary}\r\n", $"\r\n--{boundary}--\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                        var formParts = new Dictionary<string, string>();
 
-                        if (fieldHeader.Contains("application/octet-stream"))
+                        foreach (var form in formData)
                         {
-                            var fileName = fieldHeader.Split(new[] { "filename=\"" }, StringSplitOptions.RemoveEmptyEntries)[1].Split("\"")[0];
-                            formParts.Add(key, fileName);
+                            const string eol = "\r\n\r\n";
+                            var formFields = form.Split(new[] { eol }, StringSplitOptions.RemoveEmptyEntries);
+                            var fieldHeader = formFields[0];
+                            const string fieldName = "name=\"";
+                            var key = fieldHeader.Split(new[] { fieldName }, StringSplitOptions.RemoveEmptyEntries)[1].Split('"')[0];
+
+                            if (fieldHeader.Contains(application_octet_stream))
+                            {
+                                const string filename = "filename=\"";
+                                var fileName = fieldHeader.Split(new[] { filename }, StringSplitOptions.RemoveEmptyEntries)[1].Split('"')[0];
+                                formParts.Add(key, fileName);
+                            }
+                            else
+                            {
+                                var value = formFields[1];
+                                formParts.Add(key, value);
+                            }
                         }
-                        else
-                        {
-                            var value = formFields[1];
-                            formParts.Add(key, value);
-                        }
+
+                        requestBody = JsonConvert.SerializeObject(new { contentType, formParts });
                     }
-
-                    requestBody = JsonConvert.SerializeObject(new { contentType, formParts });
-                }
-                else
-                {
-                    requestBody = string.Empty;
+                    else
+                    {
+                        requestBody = encodedData;
+                    }
                 }
             }
-
 
             if (parameters is { Progress: not null } ||
                 serverSentEventHandler != null)
@@ -1194,7 +1246,7 @@ namespace Utilities.WebRequestRest
                         {
                             if (serverSentEventHandler != null)
                             {
-                                SendServerEventCallback(false, requestBody);
+                                await SendServerEventCallback(false, requestBody).ConfigureAwait(true);
                             }
 
                             if (parameters is { Progress: not null })
@@ -1276,12 +1328,12 @@ namespace Utilities.WebRequestRest
 
             if (serverSentEventHandler != null)
             {
-                SendServerEventCallback(true, requestBody);
+                await SendServerEventCallback(true, requestBody).ConfigureAwait(true);
             }
 
             return new Response(webRequest, requestBody, true, parameters);
 
-            void SendServerEventCallback(bool isEnd, string body)
+            async Task SendServerEventCallback(bool isEnd, string body)
             {
                 var allEventMessages = webRequest.downloadHandler?.text;
                 if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
@@ -1337,7 +1389,16 @@ namespace Utilities.WebRequestRest
                     }
 
                     var sseResponse = new Response(webRequest, body, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
-                    serverSentEventHandler.Invoke(sseResponse, @event);
+
+                    try
+                    {
+                        await serverSentEventHandler.Invoke(sseResponse, @event).ConfigureAwait(true);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(e);
+                    }
+
                     parameters.ServerSentEventCount++;
                     parameters.ServerSentEvents.Add(@event);
                 }
