@@ -46,7 +46,7 @@ Advanced features includes progress notifications, authentication and native mul
 - [Rest Parameters](#rest-parameters)
 - [Get](#get)
 - [Post](#post)
-  - [Server Sent Events](#server-sent-events) :new:
+  - [Server Sent Events](#server-sent-events) :warning:
   - [Data Received Callbacks](#data-received-callbacks)
 - [Put](#put)
 - [Patch](#patch)
@@ -115,10 +115,14 @@ response.Validate(debug: true);
 
 #### Server Sent Events
 
+> [!WARNING]
+> This callback was recently refactored from `Action<Response, ServerSentEvent>` to `Func<Response, ServerSentEvent, Task>`. To update this callback without asynchronous calls, just add `await Task.CompletedTask;` at the end of your callback function.
+
 ```csharp
 var jsonData = "{\"data\":\"content\"}";
-var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, (sseResponse, ssEvent) => {
+var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, async (sseResponse, ssEvent) => {
     Debug.Log(ssEvent);
+    await Task.CompletedTask;
 });
 // Validates the response for you and will throw a RestException if the response is unsuccessful.
 response.Validate(debug: true);
