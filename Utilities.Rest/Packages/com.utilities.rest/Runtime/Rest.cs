@@ -74,6 +74,18 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
+        [Obsolete("use new overload with serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
+        public static async Task<Response> GetAsync(
+            string query,
+            Action<Response, ServerSentEvent> serverSentEventHandler,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = UnityWebRequest.Get(query);
+            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
+        }
+
         /// <summary>
         /// Rest GET.
         /// </summary>
@@ -84,7 +96,7 @@ namespace Utilities.WebRequestRest
         /// <returns>The response data.</returns>
         public static async Task<Response> GetAsync(
             string query,
-            Action<Response, ServerSentEvent> serverSentEventHandler,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -203,19 +215,38 @@ namespace Utilities.WebRequestRest
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
+        [Obsolete("Use new overload with serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
+        public static async Task<Response> PostAsync(
+            string query,
+            string jsonData,
+            Action<Response, ServerSentEvent> serverSentEventHandler,
+            RestParameters parameters = null,
+            CancellationToken cancellationToken = default)
+        {
+            await Awaiters.UnityMainThread;
+            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
+            var data = new UTF8Encoding().GetBytes(jsonData);
+            using var uploadHandler = new UploadHandlerRaw(data);
+            webRequest.uploadHandler = uploadHandler;
+            using var downloadHandler = new DownloadHandlerBuffer();
+            webRequest.downloadHandler = downloadHandler;
+            webRequest.SetRequestHeader(content_type, application_json);
+            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
+        }
+
         /// <summary>
         /// Rest POST.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="serverSentEventHandler"><see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
+        /// <param name="serverSentEventHandler"><see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
         public static async Task<Response> PostAsync(
             string query,
             string jsonData,
-            Action<Response, ServerSentEvent> serverSentEventHandler,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler,
             RestParameters parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -1082,18 +1113,32 @@ namespace Utilities.WebRequestRest
             return await SendAsync(webRequest, parameters, serverSentEventHandler, cancellationToken);
         }
 
+        [Obsolete("use new .ctr with new serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
+        public static async Task<Response> SendAsync(
+            this UnityWebRequest webRequest,
+            RestParameters parameters = null,
+            Action<Response, ServerSentEvent> serverSentEventHandler = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await SendAsync(webRequest, parameters, (response, @event) =>
+             {
+                 serverSentEventHandler?.Invoke(response, @event);
+                 return Task.CompletedTask;
+             }, cancellationToken);
+        }
+
         /// <summary>
         /// Process a <see cref="UnityWebRequest"/> asynchronously.
         /// </summary>
         /// <param name="webRequest">The <see cref="UnityWebRequest"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
-        /// <param name="serverSentEventHandler">Optional, <see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
+        /// <param name="serverSentEventHandler">Optional, <see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
         /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
         /// <returns><see cref="Response"/></returns>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
             RestParameters parameters = null,
-            Action<Response, ServerSentEvent> serverSentEventHandler = null,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -1194,7 +1239,7 @@ namespace Utilities.WebRequestRest
                         {
                             if (serverSentEventHandler != null)
                             {
-                                SendServerEventCallback(false, requestBody);
+                                await SendServerEventCallback(false, requestBody).ConfigureAwait(true);
                             }
 
                             if (parameters is { Progress: not null })
@@ -1276,12 +1321,12 @@ namespace Utilities.WebRequestRest
 
             if (serverSentEventHandler != null)
             {
-                SendServerEventCallback(true, requestBody);
+                await SendServerEventCallback(true, requestBody).ConfigureAwait(true);
             }
 
             return new Response(webRequest, requestBody, true, parameters);
 
-            void SendServerEventCallback(bool isEnd, string body)
+            async Task SendServerEventCallback(bool isEnd, string body)
             {
                 var allEventMessages = webRequest.downloadHandler?.text;
                 if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
@@ -1337,7 +1382,16 @@ namespace Utilities.WebRequestRest
                     }
 
                     var sseResponse = new Response(webRequest, body, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
-                    serverSentEventHandler.Invoke(sseResponse, @event);
+
+                    try
+                    {
+                        await serverSentEventHandler.Invoke(sseResponse, @event).ConfigureAwait(true);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(e);
+                    }
+
                     parameters.ServerSentEventCount++;
                     parameters.ServerSentEvents.Add(@event);
                 }
