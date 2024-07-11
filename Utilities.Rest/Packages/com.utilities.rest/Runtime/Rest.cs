@@ -1193,7 +1193,7 @@ namespace Utilities.WebRequestRest
                     {
                         var boundary = contentType.Split(';')[1].Split('=')[1];
                         var formData = encodedData.Split(new[] { $"\r\n--{boundary}\r\n", $"\r\n--{boundary}--\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                        var formParts = new Dictionary<string, string>();
+                        var formParts = new List<Tuple<string, string>>();
 
                         foreach (var form in formData)
                         {
@@ -1207,12 +1207,12 @@ namespace Utilities.WebRequestRest
                             {
                                 const string filename = "filename=\"";
                                 var fileName = fieldHeader.Split(new[] { filename }, StringSplitOptions.RemoveEmptyEntries)[1].Split('"')[0];
-                                formParts.Add(key, fileName);
+                                formParts.Add(new Tuple<string, string>(key, fileName));
                             }
                             else
                             {
                                 var value = formFields[1];
-                                formParts.Add(key, value);
+                                formParts.Add(new Tuple<string, string>(key, value));
                             }
                         }
 
