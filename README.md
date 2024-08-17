@@ -170,6 +170,15 @@ response.Validate(debug: true);
 
 #### Caching
 
+You can set the parent directory of the download cache to one of the following predefined locations:
+
+- `Application.temporaryCachePath` (default)
+- `Application.persistentDataPath`
+- `Application.dataPath`
+- `Application.streamingAssetsPath`
+
+The actual cache directory will be a subfolder named `download_cache` inside of the parent `DownloadCacheDirectory`.
+
 ```csharp
 // cache directory defaults to {Application.temporaryCachePath}/download_cache/
 Debug.Log(Rest.DownloadCacheDirectory);
