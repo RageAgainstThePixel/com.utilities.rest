@@ -1,6 +1,6 @@
 {
     "name": "Utilities.Rest",
-    "rootNamespace": "Utilities.Rest",
+    "rootNamespace": "Utilities.WebRequestRest",
     "references": [
         "GUID:a6609af893242c7438d701ddd4cce46a",
         "GUID:84651a3751eca9349aac36a66bba901b"
