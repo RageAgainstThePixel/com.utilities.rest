@@ -511,6 +511,9 @@ namespace Utilities.WebRequestRest
 
         private static string downloadLocation = Application.temporaryCachePath;
 
+        /// <summary>
+        /// The top level directory to create the <see cref="download_cache"/> directory.
+        /// </summary>
         public static string DownloadLocation
         {
             get => downloadLocation;
@@ -518,6 +521,9 @@ namespace Utilities.WebRequestRest
             {
                 if (allowedDownloadLocations.Contains(value))
                 {
+                    if (downloadLocation == value) { return; }
+                    var downloadCacheDirectory = Path.Combine(downloadLocation, download_cache);
+                    if (Directory.Exists(downloadCacheDirectory)) { Directory.Delete(downloadCacheDirectory, true); }
                     downloadLocation = value;
                 }
                 else
@@ -530,8 +536,18 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// The download cache directory.<br/>
         /// </summary>
+        /// <remarks>
+        /// This directory is a subdirectory of the <see cref="DownloadLocation"/> named <see cref="download_cache"/>.<br/>
+        /// </remarks>
         public static string DownloadCacheDirectory
-            => Path.Combine(DownloadLocation, download_cache);
+        {
+            get
+            {
+                var downloadCacheDirectory = Path.Combine(DownloadLocation, download_cache);
+                if (!Directory.Exists(downloadCacheDirectory)) { Directory.CreateDirectory(downloadCacheDirectory); }
+                return downloadCacheDirectory;
+            }
+        }
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
