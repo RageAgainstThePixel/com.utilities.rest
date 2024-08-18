@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace Utilities.WebRequestRest
@@ -178,7 +179,7 @@ namespace Utilities.WebRequestRest
                 debugMessage.Append($"{methodName} -> ");
             }
 
-            debugMessage.Append($"<b>[{Method}:{(int)Code}]</b> <color=\"cyan\">{Request}</color>");
+            debugMessage.Append($"<b>[{Method}:{(int)Code}]</b> <color=\"#{ColorUtility.ToHtmlStringRGB(Color.cyan)}\">{Request}</color>");
             debugMessage.Append(!Successful ? " <color=\"red\">Failed!</color>" : " <color=\"green\">Success!</color>");
             debugMessage.Append("\n");
 
