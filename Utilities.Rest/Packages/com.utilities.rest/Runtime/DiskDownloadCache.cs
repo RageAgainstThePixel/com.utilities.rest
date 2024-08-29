@@ -22,7 +22,7 @@ namespace Utilities.WebRequestRest
         private static Guid GenerateGuid(string @string)
         {
             using MD5 md5 = MD5.Create();
-            return new Guid(md5.ComputeHash(Encoding.Default.GetBytes(@string)));
+            return new Guid(md5.ComputeHash(Encoding.UTF8.GetBytes(@string)));
         }
 
         /// <inheritdoc />
