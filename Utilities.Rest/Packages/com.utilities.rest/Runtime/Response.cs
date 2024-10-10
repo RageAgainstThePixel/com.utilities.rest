@@ -220,7 +220,7 @@ namespace Utilities.WebRequestRest
 
             if (!string.IsNullOrWhiteSpace(Body))
             {
-                if (Parameters.ServerSentEvents.Count > 0)
+                if (Parameters is { ServerSentEvents: { Count: > 0 } })
                 {
                     var array = new JArray();
 
