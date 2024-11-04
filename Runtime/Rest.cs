@@ -1241,6 +1241,9 @@ namespace Utilities.WebRequestRest
                 }
             }
 
+            var serverSentEventQueue = new Queue<Tuple<Response, ServerSentEvent>>();
+            CancellationTokenSource serverSentEventCts = null;
+
             if (parameters is { Progress: not null } ||
                 serverSentEventHandler != null)
             {
@@ -1262,7 +1265,7 @@ namespace Utilities.WebRequestRest
                         {
                             if (serverSentEventHandler != null)
                             {
-                                await SendServerEventCallback(false, requestBody).ConfigureAwait(true);
+                                EnqueueServerSentEventCallbacks();
                             }
 
                             if (parameters is { Progress: not null })
@@ -1317,8 +1320,34 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
+                async void ServerSentEventQueue()
+                {
+                    serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    do
+                    {
+                        try
+                        {
+                            await Awaiters.UnityMainThread;
+
+                            if (serverSentEventQueue.TryDequeue(out var @event))
+                            {
+                                var (sseResponse, ssEvent) = @event;
+                                await serverSentEventHandler.Invoke(sseResponse, ssEvent);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError(e);
+                        }
+                    } while (!serverSentEventCts.Token.IsCancellationRequested);
+                }
 #pragma warning disable CS4014 // We purposefully don't await this task, so it will run on a background thread.
                 Task.Run(CallbackThread, cancellationToken);
+
+                if (serverSentEventHandler != null)
+                {
+                    Task.Run(ServerSentEventQueue, cancellationToken);
+                }
 #pragma warning restore CS4014
             }
 
@@ -1326,13 +1355,26 @@ namespace Utilities.WebRequestRest
             {
                 await webRequest.SendWebRequest();
             }
-
             catch (Exception e)
             {
                 return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, parameters, e.ToString());
             }
+            finally
+            {
+                parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
 
-            parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
+                if (serverSentEventHandler != null)
+                {
+                    EnqueueServerSentEventCallbacks();
+                }
+
+                if (serverSentEventCts != null)
+                {
+                    await new WaitUntil(() => serverSentEventQueue.Count == 0);
+                    serverSentEventCts?.Cancel();
+                    serverSentEventCts?.Dispose();
+                }
+            }
 
             if (webRequest.result is
                 UnityWebRequest.Result.ConnectionError or
@@ -1342,23 +1384,18 @@ namespace Utilities.WebRequestRest
                 return new Response(webRequest, requestBody, false, parameters);
             }
 
-            if (serverSentEventHandler != null)
-            {
-                await SendServerEventCallback(true, requestBody).ConfigureAwait(true);
-            }
-
             return new Response(webRequest, requestBody, true, parameters);
 
-            async Task SendServerEventCallback(bool isEnd, string body)
+            void EnqueueServerSentEventCallbacks()
             {
                 var allEventMessages = webRequest.downloadHandler?.text;
                 if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
 
                 var matches = sseRegex.Matches(allEventMessages!);
-                var stride = isEnd ? 0 : 1;
                 parameters ??= new RestParameters();
+                var eventCount = parameters.ServerSentEventCount;
 
-                for (var i = parameters.ServerSentEventCount; i < matches.Count - stride; i++)
+                for (var i = eventCount; i < matches.Count; i++)
                 {
                     ServerSentEventKind type;
                     string value;
@@ -1404,17 +1441,8 @@ namespace Utilities.WebRequestRest
                         @event.Data = null;
                     }
 
-                    var sseResponse = new Response(webRequest, body, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
-
-                    try
-                    {
-                        await serverSentEventHandler.Invoke(sseResponse, @event).ConfigureAwait(true);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(e);
-                    }
-
+                    var sseResponse = new Response(webRequest, requestBody, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
+                    serverSentEventQueue.Enqueue(Tuple.Create(sseResponse, @event));
                     parameters.ServerSentEventCount++;
                     parameters.ServerSentEvents.Add(@event);
                 }
