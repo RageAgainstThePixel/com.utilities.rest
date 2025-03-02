@@ -84,6 +84,12 @@ jobs:
           log-name: '${{ matrix.build-target }}-Validate'
           args: '-quit -nographics -batchmode -executeMethod Utilities.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject -importTMProEssentialsAsset'
       - uses: RageAgainstThePixel/unity-action@v1
+        name: '${{ matrix.build-target }}-Test'
+        with:
+          build-target: ${{ matrix.build-target }}
+          log-name: '${{ matrix.build-target }}-Test'
+          args: '-nographics -batchmode -runTests -testPlatform EditMode -testResults "${{ github.workspace }}/Logs/${{ matrix.build-target }}-results.xml"'
+      - uses: RageAgainstThePixel/unity-action@v1
         name: '${{ matrix.build-target }}-Build'
         with:
           build-target: ${{ matrix.build-target }}
