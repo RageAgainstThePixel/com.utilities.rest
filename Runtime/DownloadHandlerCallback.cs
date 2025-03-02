@@ -61,6 +61,12 @@ namespace Utilities.WebRequestRest
 
         protected override void CompleteContent()
         {
+            Complete();
+            base.CompleteContent();
+        }
+
+        internal void Complete()
+        {
             try
             {
                 if (StreamOffset > 0)
@@ -76,8 +82,6 @@ namespace Utilities.WebRequestRest
             {
                 Debug.LogError(e);
             }
-
-            base.CompleteContent();
         }
 
         public override void Dispose()
