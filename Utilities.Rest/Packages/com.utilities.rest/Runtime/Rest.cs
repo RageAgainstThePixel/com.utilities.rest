@@ -147,6 +147,7 @@ namespace Utilities.WebRequestRest
             }
             finally
             {
+                downloadHandler.Complete();
                 downloadHandler.OnDataReceived -= dataReceivedEventCallback;
             }
         }
@@ -317,6 +318,7 @@ namespace Utilities.WebRequestRest
             }
             finally
             {
+                downloadHandler.Complete();
                 downloadHandler.OnDataReceived -= dataReceivedEventCallback;
             }
         }
