@@ -1374,14 +1374,6 @@ namespace Utilities.WebRequestRest
                 {
                     await new WaitUntil(() => serverSentEventQueue.Count == 0);
                     serverSentEventCts?.Cancel();
-                    
-                    // We do not dispose the serverSentEventCts here because doing so can trigger
-                    // a race condition if any SSE handler is still in flight and attempts to read
-                    // serverSentEventCts.Token. By skipping Dispose(), we avoid intermittent
-                    // ObjectDisposedExceptions on slower devices or in concurrent scenarios. The
-                    // GC will eventually reclaim the CTS resources, which is typically acceptable
-                    // given the low overhead of a single CancellationTokenSource.
-                    //serverSentEventCts?.Dispose();
                 }
             }
 
