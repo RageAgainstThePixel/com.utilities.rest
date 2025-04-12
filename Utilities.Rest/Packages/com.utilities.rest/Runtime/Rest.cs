@@ -1374,7 +1374,6 @@ namespace Utilities.WebRequestRest
                 {
                     await new WaitUntil(() => serverSentEventQueue.Count == 0);
                     serverSentEventCts?.Cancel();
-                    serverSentEventCts?.Dispose();
                 }
             }
 
