@@ -502,7 +502,9 @@ namespace Utilities.WebRequestRest
                 RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
                 _ => new DiskDownloadCache()
             };
-
+#if UNITY_EDITOR
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         private static void Init_Rest()
         {
