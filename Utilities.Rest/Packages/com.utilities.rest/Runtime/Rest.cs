@@ -509,7 +509,7 @@ namespace Utilities.WebRequestRest
             downloadLocation = Application.temporaryCachePath;
         }
 
-        private static HashSet<string> allowedDownloadLocations = new()
+        private static readonly HashSet<string> allowedDownloadLocations = new()
         {
             Application.temporaryCachePath,
             Application.persistentDataPath,
