@@ -503,7 +503,13 @@ namespace Utilities.WebRequestRest
                 _ => new DiskDownloadCache()
             };
 
-        private static readonly List<string> allowedDownloadLocations = new()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+        private static void Init_Rest()
+        {
+            downloadLocation = Application.temporaryCachePath;
+        }
+
+        private static HashSet<string> allowedDownloadLocations = new()
         {
             Application.temporaryCachePath,
             Application.persistentDataPath,
@@ -511,7 +517,7 @@ namespace Utilities.WebRequestRest
             Application.streamingAssetsPath
         };
 
-        private static string downloadLocation = Application.temporaryCachePath;
+        private static string downloadLocation;
 
         /// <summary>
         /// The top level directory to create the <see cref="download_cache"/> directory.
