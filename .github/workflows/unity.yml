@@ -3,13 +3,11 @@ on:
   schedule:
     - cron: '0 0 * * 0' # Every Sunday at midnight
   push:
-    branches:
-      - 'main'
+    branches: [main]
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-    branches:
-      - '**'
-  workflow_dispatch:
+    branches: ['**']
+  workflow_dispatch: # manual workflow trigger
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{(github.event_name == 'pull_request' || github.event.action == 'synchronize')}}
@@ -20,6 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:

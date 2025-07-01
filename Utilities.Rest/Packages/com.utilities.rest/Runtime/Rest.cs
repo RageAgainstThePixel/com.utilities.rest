@@ -496,16 +496,17 @@ namespace Utilities.WebRequestRest
 
         private static IDownloadCache cache;
 
-        private static IDownloadCache Cache
-            => cache ??= Application.platform switch
-            {
-                RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
-                _ => new DiskDownloadCache()
-            };
+        private static IDownloadCache Cache => cache ??= Application.platform switch
+        {
+            RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
+            _ => new DiskDownloadCache()
+        };
+
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
-#endif
+#else
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+#endif
         private static void Init_Rest()
         {
             downloadLocation = Application.temporaryCachePath;
