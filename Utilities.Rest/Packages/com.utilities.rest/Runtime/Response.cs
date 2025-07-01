@@ -15,7 +15,7 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public sealed class Response
     {
-        private static readonly Dictionary<string, string> invalidHeaders = new() { { "Invalid Headers", "Invalid Headers" } };
+        private static readonly Dictionary<string, string> invalidHeaders = new();
 
         /// <summary>
         /// The original request that prompted the response.
@@ -218,7 +218,17 @@ namespace Utilities.WebRequestRest
                 debugMessageObject["response"]["data"] = Data.Length;
             }
 
-            if (!string.IsNullOrWhiteSpace(Body))
+            if (string.IsNullOrWhiteSpace(Body))
+            {
+                if (Data is { Length: > 0 } &&
+                    Headers != null &&
+                    Headers.TryGetValue("Content-Type", out var contentType) &&
+                    contentType.Equals("application/json"))
+                {
+                    debugMessageObject["response"]["body"] = JToken.Parse(Encoding.UTF8.GetString(Data));
+                }
+            }
+            else
             {
                 if (Parameters is { ServerSentEvents: { Count: > 0 } })
                 {
