@@ -223,7 +223,7 @@ namespace Utilities.WebRequestRest
                 if (Data is { Length: > 0 } &&
                     Headers != null &&
                     Headers.TryGetValue("Content-Type", out var contentType) &&
-                    contentType.Equals("application/json"))
+                    contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
                 {
                     debugMessageObject["response"]["body"] = JToken.Parse(Encoding.UTF8.GetString(Data));
                 }
