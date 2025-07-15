@@ -496,12 +496,6 @@ namespace Utilities.WebRequestRest
 
         private static IDownloadCache cache;
 
-        private static IDownloadCache Cache => cache ??= Application.platform switch
-        {
-            RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
-            _ => new DiskDownloadCache()
-        };
-
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
 #else
@@ -510,6 +504,10 @@ namespace Utilities.WebRequestRest
         private static void Init_Rest()
         {
             downloadLocation = Application.temporaryCachePath;
+
+            cache = Application.platform == RuntimePlatform.WebGLPlayer
+                    ? new NoOpDownloadCache()
+                    : new DiskDownloadCache();
         }
 
         private static readonly HashSet<string> allowedDownloadLocations = new()
@@ -564,13 +562,13 @@ namespace Utilities.WebRequestRest
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
         /// </summary>
         public static void ValidateCacheDirectory()
-            => Cache.ValidateCacheDirectory();
+            => cache.ValidateCacheDirectory();
 
         /// <summary>
         /// Creates the <see cref="DownloadCacheDirectory"/> if it doesn't exist.
         /// </summary>
         public static Task ValidateCacheDirectoryAsync()
-            => Cache.ValidateCacheDirectoryAsync();
+            => cache.ValidateCacheDirectoryAsync();
 
         /// <summary>
         /// Try to get a file out of the download cache by uri reference.
@@ -579,7 +577,7 @@ namespace Utilities.WebRequestRest
         /// <param name="filePath">The file path to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
         public static bool TryGetDownloadCacheItem(string uri, out string filePath)
-            => Cache.TryGetDownloadCacheItem(uri, out filePath);
+            => cache.TryGetDownloadCacheItem(uri, out filePath);
 
         /// <summary>
         /// Try to delete the cached item at the uri.
@@ -587,13 +585,13 @@ namespace Utilities.WebRequestRest
         /// <param name="uri">The uri key of the item.</param>
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
-            => Cache.TryDeleteCacheItem(uri);
+            => cache.TryDeleteCacheItem(uri);
 
         /// <summary>
         /// Deletes all the files in the download cache.
         /// </summary>
         public static void DeleteDownloadCache()
-            => Cache.DeleteDownloadCache();
+            => cache.DeleteDownloadCache();
 
         /// <summary>
         /// We will try go guess the name based on the url.
@@ -663,7 +661,7 @@ namespace Utilities.WebRequestRest
 
                 if (!isCached && parameters.CacheDownloads)
                 {
-                    await Cache.WriteCacheItemAsync(webRequest.downloadHandler.data, cachePath, cancellationToken).ConfigureAwait(true);
+                    await cache.WriteCacheItemAsync(webRequest.downloadHandler.data, cachePath, cancellationToken).ConfigureAwait(true);
                 }
 
                 texture = ((DownloadHandlerTexture)webRequest.downloadHandler).texture;
@@ -781,7 +779,7 @@ namespace Utilities.WebRequestRest
 
                 if (!isCached && parameters.CacheDownloads)
                 {
-                    await Cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                    await cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
                 }
 
                 await Awaiters.UnityMainThread;
