@@ -494,13 +494,14 @@ namespace Utilities.WebRequestRest
 
         private const string download_cache = nameof(download_cache);
 
-        private static IDownloadCache cache;
-
-        private static IDownloadCache Cache => cache ??= Application.platform switch
-        {
-            RuntimePlatform.WebGLPlayer => new NoOpDownloadCache(),
-            _ => new DiskDownloadCache()
-        };
+        /* We start with a thread-safe *stub* cache so that background threads can safely call Rest even before Unity’s main thread runs Init_Rest().
+         * This No-op cache never touches Unity APIs and stores nothing on disk.
+         * Until Init_Rest() swaps in DiskDownloadCache, helpers that rely on the
+         * cache (e.g. DownloadTextureAsync / DownloadAudioClipAsync / DownloadFileAsync) will simply redownload the asset each time.
+         */
+        private static IDownloadCache cache = new NoOpDownloadCache();
+        // Returns the already-initialized cache. Call Init_Rest() once on the main thread before using Rest from worker threads.
+        private static IDownloadCache Cache => cache;
 
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
@@ -509,7 +510,13 @@ namespace Utilities.WebRequestRest
 #endif
         private static void Init_Rest()
         {
+            // Unity API -> main thread only.
             downloadLocation = Application.temporaryCachePath;
+            
+            // Now that we are on the main thread it is safe to decide which cache implementation to use.
+            cache = Application.platform == RuntimePlatform.WebGLPlayer
+                    ? new NoOpDownloadCache()
+                    : new DiskDownloadCache();
         }
 
         private static readonly HashSet<string> allowedDownloadLocations = new()
