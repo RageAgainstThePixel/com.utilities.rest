@@ -1,0 +1,69 @@
+{
+  "os": [
+    "ubuntu-latest",
+    "windows-latest",
+    "macos-latest"
+  ],
+  "include": [
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "2022.x",
+      "build-target": "StandaloneLinux64"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "6000.x",
+      "build-target": "StandaloneLinux64"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "2022.x",
+      "build-target": "WebGL"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "6000.x",
+      "build-target": "WebGL"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "2022.x",
+      "build-target": "Android"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "6000.x",
+      "build-target": "Android"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "2022.x",
+      "build-target": "iOS"
+    },
+    {
+      "os": "ubuntu-latest",
+      "unity-version": "6000.x",
+      "build-target": "iOS"
+    },
+    {
+      "os": "windows-latest",
+      "unity-version": "2022.x",
+      "build-target": "StandaloneWindows64"
+    },
+    {
+      "os": "windows-latest",
+      "unity-version": "6000.x",
+      "build-target": "StandaloneWindows64"
+    },
+    {
+      "os": "macos-latest",
+      "unity-version": "2022.x",
+      "build-target": "StandaloneOSX"
+    },
+    {
+      "os": "macos-latest",
+      "unity-version": "6000.x",
+      "build-target": "StandaloneOSX"
+    }
+  ]
+}
