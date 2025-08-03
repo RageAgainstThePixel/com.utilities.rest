@@ -37,6 +37,8 @@ jobs:
       actions: write
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.jobs) }}
+      fail-fast: false
+      max-parallel: 3
     secrets: inherit
     uses: RageAgainstThePixel/workflows/.github/workflows/build-and-test-unity-package.yml@main
     with:
