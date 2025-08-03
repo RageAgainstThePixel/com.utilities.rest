@@ -620,11 +620,11 @@ namespace Utilities.WebRequestRest
         /// <returns>A new <see cref="Texture2D"/> instance.</returns>
         public static Task<Texture2D> DownloadTextureAsync(
             string url,
-            string fileName = null,
-            RestParameters parameters = null,
+            string fileName,
+            RestParameters parameters,
             CancellationToken cancellationToken = default)
         {
-            return DownloadTextureAsync(url, fileName, false, parameters, cancellationToken);
+            return DownloadTextureAsync(url, fileName, true, parameters, cancellationToken);
         }
 
         /// <summary>
