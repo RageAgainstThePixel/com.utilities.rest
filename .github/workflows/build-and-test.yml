@@ -34,6 +34,7 @@ jobs:
     name: ${{ matrix.jobs.name }}
     permissions:
       contents: read
+      actions: write
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.jobs) }}
     secrets: inherit
