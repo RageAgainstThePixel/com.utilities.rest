@@ -632,7 +632,7 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="url">The url to download the <see cref="Texture2D"/> from.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
-        /// <param name="readable">Optional, If true, the texture's raw data will not be accessible to script. This can conserve memory. Default: false.</param>
+        /// <param name="readable">Optional, If true, the texture's raw data will be accessible to script. Default: false.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="Texture2D"/> instance.</returns>
@@ -671,7 +671,7 @@ namespace Utilities.WebRequestRest
 
             Texture2D texture;
             parameters.DisposeDownloadHandler = true;
-            using var webRequest = UnityWebRequestTexture.GetTexture(url, readable);
+            using var webRequest = UnityWebRequestTexture.GetTexture(url, !readable);
 
             try
             {
