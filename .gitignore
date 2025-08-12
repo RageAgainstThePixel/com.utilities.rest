@@ -30,6 +30,7 @@ TextMesh Pro.meta
 TextMesh Pro/
 UIElementsSchema/
 *packages-lock.json
+boot.config
 
 # ============ #
 # Certificates #
@@ -84,7 +85,3 @@ ThirdParty/
 ThirdParty.meta
 StreamingAssets/
 StreamingAssets.meta
-
-# ====================== #
-# Project Symbolic Links #
-# ====================== #

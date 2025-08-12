@@ -36,13 +36,18 @@ namespace Utilities.WebRequestRest
         protected abstract string Root { get; }
 
         /// <summary>
+        /// The Api version to use for this endpoint.
+        /// </summary>
+        protected virtual string ApiVersion => "v1";
+
+        /// <summary>
         /// Gets the full formatted url for the API endpoint.
         /// </summary>
         /// <param name="endpoint">The endpoint url.</param>
         /// <param name="queryParameters">Optional, parameters to add to the endpoint.</param>
         protected virtual string GetUrl(string endpoint = "", Dictionary<string, string> queryParameters = null)
         {
-            var result = string.Format(client.Settings.BaseRequestUrlFormat, $"{Root}{endpoint}");
+            var result = string.Format(client.Settings.BaseRequestUrlFormat, ApiVersion, $"{Root}{endpoint}");
 
             if (queryParameters is { Count: not 0 })
             {
