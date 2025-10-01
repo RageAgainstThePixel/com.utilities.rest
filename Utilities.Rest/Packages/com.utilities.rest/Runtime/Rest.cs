@@ -1509,8 +1509,8 @@ namespace Utilities.WebRequestRest
                     const string doneTag = "[DONE]";
                     const string doneEvent = "done";
 
-                    if (value.Equals(doneTag, StringComparison.Ordinal) ||
-                        value.Equals(doneEvent, StringComparison.Ordinal) ||
+                    if (string.Equals(value, doneTag, StringComparison.Ordinal) ||
+                        string.Equals(value, doneEvent, StringComparison.Ordinal) ||
                         string.Equals(data, doneTag, StringComparison.Ordinal))
                     {
                         return;
@@ -1612,7 +1612,8 @@ namespace Utilities.WebRequestRest
 
                 static void AppendData(ref StringBuilder builder, string chunk)
                 {
-                    builder ??= new StringBuilder((chunk?.Length ?? 0) + 16);
+                    const int DefaultStringBuilderPadding = 16;
+                    builder ??= new StringBuilder((chunk?.Length ?? 0) + DefaultStringBuilderPadding);
 
                     if (builder.Length > 0)
                     {
