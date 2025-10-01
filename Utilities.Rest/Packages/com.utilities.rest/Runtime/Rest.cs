@@ -32,6 +32,8 @@ namespace Utilities.WebRequestRest
         private const string application_octet_stream = "application/octet-stream";
         private const char Space = ' ';
         private const char Bom = '\uFEFF';
+        private const char NewLine = '\n';
+        private const char Return = '\r';
 
         #region Authentication
 
@@ -1563,7 +1565,7 @@ namespace Utilities.WebRequestRest
                     }
 
                     var slice = source.AsSpan(position, length - position);
-                    var newlineIndex = slice.IndexOf('\n');
+                    var newlineIndex = slice.IndexOf(NewLine);
 
                     if (newlineIndex < 0)
                     {
@@ -1574,7 +1576,7 @@ namespace Utilities.WebRequestRest
                     line = slice[..newlineIndex];
                     position += newlineIndex + 1;
 
-                    if (line.Length > 0 && line[^1] == '\r')
+                    if (line.Length > 0 && line[^1] == Return)
                     {
                         line = line[..^1];
                     }
@@ -1617,12 +1619,12 @@ namespace Utilities.WebRequestRest
 
                 static void AppendData(ref StringBuilder builder, string chunk)
                 {
-                    const int DefaultStringBuilderPadding = 16;
-                    builder ??= new StringBuilder((chunk?.Length ?? 0) + DefaultStringBuilderPadding);
+                    const int defaultStringBuilderPadding = 16; // extra padding to reduce allocations
+                    builder ??= new StringBuilder((chunk?.Length ?? 0) + defaultStringBuilderPadding);
 
                     if (builder.Length > 0)
                     {
-                        builder.Append('\n');
+                        builder.Append(NewLine);
                     }
 
                     if (!string.IsNullOrEmpty(chunk))
