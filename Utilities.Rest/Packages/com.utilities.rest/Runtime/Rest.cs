@@ -1423,8 +1423,14 @@ namespace Utilities.WebRequestRest
                 var textLength = allEventMessages.Length;
                 var processedIndex = parameters.ServerSentEventCharIndex;
 
-                if (processedIndex < 0 || processedIndex > textLength)
+                if (processedIndex < 0)
                 {
+                    processedIndex = 0;
+                    parameters.ServerSentEventCharIndex = 0;
+                }
+                else if (processedIndex > textLength)
+                {
+                    Debug.LogWarning($"[{nameof(Rest)}] SSE index {processedIndex} exceeded buffer length {textLength}. Resetting tracked position to avoid corrupt parsing.");
                     processedIndex = 0;
                     parameters.ServerSentEventCharIndex = 0;
                 }
