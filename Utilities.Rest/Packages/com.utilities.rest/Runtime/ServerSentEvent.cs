@@ -13,7 +13,7 @@ namespace Utilities.WebRequestRest
     public sealed class ServerSentEvent : IServerSentEvent
     {
         [Preserve]
-        internal static readonly Dictionary<string, ServerSentEventKind> EventMap = new()
+        internal static readonly IReadOnlyDictionary<string, ServerSentEventKind> EventMap = new Dictionary<string, ServerSentEventKind>
         {
             { "comment", ServerSentEventKind.Comment },
             { "event", ServerSentEventKind.Event },

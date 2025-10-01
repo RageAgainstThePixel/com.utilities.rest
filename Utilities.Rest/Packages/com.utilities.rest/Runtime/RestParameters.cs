@@ -85,6 +85,8 @@ namespace Utilities.WebRequestRest
 
         internal int ServerSentEventCount { get; set; }
 
+        internal int ServerSentEventCharIndex { get; set; }
+
         // ReSharper disable once InconsistentNaming
         internal readonly List<ServerSentEvent> ServerSentEvents = new();
 

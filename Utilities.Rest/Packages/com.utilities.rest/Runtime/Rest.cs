@@ -1,15 +1,14 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 using Utilities.Async;
@@ -31,9 +30,8 @@ namespace Utilities.WebRequestRest
         private const string application_json = "application/json";
         private const string multipart_form_data = "multipart/form-data";
         private const string application_octet_stream = "application/octet-stream";
-        private const string ssePattern = @"(?:(?:(?<type>[^:\n]*):)(?<value>(?:(?!\n\n|\ndata:).)*)(?:\ndata:(?<data>(?:(?!\n\n).)*))?\n\n)";
-
-        private static readonly Regex sseRegex = new(ssePattern);
+        private const char Space = ' ';
+        private const char Bom = '\uFEFF';
 
         #region Authentication
 
@@ -1370,12 +1368,14 @@ namespace Utilities.WebRequestRest
                     } while (!serverSentEventCts.Token.IsCancellationRequested);
                 }
 #pragma warning disable CS4014 // We purposefully don't await this task, so it will run on a background thread.
+                // ReSharper disable PossiblyMistakenUseOfCancellationToken
                 Task.Run(CallbackThread, cancellationToken);
 
                 if (serverSentEventHandler != null)
                 {
                     Task.Run(ServerSentEventQueue, cancellationToken);
                 }
+                // ReSharper restore PossiblyMistakenUseOfCancellationToken
 #pragma warning restore CS4014
             }
 
@@ -1418,30 +1418,105 @@ namespace Utilities.WebRequestRest
                 var allEventMessages = webRequest.downloadHandler?.text;
                 if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
 
-                var matches = sseRegex.Matches(allEventMessages!);
                 parameters ??= new RestParameters();
-                var eventCount = parameters.ServerSentEventCount;
 
-                for (var i = eventCount; i < matches.Count; i++)
+                var textLength = allEventMessages.Length;
+                var processedIndex = parameters.ServerSentEventCharIndex;
+
+                if (processedIndex < 0 || processedIndex > textLength)
                 {
-                    ServerSentEventKind type;
-                    string value;
-                    string data;
+                    processedIndex = 0;
+                    parameters.ServerSentEventCharIndex = 0;
+                }
 
-                    var match = matches[i];
+                var currentIndex = processedIndex;
 
-                    // If the field type is not provided, treat it as a comment
-                    type = ServerSentEvent.EventMap.GetValueOrDefault(match.Groups[nameof(type)].Value.Trim(), ServerSentEventKind.Comment);
-                    // The UTF-8 decode algorithm strips one leading UTF-8 Byte Order Mark (BOM), if any.
-                    value = match.Groups[nameof(value)].Value.TrimStart(' ');
-                    data = match.Groups[nameof(data)].Value;
+                while (currentIndex < textLength)
+                {
+                    var eventStart = currentIndex;
+                    var eventKind = ServerSentEventKind.Comment;
+                    var value = string.Empty;
+                    StringBuilder dataBuilder = null;
+                    var typeAssigned = false;
+
+                    // Read lines until a blank line (event boundary) or end of input
+                    while (true)
+                    {
+                        if (!TryReadLine(allEventMessages, textLength, ref currentIndex, out var line))
+                        {
+                            parameters.ServerSentEventCharIndex = eventStart;
+                            return;
+                        }
+
+                        if (line.Length == 0)
+                        {
+                            // Blank line: event boundary
+                            break;
+                        }
+
+                        var colonIndex = line.IndexOf(':');
+
+                        if (colonIndex < 0)
+                        {
+                            continue;
+                        }
+
+                        var fieldNameSpan = Trim(line[..colonIndex]);
+                        var fieldName = fieldNameSpan.Length == 0 ? string.Empty : new string(fieldNameSpan);
+                        var fieldKey = fieldName.Length == 0 ? string.Empty : fieldName.ToLowerInvariant();
+                        var isCommentLine = colonIndex == 0 && fieldNameSpan.Length == 0;
+
+                        var fieldValueSpan = TrimSseValue(line[(colonIndex + 1)..]);
+                        var fieldValue = fieldValueSpan.Length == 0 ? string.Empty : new string(fieldValueSpan);
+
+                        if (!typeAssigned)
+                        {
+                            eventKind = isCommentLine
+                                ? ServerSentEventKind.Comment
+                                : ServerSentEvent.EventMap.GetValueOrDefault(fieldKey, ServerSentEventKind.Comment);
+
+                            value = fieldValue;
+                            typeAssigned = true;
+
+                            if (fieldKey == "data")
+                            {
+                                AppendData(ref dataBuilder, fieldValue);
+                            }
+
+                            continue;
+                        }
+
+                        if (isCommentLine)
+                        {
+                            continue;
+                        }
+
+                        if (fieldKey == "data")
+                        {
+                            AppendData(ref dataBuilder, fieldValue);
+                        }
+                    }
+
+                    parameters.ServerSentEventCharIndex = currentIndex;
+
+                    if (!typeAssigned)
+                    {
+                        continue;
+                    }
+
+                    var data = dataBuilder?.ToString();
 
                     const string doneTag = "[DONE]";
                     const string doneEvent = "done";
-                    // if either value or data equals doneTag or doneEvent then stop processing events.
-                    if (value.Equals(doneTag) || data.Equals(doneTag) || value.Equals(doneEvent)) { return; }
 
-                    var @event = new ServerSentEvent(type);
+                    if (value.Equals(doneTag, StringComparison.Ordinal) ||
+                        value.Equals(doneEvent, StringComparison.Ordinal) ||
+                        string.Equals(data, doneTag, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+
+                    var @event = new ServerSentEvent(eventKind);
 
                     try
                     {
@@ -1472,6 +1547,82 @@ namespace Utilities.WebRequestRest
                     serverSentEventQueue.Enqueue(Tuple.Create(sseResponse, @event));
                     parameters.ServerSentEventCount++;
                     parameters.ServerSentEvents.Add(@event);
+                }
+
+                static bool TryReadLine(string source, int length, ref int position, out ReadOnlySpan<char> line)
+                {
+                    if (position >= length)
+                    {
+                        line = ReadOnlySpan<char>.Empty;
+                        return false;
+                    }
+
+                    var slice = source.AsSpan(position, length - position);
+                    var newlineIndex = slice.IndexOf('\n');
+
+                    if (newlineIndex < 0)
+                    {
+                        line = ReadOnlySpan<char>.Empty;
+                        return false;
+                    }
+
+                    line = slice[..newlineIndex];
+                    position += newlineIndex + 1;
+
+                    if (line.Length > 0 && line[^1] == '\r')
+                    {
+                        line = line[..^1];
+                    }
+
+                    return true;
+                }
+
+                static ReadOnlySpan<char> Trim(ReadOnlySpan<char> span)
+                {
+                    var start = 0;
+                    var end = span.Length - 1;
+
+                    while (start <= end && char.IsWhiteSpace(span[start]))
+                    {
+                        start++;
+                    }
+
+                    while (end >= start && char.IsWhiteSpace(span[end]))
+                    {
+                        end--;
+                    }
+
+                    return start > end ? ReadOnlySpan<char>.Empty : span[start..(end + 1)];
+                }
+
+                static ReadOnlySpan<char> TrimSseValue(ReadOnlySpan<char> span)
+                {
+                    if (!span.IsEmpty && span[0] == Space)
+                    {
+                        span = span[1..];
+                    }
+
+                    if (!span.IsEmpty && span[0] == Bom)
+                    {
+                        span = span[1..];
+                    }
+
+                    return span;
+                }
+
+                static void AppendData(ref StringBuilder builder, string chunk)
+                {
+                    builder ??= new StringBuilder((chunk?.Length ?? 0) + 16);
+
+                    if (builder.Length > 0)
+                    {
+                        builder.Append('\n');
+                    }
+
+                    if (!string.IsNullOrEmpty(chunk))
+                    {
+                        builder.Append(chunk);
+                    }
                 }
             }
         }
