@@ -1462,8 +1462,7 @@ namespace Utilities.WebRequestRest
                         }
 
                         var fieldNameSpan = Trim(line[..colonIndex]);
-                        var fieldName = fieldNameSpan.Length == 0 ? string.Empty : new string(fieldNameSpan);
-                        var fieldKey = fieldName.Length == 0 ? string.Empty : fieldName.ToLowerInvariant();
+                        var fieldName = fieldNameSpan.Length == 0 ? string.Empty : fieldNameSpan.ToString();
                         var isCommentLine = colonIndex == 0 && fieldNameSpan.Length == 0;
 
                         var fieldValueSpan = TrimSseValue(line[(colonIndex + 1)..]);
@@ -1473,12 +1472,12 @@ namespace Utilities.WebRequestRest
                         {
                             eventKind = isCommentLine
                                 ? ServerSentEventKind.Comment
-                                : ServerSentEvent.EventMap.GetValueOrDefault(fieldKey, ServerSentEventKind.Comment);
+                                : ServerSentEvent.EventMap.GetValueOrDefault(fieldName, ServerSentEventKind.Comment);
 
                             value = fieldValue;
                             typeAssigned = true;
 
-                            if (fieldKey == "data")
+                            if (string.Equals(fieldName, "data", StringComparison.OrdinalIgnoreCase))
                             {
                                 AppendData(ref dataBuilder, fieldValue);
                             }
@@ -1491,7 +1490,7 @@ namespace Utilities.WebRequestRest
                             continue;
                         }
 
-                        if (fieldKey == "data")
+                        if (string.Equals(fieldName, "data", StringComparison.OrdinalIgnoreCase))
                         {
                             AppendData(ref dataBuilder, fieldValue);
                         }
