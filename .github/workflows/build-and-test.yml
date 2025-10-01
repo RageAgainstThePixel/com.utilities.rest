@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: .github/
       - uses: RageAgainstThePixel/job-builder@v1
@@ -39,6 +39,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.jobs) }}
       fail-fast: false
+      max-parallel: 1
     secrets: inherit
     uses: RageAgainstThePixel/workflows/.github/workflows/build-and-test-unity-package.yml@main
     with:

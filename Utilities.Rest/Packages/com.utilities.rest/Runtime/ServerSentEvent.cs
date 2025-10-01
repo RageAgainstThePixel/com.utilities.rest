@@ -2,6 +2,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Scripting;
@@ -13,7 +14,7 @@ namespace Utilities.WebRequestRest
     public sealed class ServerSentEvent : IServerSentEvent
     {
         [Preserve]
-        internal static readonly Dictionary<string, ServerSentEventKind> EventMap = new()
+        internal static readonly IReadOnlyDictionary<string, ServerSentEventKind> EventMap = new Dictionary<string, ServerSentEventKind>(StringComparer.OrdinalIgnoreCase)
         {
             { "comment", ServerSentEventKind.Comment },
             { "event", ServerSentEventKind.Event },
