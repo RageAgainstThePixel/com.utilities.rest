@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: ${{(github.event_name == 'pull_request' || github.event.action == 'synchronize')}}
 jobs:
   setup:
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,3 +44,12 @@ jobs:
     uses: RageAgainstThePixel/workflows/.github/workflows/build-and-test-unity-package.yml@main
     with:
       matrix: ${{ toJSON(matrix.jobs.matrix) }}
+  timeline:
+    needs: [setup, validate]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: Kesin11/actions-timeline@c2f474758e8e9ac6f37ec64a6442dead7fd1dad2 # v2.2.5
+        continue-on-error: true
