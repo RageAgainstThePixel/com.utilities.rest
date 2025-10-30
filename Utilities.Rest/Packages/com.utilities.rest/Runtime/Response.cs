@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -13,7 +14,7 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// Response to a REST Call.
     /// </summary>
-    public sealed class Response
+    public readonly struct Response
     {
         private static readonly Dictionary<string, string> invalidHeaders = new();
 
@@ -70,7 +71,7 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Full list of server sent events.
         /// </summary>
-        public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents;
+        public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents.ToList();
 
         /// <summary>
         /// Constructor.
@@ -125,6 +126,9 @@ namespace Utilities.WebRequestRest
             {
                 Error = $"{webRequest.error}\n{webRequest.downloadHandler?.error}";
             }
+
+            Data = Array.Empty<byte>();
+            Error = null;
         }
 
         /// <summary>
@@ -166,6 +170,7 @@ namespace Utilities.WebRequestRest
             Code = responseCode;
             Headers = headers;
             Error = error;
+            Parameters = null;
         }
 
         public override string ToString() => ToString(string.Empty);

@@ -811,7 +811,6 @@ namespace Utilities.WebRequestRest
             }
             finally
             {
-                downloadHandler.Dispose();
                 uploadHandler?.Dispose();
             }
 
@@ -873,22 +872,27 @@ namespace Utilities.WebRequestRest
 
                     payload = new UTF8Encoding().GetBytes(jsonData!);
 
-                    var jsonHeaders = new Dictionary<string, string>
-                    {
-                        { content_type, application_json }
-                    };
+                    var jsonHeaders = new Dictionary<string, string> { { content_type, application_json } };
 
-                    if (parameters is { Headers: not null })
+                    if (parameters == null)
                     {
-                        foreach (var header in parameters.Headers)
-                        {
-                            jsonHeaders.Add(header.Key, header.Value);
-                        }
+                        parameters = new(headers: jsonHeaders);
                     }
-
-                    if (parameters != null)
+                    else
                     {
-                        parameters.Headers = jsonHeaders;
+                        if (parameters.Headers == null)
+                        {
+                            parameters.Headers = jsonHeaders;
+                        }
+                        else
+                        {
+                            foreach (var (key, value) in parameters.Headers)
+                            {
+                                jsonHeaders.Add(key, value);
+                            }
+
+                            parameters.Headers = jsonHeaders;
+                        }
                     }
                 }
 
@@ -1269,7 +1273,7 @@ namespace Utilities.WebRequestRest
                 }
             }
 
-            var serverSentEventQueue = new Queue<Tuple<Response, ServerSentEvent>>();
+            var serverSentEventQueue = new Queue<ServerSentEventPayload>();
             CancellationTokenSource serverSentEventCts = null;
 
             if (parameters is { Progress: not null } ||
@@ -1357,10 +1361,9 @@ namespace Utilities.WebRequestRest
                         {
                             await Awaiters.UnityMainThread;
 
-                            if (serverSentEventQueue.TryDequeue(out var @event))
+                            if (serverSentEventQueue.TryDequeue(out var payload))
                             {
-                                var (sseResponse, ssEvent) = @event;
-                                await serverSentEventHandler.Invoke(sseResponse, ssEvent);
+                                await serverSentEventHandler.Invoke(payload.Response, payload.Event);
                             }
                         }
                         catch (Exception e)
@@ -1443,9 +1446,11 @@ namespace Utilities.WebRequestRest
                 {
                     var eventStart = currentIndex;
                     var eventKind = ServerSentEventKind.Comment;
-                    var value = string.Empty;
                     StringBuilder dataBuilder = null;
                     var typeAssigned = false;
+                    var value = string.Empty;
+                    // ReSharper disable once JoinDeclarationAndInitializer
+                    string data;
 
                     // Read lines until a blank line (event boundary) or end of input
                     while (true)
@@ -1464,15 +1469,11 @@ namespace Utilities.WebRequestRest
 
                         var colonIndex = line.IndexOf(':');
 
-                        if (colonIndex < 0)
-                        {
-                            continue;
-                        }
+                        if (colonIndex < 0) { continue; }
 
                         var fieldNameSpan = Trim(line[..colonIndex]);
                         var fieldName = fieldNameSpan.Length == 0 ? string.Empty : fieldNameSpan.ToString();
                         var isCommentLine = colonIndex == 0 && fieldNameSpan.Length == 0;
-
                         var fieldValueSpan = TrimSseValue(line[(colonIndex + 1)..]);
                         var fieldValue = fieldValueSpan.Length == 0 ? string.Empty : new string(fieldValueSpan);
 
@@ -1485,7 +1486,7 @@ namespace Utilities.WebRequestRest
                             value = fieldValue;
                             typeAssigned = true;
 
-                            if (string.Equals(fieldName, "data", StringComparison.OrdinalIgnoreCase))
+                            if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
                             {
                                 AppendData(ref dataBuilder, fieldValue);
                             }
@@ -1498,7 +1499,7 @@ namespace Utilities.WebRequestRest
                             continue;
                         }
 
-                        if (string.Equals(fieldName, "data", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
                         {
                             AppendData(ref dataBuilder, fieldValue);
                         }
@@ -1511,7 +1512,7 @@ namespace Utilities.WebRequestRest
                         continue;
                     }
 
-                    var data = dataBuilder?.ToString();
+                    data = dataBuilder?.ToString();
 
                     const string doneTag = "[DONE]";
                     const string doneEvent = "done";
@@ -1523,37 +1524,11 @@ namespace Utilities.WebRequestRest
                         return;
                     }
 
-                    var @event = new ServerSentEvent(eventKind);
-
-                    try
-                    {
-                        @event.Value = JToken.Parse(value);
-                    }
-                    catch
-                    {
-                        @event.Value = new JValue(value);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(data))
-                    {
-                        try
-                        {
-                            @event.Data = JToken.Parse(data);
-                        }
-                        catch
-                        {
-                            @event.Data = string.IsNullOrWhiteSpace(data) ? null : new JValue(value);
-                        }
-                    }
-                    else
-                    {
-                        @event.Data = null;
-                    }
-
+                    var @event = new ServerSentEvent(eventKind, value, data);
                     var sseResponse = new Response(webRequest, requestBody, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
-                    serverSentEventQueue.Enqueue(Tuple.Create(sseResponse, @event));
+                    serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, @event));
                     parameters.ServerSentEventCount++;
-                    parameters.ServerSentEvents.Add(@event);
+                    parameters.ServerSentEvents.Enqueue(@event);
                 }
 
                 static bool TryReadLine(string source, int length, ref int position, out ReadOnlySpan<char> line)
@@ -1633,6 +1608,18 @@ namespace Utilities.WebRequestRest
                     }
                 }
             }
+        }
+
+        private readonly struct ServerSentEventPayload
+        {
+            public ServerSentEventPayload(Response response, ServerSentEvent @event)
+            {
+                Response = response;
+                Event = @event;
+            }
+
+            public Response Response { get; }
+            public ServerSentEvent Event { get; }
         }
 
         /// <summary>

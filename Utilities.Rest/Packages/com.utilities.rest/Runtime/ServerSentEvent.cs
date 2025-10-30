@@ -11,7 +11,7 @@ using Utilities.WebRequestRest.Interfaces;
 namespace Utilities.WebRequestRest
 {
     [Preserve]
-    public sealed class ServerSentEvent : IServerSentEvent
+    public readonly struct ServerSentEvent : IServerSentEvent
     {
         [Preserve]
         internal static readonly IReadOnlyDictionary<string, ServerSentEventKind> EventMap = new Dictionary<string, ServerSentEventKind>(StringComparer.OrdinalIgnoreCase)
@@ -24,20 +24,49 @@ namespace Utilities.WebRequestRest
         };
 
         [Preserve]
-        internal ServerSentEvent(ServerSentEventKind @event) => Event = @event;
+        internal ServerSentEvent(ServerSentEventKind @event, string value, string data)
+        {
+            Object = "stream.event";
+            Event = @event;
+
+            try
+            {
+                Value = JToken.Parse(value);
+            }
+            catch
+            {
+                Value = new JValue(value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(data))
+            {
+                try
+                {
+                    Data = JToken.Parse(data);
+                }
+                catch
+                {
+                    Data = string.IsNullOrWhiteSpace(data) ? null : new JValue(value);
+                }
+            }
+            else
+            {
+                Data = null;
+            }
+        }
 
         [Preserve]
         public ServerSentEventKind Event { get; }
 
         [Preserve]
-        public JToken Value { get; internal set; }
+        public JToken Value { get; }
 
         [Preserve]
-        public JToken Data { get; internal set; }
+        public JToken Data { get; }
 
         [Preserve]
         [JsonIgnore]
-        public string Object => "stream.event";
+        public string Object { get; }
 
         [Preserve]
         public override string ToString()
