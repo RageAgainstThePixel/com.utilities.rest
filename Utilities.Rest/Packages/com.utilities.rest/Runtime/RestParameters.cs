@@ -13,31 +13,6 @@ namespace Utilities.WebRequestRest
     [Preserve]
     public readonly struct RestParameters
     {
-        [Preserve]
-        internal static RestParameters Clone(RestParameters? other,
-            IReadOnlyDictionary<string, string> headers = null,
-            IProgress<Progress> progress = null,
-            int? timeout = null,
-            bool? disposeDownloadHandler = null,
-            bool? disposeUploadHandler = null,
-            CertificateHandler certificateHandler = null,
-            bool? disposeCertificateHandler = null,
-            bool? cacheDownloads = null,
-            bool? debug = null)
-        {
-            return new RestParameters(
-                other?.ServerSentEvents,
-                headers ?? other?.Headers,
-                progress ?? other?.Progress,
-                timeout ?? other?.Timeout ?? -1,
-                disposeDownloadHandler ?? other?.DisposeDownloadHandler ?? true,
-                disposeUploadHandler ?? other?.DisposeUploadHandler ?? true,
-                certificateHandler ?? other?.CertificateHandler,
-                disposeCertificateHandler ?? other?.DisposeCertificateHandler ?? true,
-                cacheDownloads ?? other?.CacheDownloads ?? true,
-                debug ?? other?.Debug ?? false);
-        }
-
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -72,6 +47,31 @@ namespace Utilities.WebRequestRest
                 cacheDownloads,
                 debug)
         {
+        }
+
+        [Preserve]
+        internal static RestParameters Clone(RestParameters? other,
+            IReadOnlyDictionary<string, string> headers = null,
+            IProgress<Progress> progress = null,
+            int? timeout = null,
+            bool? disposeDownloadHandler = null,
+            bool? disposeUploadHandler = null,
+            CertificateHandler certificateHandler = null,
+            bool? disposeCertificateHandler = null,
+            bool? cacheDownloads = null,
+            bool? debug = null)
+        {
+            return new RestParameters(
+                other?.ServerSentEvents,
+                headers ?? other?.Headers,
+                progress ?? other?.Progress,
+                timeout ?? other?.Timeout ?? -1,
+                disposeDownloadHandler ?? other?.DisposeDownloadHandler ?? true,
+                disposeUploadHandler ?? other?.DisposeUploadHandler ?? true,
+                certificateHandler ?? other?.CertificateHandler,
+                disposeCertificateHandler ?? other?.DisposeCertificateHandler ?? true,
+                cacheDownloads ?? other?.CacheDownloads ?? true,
+                debug ?? other?.Debug ?? false);
         }
 
         [Preserve]
