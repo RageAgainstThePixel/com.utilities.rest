@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -66,12 +65,12 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Request parameters.
         /// </summary>
-        public RestParameters Parameters { get; }
+        public RestParameters? Parameters { get; }
 
         /// <summary>
         /// Full list of server sent events.
         /// </summary>
-        public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents.ToList();
+        public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents;
 
         /// <summary>
         /// Constructor.
@@ -81,7 +80,7 @@ namespace Utilities.WebRequestRest
         /// <param name="successful">Was the request successful?</param>
         /// <param name="parameters">The parameters of the request.</param>
         /// <param name="responseBody">Optional, response body override.</param>
-        public Response(UnityWebRequest webRequest, string requestBody, bool successful, RestParameters parameters, string responseBody = null)
+        public Response(UnityWebRequest webRequest, string requestBody, bool successful, RestParameters? parameters, string responseBody = null)
         {
             Request = webRequest.url;
             RequestBody = requestBody;
@@ -144,7 +143,7 @@ namespace Utilities.WebRequestRest
         /// <param name="headers">Response headers from the resource.</param>
         /// <param name="parameters">The parameters of the request.</param>
         /// <param name="error">Optional, error message from the resource.</param>
-        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters parameters, string error = null)
+        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters? parameters, string error = null)
         {
             Request = request;
             RequestBody = requestBody;
@@ -235,11 +234,11 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                if (Parameters is { ServerSentEvents: { Count: > 0 } })
+                if (Parameters?.ServerSentEvents?.Count > 0)
                 {
                     var array = new JArray();
 
-                    foreach (var @event in Parameters.ServerSentEvents)
+                    foreach (var @event in Parameters.Value.ServerSentEvents)
                     {
                         var eventObject = new JObject
                         {

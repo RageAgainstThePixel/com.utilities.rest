@@ -43,7 +43,7 @@ namespace Utilities.WebRequestRest
         protected abstract void ValidateAuthentication();
 
         /// <summary>
-        /// Setup the <see cref="DefaultRequestHeaders"/> for this client.
+        /// Set up the <see cref="DefaultRequestHeaders"/> for this client.
         /// </summary>
         protected abstract void SetupDefaultRequestHeaders();
 

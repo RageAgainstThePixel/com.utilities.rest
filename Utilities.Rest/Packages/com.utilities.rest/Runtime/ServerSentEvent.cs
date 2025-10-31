@@ -46,7 +46,7 @@ namespace Utilities.WebRequestRest
                 }
                 catch
                 {
-                    Data = string.IsNullOrWhiteSpace(data) ? null : new JValue(value);
+                    Data = new JValue(data);
                 }
             }
             else
