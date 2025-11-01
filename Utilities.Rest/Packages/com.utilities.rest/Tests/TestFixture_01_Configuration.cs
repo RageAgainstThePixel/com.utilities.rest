@@ -13,25 +13,25 @@ namespace Utilities.WebRequestRest.Tests
         {
             Debug.Log(Rest.DownloadLocation);
             Debug.Log(Rest.DownloadCacheDirectory);
-            Assert.IsTrue(Rest.DownloadLocation == Application.temporaryCachePath);
+            Assert.AreEqual(Application.temporaryCachePath, Rest.DownloadLocation);
             Assert.IsTrue(Directory.Exists(Rest.DownloadCacheDirectory));
 
             Rest.DownloadLocation = Application.persistentDataPath;
             Debug.Log(Rest.DownloadLocation);
             Debug.Log(Rest.DownloadCacheDirectory);
-            Assert.IsTrue(Rest.DownloadLocation == Application.persistentDataPath);
+            Assert.AreEqual(Application.persistentDataPath, Rest.DownloadLocation);
             Assert.IsTrue(Directory.Exists(Rest.DownloadCacheDirectory));
 
             Rest.DownloadLocation = Application.dataPath;
             Debug.Log(Rest.DownloadLocation);
             Debug.Log(Rest.DownloadCacheDirectory);
-            Assert.IsTrue(Rest.DownloadLocation == Application.dataPath);
+            Assert.AreEqual(Application.dataPath, Rest.DownloadLocation);
             Assert.IsTrue(Directory.Exists(Rest.DownloadCacheDirectory));
 
             Rest.DownloadLocation = Application.streamingAssetsPath;
             Debug.Log(Rest.DownloadLocation);
             Debug.Log(Rest.DownloadCacheDirectory);
-            Assert.IsTrue(Rest.DownloadLocation == Application.streamingAssetsPath);
+            Assert.AreEqual(Application.streamingAssetsPath, Rest.DownloadLocation);
             Assert.IsTrue(Directory.Exists(Rest.DownloadCacheDirectory));
         }
     }
