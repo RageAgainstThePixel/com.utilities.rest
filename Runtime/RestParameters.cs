@@ -3,13 +3,15 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine.Networking;
+using UnityEngine.Scripting;
 
 namespace Utilities.WebRequestRest
 {
     /// <summary>
     /// A common class for restful parameters
     /// </summary>
-    public sealed class RestParameters
+    [Preserve]
+    public readonly struct RestParameters
     {
         /// <summary>
         /// Constructor.
@@ -33,7 +35,59 @@ namespace Utilities.WebRequestRest
             bool disposeCertificateHandler = true,
             bool cacheDownloads = true,
             bool debug = false)
+            : this(
+                serverSentEvents: null,
+                headers,
+                progress,
+                timeout,
+                disposeDownloadHandler,
+                disposeUploadHandler,
+                certificateHandler,
+                disposeCertificateHandler,
+                cacheDownloads,
+                debug)
         {
+        }
+
+        [Preserve]
+        internal static RestParameters Clone(RestParameters? other,
+            IReadOnlyDictionary<string, string> headers = null,
+            IProgress<Progress> progress = null,
+            int? timeout = null,
+            bool? disposeDownloadHandler = null,
+            bool? disposeUploadHandler = null,
+            CertificateHandler certificateHandler = null,
+            bool? disposeCertificateHandler = null,
+            bool? cacheDownloads = null,
+            bool? debug = null)
+        {
+            return new RestParameters(
+                other?.ServerSentEvents,
+                headers ?? other?.Headers,
+                progress ?? other?.Progress,
+                timeout ?? other?.Timeout ?? -1,
+                disposeDownloadHandler ?? other?.DisposeDownloadHandler ?? true,
+                disposeUploadHandler ?? other?.DisposeUploadHandler ?? true,
+                certificateHandler ?? other?.CertificateHandler,
+                disposeCertificateHandler ?? other?.DisposeCertificateHandler ?? true,
+                cacheDownloads ?? other?.CacheDownloads ?? true,
+                debug ?? other?.Debug ?? false);
+        }
+
+        [Preserve]
+        internal RestParameters(
+            List<ServerSentEvent> serverSentEvents,
+            IReadOnlyDictionary<string, string> headers = null,
+            IProgress<Progress> progress = null,
+            int timeout = -1,
+            bool disposeDownloadHandler = true,
+            bool disposeUploadHandler = true,
+            CertificateHandler certificateHandler = null,
+            bool disposeCertificateHandler = true,
+            bool cacheDownloads = true,
+            bool debug = false)
+        {
+            ServerSentEvents = serverSentEvents ?? new List<ServerSentEvent>();
             Headers = headers;
             Progress = progress;
             Timeout = timeout;
@@ -48,57 +102,52 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Header information for the request.
         /// </summary>
-        public IReadOnlyDictionary<string, string> Headers { get; internal set; }
+        public IReadOnlyDictionary<string, string> Headers { get; }
 
         /// <summary>
         /// <see cref="IProgress{T}"/> callback handler.
         /// </summary>
-        public IProgress<Progress> Progress { get; internal set; }
+        public IProgress<Progress> Progress { get; }
 
         /// <summary>
         /// Time in seconds before request expires.
         /// </summary>
-        public int Timeout { get; internal set; }
+        public int Timeout { get; }
 
         /// <summary>
         /// <see cref="CertificateHandler"/>.
         /// </summary>
-        public CertificateHandler CertificateHandler { get; internal set; }
+        public CertificateHandler CertificateHandler { get; }
 
         /// <summary>
         /// Dispose the <see cref="CertificateHandler"/>?<br/>
         /// Default is true.
         /// </summary>
-        public bool DisposeCertificateHandler { get; internal set; }
+        public bool DisposeCertificateHandler { get; }
 
         /// <summary>
         /// Dispose the <see cref="DownloadHandler"/>?<br/>
         /// Default is true.
         /// </summary>
-        public bool DisposeDownloadHandler { get; internal set; }
+        public bool DisposeDownloadHandler { get; }
 
         /// <summary>
         /// Dispose the <see cref="UploadHandler"/>?<br/>
         /// Default is true.
         /// </summary>
-        public bool DisposeUploadHandler { get; internal set; }
+        public bool DisposeUploadHandler { get; }
 
-        internal int ServerSentEventCount { get; set; }
-
-        internal int ServerSentEventCharIndex { get; set; }
-
-        // ReSharper disable once InconsistentNaming
-        internal readonly List<ServerSentEvent> ServerSentEvents = new();
+        internal readonly List<ServerSentEvent> ServerSentEvents;
 
         /// <summary>
         /// Cache downloaded content.<br/>
         /// Default is true.
         /// </summary>
-        public bool CacheDownloads { get; set; }
+        public bool CacheDownloads { get; }
 
         /// <summary>
         /// Enable debug output of the request.
         /// </summary>
-        public bool Debug { get; set; }
+        public bool Debug { get; }
     }
 }

@@ -1,7 +1,6 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Scripting;
 using Utilities.Async;
 using Utilities.Rest;
 using Utilities.WebRequestRest.Interfaces;
@@ -67,24 +67,12 @@ namespace Utilities.WebRequestRest
         /// <returns>The response data.</returns>
         public static async Task<Response> GetAsync(
             string query,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
             return await webRequest.SendAsync(parameters, cancellationToken);
-        }
-
-        [Obsolete("use new overload with serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
-        public static async Task<Response> GetAsync(
-            string query,
-            Action<Response, ServerSentEvent> serverSentEventHandler,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            await Awaiters.UnityMainThread;
-            using var webRequest = UnityWebRequest.Get(query);
-            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
         }
 
         /// <summary>
@@ -98,24 +86,12 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> GetAsync(
             string query,
             Func<Response, ServerSentEvent, Task> serverSentEventHandler,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
             return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
-        }
-
-        [Obsolete("use new overload with serverSentEventHandler")]
-        public static async Task<Response> GetAsync(
-            string query,
-            Action<string> serverSentEventCallback,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            await Awaiters.UnityMainThread;
-            using var webRequest = UnityWebRequest.Get(query);
-            return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
         }
 
         /// <summary>
@@ -131,7 +107,7 @@ namespace Utilities.WebRequestRest
             string query,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -165,7 +141,7 @@ namespace Utilities.WebRequestRest
         /// <returns>The response data.</returns>
         public static async Task<Response> PostAsync(
             string query,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -184,7 +160,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             WWWForm formData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -203,7 +179,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             string jsonData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -215,25 +191,6 @@ namespace Utilities.WebRequestRest
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, cancellationToken);
-        }
-
-        [Obsolete("Use new overload with serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
-        public static async Task<Response> PostAsync(
-            string query,
-            string jsonData,
-            Action<Response, ServerSentEvent> serverSentEventHandler,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            await Awaiters.UnityMainThread;
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-            var data = new UTF8Encoding().GetBytes(jsonData);
-            using var uploadHandler = new UploadHandlerRaw(data);
-            webRequest.uploadHandler = uploadHandler;
-            using var downloadHandler = new DownloadHandlerBuffer();
-            webRequest.downloadHandler = downloadHandler;
-            webRequest.SetRequestHeader(content_type, application_json);
-            return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
         }
 
         /// <summary>
@@ -249,7 +206,7 @@ namespace Utilities.WebRequestRest
             string query,
             string jsonData,
             Func<Response, ServerSentEvent, Task> serverSentEventHandler,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -261,25 +218,6 @@ namespace Utilities.WebRequestRest
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_json);
             return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
-        }
-
-        [Obsolete("use new overload with serverSentEventHandler")]
-        public static async Task<Response> PostAsync(
-            string query,
-            string jsonData,
-            Action<string> serverSentEventCallback,
-            RestParameters parameters = null,
-            CancellationToken cancellationToken = default)
-        {
-            await Awaiters.UnityMainThread;
-            using var webRequest = new UnityWebRequest(query, UnityWebRequest.kHttpVerbPOST);
-            var data = new UTF8Encoding().GetBytes(jsonData);
-            using var uploadHandler = new UploadHandlerRaw(data);
-            webRequest.uploadHandler = uploadHandler;
-            using var downloadHandler = new DownloadHandlerBuffer();
-            webRequest.downloadHandler = downloadHandler;
-            webRequest.SetRequestHeader(content_type, application_json);
-            return await webRequest.SendAsync(parameters, serverSentEventCallback, cancellationToken);
         }
 
         /// <summary>
@@ -297,7 +235,7 @@ namespace Utilities.WebRequestRest
             string jsonData,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -334,7 +272,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             byte[] bodyData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -358,7 +296,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PostAsync(
             string query,
             List<IMultipartFormSection> form,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -388,7 +326,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PutAsync(
             string query,
             string jsonData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -408,7 +346,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PutAsync(
             string query,
             byte[] bodyData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -432,7 +370,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PatchAsync(
             string query,
             string jsonData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -453,7 +391,7 @@ namespace Utilities.WebRequestRest
         public static async Task<Response> PatchAsync(
             string query,
             byte[] bodyData,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -476,7 +414,7 @@ namespace Utilities.WebRequestRest
         /// <returns>The response data.</returns>
         public static async Task<Response> DeleteAsync(
             string query,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -492,6 +430,7 @@ namespace Utilities.WebRequestRest
 
         #region Download Cache
 
+        // ReSharper disable once InconsistentNaming
         private const string download_cache = nameof(download_cache);
 
         private static IDownloadCache cache;
@@ -621,11 +560,9 @@ namespace Utilities.WebRequestRest
         public static Task<Texture2D> DownloadTextureAsync(
             string url,
             string fileName,
-            RestParameters parameters,
+            RestParameters? parameters,
             CancellationToken cancellationToken = default)
-        {
-            return DownloadTextureAsync(url, fileName, true, parameters, cancellationToken);
-        }
+            => DownloadTextureAsync(url, fileName, true, parameters, cancellationToken);
 
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
@@ -640,7 +577,7 @@ namespace Utilities.WebRequestRest
             string url,
             string fileName = null,
             bool readable = true,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -652,7 +589,7 @@ namespace Utilities.WebRequestRest
 
             bool isCached;
             string cachePath;
-            parameters ??= new RestParameters();
+            var restParams = parameters.Clone(disposeDownloadHandler: true);
 
             if (url.Contains(FileUriPrefix))
             {
@@ -661,7 +598,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && parameters.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
@@ -670,15 +607,14 @@ namespace Utilities.WebRequestRest
             }
 
             Texture2D texture;
-            parameters.DisposeDownloadHandler = true;
             using var webRequest = UnityWebRequestTexture.GetTexture(url, nonReadable: !readable); // inverted logic
 
             try
             {
-                var response = await webRequest.SendAsync(parameters, cancellationToken);
-                response.Validate(parameters.Debug);
+                var response = await webRequest.SendAsync(restParams, cancellationToken);
+                response.Validate(restParams.Debug);
 
-                if (!isCached && parameters.CacheDownloads)
+                if (!isCached && restParams.CacheDownloads)
                 {
                     await cache.WriteCacheItemAsync(webRequest.downloadHandler.data, cachePath, cancellationToken).ConfigureAwait(true);
                 }
@@ -725,7 +661,7 @@ namespace Utilities.WebRequestRest
             byte[] payload = null,
             bool compressed = false,
             bool streamingAudio = false,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -737,7 +673,7 @@ namespace Utilities.WebRequestRest
 
             bool isCached;
             string cachePath;
-            parameters ??= new RestParameters();
+            var restParams = parameters.Clone();
 
             if (url.Contains(FileUriPrefix))
             {
@@ -746,7 +682,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && parameters.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
@@ -775,28 +711,27 @@ namespace Utilities.WebRequestRest
                         { content_type, application_json }
                     };
 
-                    foreach (var header in parameters.Headers)
+                    foreach (var header in restParams.Headers)
                     {
                         jsonHeaders.Add(header.Key, header.Value);
                     }
 
-                    parameters.Headers = jsonHeaders;
+                    restParams = restParams.Clone(headers: jsonHeaders);
                 }
 
                 uploadHandler = new UploadHandlerRaw(payload);
             }
 
             AudioClip clip;
-            parameters.DisposeUploadHandler = false;
-            parameters.DisposeDownloadHandler = false;
+            restParams = restParams.Clone(disposeUploadHandler: false, disposeDownloadHandler: false);
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
 
             try
             {
-                var response = await webRequest.SendAsync(parameters, cancellationToken);
-                response.Validate(parameters.Debug);
+                var response = await webRequest.SendAsync(restParams, cancellationToken);
+                response.Validate(restParams.Debug);
 
-                if (!isCached && parameters.CacheDownloads)
+                if (!isCached && restParams.CacheDownloads)
                 {
                     await cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
                 }
@@ -811,7 +746,6 @@ namespace Utilities.WebRequestRest
             }
             finally
             {
-                downloadHandler.Dispose();
                 uploadHandler?.Dispose();
             }
 
@@ -842,7 +776,7 @@ namespace Utilities.WebRequestRest
             string jsonData = null,
             byte[] payload = null,
             ulong playbackAmountThreshold = 10000,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -861,6 +795,7 @@ namespace Utilities.WebRequestRest
             AudioClip clip = null;
             var streamStarted = false;
             UploadHandler uploadHandler = null;
+            var restParams = parameters.Clone();
 
             if (httpMethod == UnityWebRequest.kHttpVerbPOST)
             {
@@ -873,42 +808,34 @@ namespace Utilities.WebRequestRest
 
                     payload = new UTF8Encoding().GetBytes(jsonData!);
 
-                    var jsonHeaders = new Dictionary<string, string>
-                    {
-                        { content_type, application_json }
-                    };
+                    var jsonHeaders = new Dictionary<string, string> { { content_type, application_json } };
 
-                    if (parameters is { Headers: not null })
+                    if (restParams.Headers != null)
                     {
-                        foreach (var header in parameters.Headers)
+                        foreach (var (key, value) in restParams.Headers)
                         {
-                            jsonHeaders.Add(header.Key, header.Value);
+                            jsonHeaders.Add(key, value);
                         }
                     }
 
-                    if (parameters != null)
-                    {
-                        parameters.Headers = jsonHeaders;
-                    }
+                    restParams = restParams.Clone(headers: jsonHeaders);
                 }
 
                 uploadHandler = new UploadHandlerRaw(payload);
             }
 
-            parameters ??= new RestParameters();
-            parameters.DisposeUploadHandler = false;
-            parameters.DisposeDownloadHandler = false;
+            restParams = restParams.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
             using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
             downloadHandler.streamAudio = true; // BUG: Due to a Unity bug this does not work with mp3s of indeterminate length. https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
             using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
             IProgress<Progress> progress = null;
 
-            if (parameters.Progress != null)
+            if (restParams.Progress != null)
             {
-                progress = parameters.Progress;
+                progress = restParams.Progress;
             }
 
-            parameters.Progress = new Progress<Progress>(report =>
+            var progressCallback = new Progress<Progress>(report =>
             {
                 progress?.Report(report);
 
@@ -933,10 +860,10 @@ namespace Utilities.WebRequestRest
                     // Ignored
                 }
             });
-
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            restParams = restParams.Clone(progress: progressCallback);
+            var response = await webRequest.SendAsync(restParams, cancellationToken);
             uploadHandler?.Dispose();
-            response.Validate(parameters.Debug);
+            response.Validate(restParams.Debug);
 
             var loadedClip = downloadHandler.audioClip;
 
@@ -967,7 +894,7 @@ namespace Utilities.WebRequestRest
         public static async Task<AssetBundle> DownloadAssetBundleAsync(
             string url,
             UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -1014,15 +941,12 @@ namespace Utilities.WebRequestRest
 
             using (webRequest)
             {
-                parameters ??= new RestParameters();
-                parameters.Timeout = options?.Timeout ?? -1;
-                parameters.DisposeDownloadHandler = false;
-                var response = await webRequest.SendAsync(parameters, cancellationToken);
-                response.Validate(parameters.Debug);
+                var restParams = parameters.Clone(disposeDownloadHandler: false, timeout: options?.Timeout);
+                var response = await webRequest.SendAsync(restParams, cancellationToken);
+                response.Validate(restParams.Debug);
 
-                var downloadHandler = (DownloadHandlerAssetBundle)webRequest.downloadHandler;
+                using var downloadHandler = (DownloadHandlerAssetBundle)webRequest.downloadHandler;
                 var assetBundle = downloadHandler.assetBundle;
-                downloadHandler.Dispose();
 
                 if (assetBundle == null)
                 {
@@ -1046,18 +970,18 @@ namespace Utilities.WebRequestRest
         public static async Task<string> DownloadFileAsync(
             string url,
             string fileName = null,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
+            var restParams = parameters.Clone();
 
             if (string.IsNullOrWhiteSpace(fileName))
             {
                 TryGetFileNameFromUrl(url, out fileName);
             }
 
-            if (TryGetDownloadCacheItem(fileName, out var filePath) &&
-                (parameters?.CacheDownloads ?? true))
+            if (TryGetDownloadCacheItem(fileName, out var filePath) && restParams.CacheDownloads)
             {
                 return filePath;
             }
@@ -1066,8 +990,8 @@ namespace Utilities.WebRequestRest
             using var fileDownloadHandler = new DownloadHandlerFile(filePath);
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
-            response.Validate(parameters?.Debug ?? false);
+            var response = await webRequest.SendAsync(restParams, cancellationToken);
+            response.Validate(restParams.Debug);
             return filePath;
         }
 
@@ -1082,7 +1006,7 @@ namespace Utilities.WebRequestRest
         public static async Task<byte[]> DownloadFileBytesAsync(
             string url,
             string fileName = null,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -1108,7 +1032,7 @@ namespace Utilities.WebRequestRest
         /// <remarks>This request does not cache results.</remarks>
         public static async Task<byte[]> DownloadBytesAsync(
             string url,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
@@ -1131,46 +1055,9 @@ namespace Utilities.WebRequestRest
         /// <returns><see cref="Response"/></returns>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
             => await SendAsync(webRequest, parameters, serverSentEventHandler: null, cancellationToken);
-
-        [Obsolete("Use new overload with serverSentEventHandler")]
-        public static async Task<Response> SendAsync(
-            this UnityWebRequest webRequest,
-            RestParameters parameters = null,
-            Action<string> serverSentEventCallback = null,
-            CancellationToken cancellationToken = default)
-        {
-            Action<Response, ServerSentEvent> serverSentEventHandler = null;
-
-            if (serverSentEventCallback != null)
-            {
-                serverSentEventHandler = (_, @event) =>
-                {
-                    if (@event.Value != null)
-                    {
-                        serverSentEventCallback.Invoke(@event.Value.ToString(Formatting.None));
-                    }
-                };
-            }
-
-            return await SendAsync(webRequest, parameters, serverSentEventHandler, cancellationToken);
-        }
-
-        [Obsolete("use new .ctr with new serverSentEventHandler: Func<Response, ServerSentEvent, Task>")]
-        public static async Task<Response> SendAsync(
-            this UnityWebRequest webRequest,
-            RestParameters parameters = null,
-            Action<Response, ServerSentEvent> serverSentEventHandler = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await SendAsync(webRequest, parameters, (response, @event) =>
-             {
-                 serverSentEventHandler?.Invoke(response, @event);
-                 return Task.CompletedTask;
-             }, cancellationToken);
-        }
 
         /// <summary>
         /// Process a <see cref="UnityWebRequest"/> asynchronously.
@@ -1182,20 +1069,21 @@ namespace Utilities.WebRequestRest
         /// <returns><see cref="Response"/></returns>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
-            RestParameters parameters = null,
+            RestParameters? parameters = null,
             Func<Response, ServerSentEvent, Task> serverSentEventHandler = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
+            var restParams = parameters.Clone();
 
-            if (parameters is { Timeout: > 0 })
+            if (restParams.Timeout > 0)
             {
-                webRequest.timeout = parameters.Timeout;
+                webRequest.timeout = restParams.Timeout;
             }
 
-            if (parameters is { Headers: not null })
+            if (restParams.Headers != null)
             {
-                foreach (var header in parameters.Headers)
+                foreach (var header in restParams.Headers)
                 {
                     webRequest.SetRequestHeader(header.Key, header.Value);
                 }
@@ -1218,10 +1106,10 @@ namespace Utilities.WebRequestRest
                 }
             }
 
-            webRequest.certificateHandler = parameters?.CertificateHandler;
-            webRequest.disposeCertificateHandlerOnDispose = parameters?.DisposeCertificateHandler ?? true;
-            webRequest.disposeDownloadHandlerOnDispose = parameters?.DisposeDownloadHandler ?? true;
-            webRequest.disposeUploadHandlerOnDispose = parameters?.DisposeUploadHandler ?? true;
+            webRequest.certificateHandler = restParams.CertificateHandler;
+            webRequest.disposeCertificateHandlerOnDispose = restParams.DisposeCertificateHandler;
+            webRequest.disposeDownloadHandlerOnDispose = restParams.DisposeDownloadHandler;
+            webRequest.disposeUploadHandlerOnDispose = restParams.DisposeUploadHandler;
 
             var requestBody = string.Empty;
 
@@ -1251,12 +1139,12 @@ namespace Utilities.WebRequestRest
                             {
                                 const string filename = "filename=\"";
                                 var fileName = fieldHeader.Split(new[] { filename }, StringSplitOptions.RemoveEmptyEntries)[1].Split('"')[0];
-                                formParts.Add(new Tuple<string, string>(key, fileName));
+                                formParts.Add(Tuple.Create(key, fileName));
                             }
                             else
                             {
                                 var value = formFields[1];
-                                formParts.Add(new Tuple<string, string>(key, value));
+                                formParts.Add(Tuple.Create(key, value));
                             }
                         }
 
@@ -1269,11 +1157,11 @@ namespace Utilities.WebRequestRest
                 }
             }
 
-            var serverSentEventQueue = new Queue<Tuple<Response, ServerSentEvent>>();
+            var serverSentEventCharacterIndex = 0;
+            var serverSentEventQueue = new Queue<ServerSentEventPayload>();
             CancellationTokenSource serverSentEventCts = null;
 
-            if (parameters is { Progress: not null } ||
-                serverSentEventHandler != null)
+            if (restParams.Progress != null || serverSentEventHandler != null)
             {
                 async void CallbackThread()
                 {
@@ -1296,7 +1184,7 @@ namespace Utilities.WebRequestRest
                                 EnqueueServerSentEventCallbacks();
                             }
 
-                            if (parameters is { Progress: not null })
+                            if (restParams.Progress != null)
                             {
                                 // Calculate the amount of bytes downloaded during this frame
                                 var bytesThisFrame = (webRequest.downloadedBytes * 8) / (frame++ * 0.5f);
@@ -1331,7 +1219,7 @@ namespace Utilities.WebRequestRest
                                 }
 
                                 // Report the progress using the progress handler provided by the caller
-                                parameters.Progress.Report(new Progress(webRequest.downloadedBytes, length, percentage * 100f, speed, unit));
+                                restParams.Progress.Report(new Progress(webRequest.downloadedBytes, length, percentage * 100f, speed, unit));
                             }
 
                             if (cancellationToken.IsCancellationRequested)
@@ -1357,10 +1245,9 @@ namespace Utilities.WebRequestRest
                         {
                             await Awaiters.UnityMainThread;
 
-                            if (serverSentEventQueue.TryDequeue(out var @event))
+                            if (serverSentEventQueue.TryDequeue(out var payload))
                             {
-                                var (sseResponse, ssEvent) = @event;
-                                await serverSentEventHandler.Invoke(sseResponse, ssEvent);
+                                await serverSentEventHandler.Invoke(payload.Response, payload.Event);
                             }
                         }
                         catch (Exception e)
@@ -1387,11 +1274,11 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, parameters, e.ToString());
+                return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, restParams, e.ToString());
             }
             finally
             {
-                parameters?.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
+                restParams.Progress?.Report(new Progress(webRequest.downloadedBytes, webRequest.downloadedBytes, 100f, 0, Progress.DataUnit.b));
 
                 if (serverSentEventHandler != null)
                 {
@@ -1400,8 +1287,20 @@ namespace Utilities.WebRequestRest
 
                 if (serverSentEventCts != null)
                 {
-                    await new WaitUntil(() => serverSentEventQueue.Count == 0);
-                    serverSentEventCts?.Cancel();
+                    try
+                    {
+                        while (serverSentEventQueue.Count > 0)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await Task.Yield();
+                        }
+                    }
+                    finally
+                    {
+                        serverSentEventCts?.Cancel();
+                        serverSentEventCts?.Dispose();
+                        serverSentEventCts = null;
+                    }
                 }
             }
 
@@ -1410,31 +1309,29 @@ namespace Utilities.WebRequestRest
                 UnityWebRequest.Result.ProtocolError &&
                 webRequest.responseCode is 0 or >= 400)
             {
-                return new Response(webRequest, requestBody, false, parameters);
+                return new Response(webRequest, requestBody, false, restParams);
             }
 
-            return new Response(webRequest, requestBody, true, parameters);
+            return new Response(webRequest, requestBody, true, restParams);
 
             void EnqueueServerSentEventCallbacks()
             {
                 var allEventMessages = webRequest.downloadHandler?.text;
                 if (string.IsNullOrWhiteSpace(allEventMessages)) { return; }
 
-                parameters ??= new RestParameters();
-
                 var textLength = allEventMessages.Length;
-                var processedIndex = parameters.ServerSentEventCharIndex;
+                var processedIndex = serverSentEventCharacterIndex;
 
                 if (processedIndex < 0)
                 {
                     processedIndex = 0;
-                    parameters.ServerSentEventCharIndex = 0;
+                    serverSentEventCharacterIndex = 0;
                 }
                 else if (processedIndex > textLength)
                 {
                     Debug.LogWarning($"[{nameof(Rest)}] SSE index {processedIndex} exceeded buffer length {textLength}. Resetting tracked position to avoid corrupt parsing.");
                     processedIndex = 0;
-                    parameters.ServerSentEventCharIndex = 0;
+                    serverSentEventCharacterIndex = 0;
                 }
 
                 var currentIndex = processedIndex;
@@ -1443,16 +1340,18 @@ namespace Utilities.WebRequestRest
                 {
                     var eventStart = currentIndex;
                     var eventKind = ServerSentEventKind.Comment;
-                    var value = string.Empty;
                     StringBuilder dataBuilder = null;
                     var typeAssigned = false;
+                    var value = string.Empty;
+                    // ReSharper disable once JoinDeclarationAndInitializer
+                    string data;
 
                     // Read lines until a blank line (event boundary) or end of input
                     while (true)
                     {
                         if (!TryReadLine(allEventMessages, textLength, ref currentIndex, out var line))
                         {
-                            parameters.ServerSentEventCharIndex = eventStart;
+                            serverSentEventCharacterIndex = eventStart;
                             return;
                         }
 
@@ -1464,15 +1363,11 @@ namespace Utilities.WebRequestRest
 
                         var colonIndex = line.IndexOf(':');
 
-                        if (colonIndex < 0)
-                        {
-                            continue;
-                        }
+                        if (colonIndex < 0) { continue; }
 
                         var fieldNameSpan = Trim(line[..colonIndex]);
                         var fieldName = fieldNameSpan.Length == 0 ? string.Empty : fieldNameSpan.ToString();
                         var isCommentLine = colonIndex == 0 && fieldNameSpan.Length == 0;
-
                         var fieldValueSpan = TrimSseValue(line[(colonIndex + 1)..]);
                         var fieldValue = fieldValueSpan.Length == 0 ? string.Empty : new string(fieldValueSpan);
 
@@ -1485,7 +1380,7 @@ namespace Utilities.WebRequestRest
                             value = fieldValue;
                             typeAssigned = true;
 
-                            if (string.Equals(fieldName, "data", StringComparison.OrdinalIgnoreCase))
+                            if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
                             {
                                 AppendData(ref dataBuilder, fieldValue);
                             }
@@ -1498,20 +1393,20 @@ namespace Utilities.WebRequestRest
                             continue;
                         }
 
-                        if (string.Equals(fieldName, "data", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
                         {
                             AppendData(ref dataBuilder, fieldValue);
                         }
                     }
 
-                    parameters.ServerSentEventCharIndex = currentIndex;
+                    serverSentEventCharacterIndex = currentIndex;
 
                     if (!typeAssigned)
                     {
                         continue;
                     }
 
-                    var data = dataBuilder?.ToString();
+                    data = dataBuilder?.ToString();
 
                     const string doneTag = "[DONE]";
                     const string doneEvent = "done";
@@ -1523,37 +1418,10 @@ namespace Utilities.WebRequestRest
                         return;
                     }
 
-                    var @event = new ServerSentEvent(eventKind);
-
-                    try
-                    {
-                        @event.Value = JToken.Parse(value);
-                    }
-                    catch
-                    {
-                        @event.Value = new JValue(value);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(data))
-                    {
-                        try
-                        {
-                            @event.Data = JToken.Parse(data);
-                        }
-                        catch
-                        {
-                            @event.Data = string.IsNullOrWhiteSpace(data) ? null : new JValue(value);
-                        }
-                    }
-                    else
-                    {
-                        @event.Data = null;
-                    }
-
-                    var sseResponse = new Response(webRequest, requestBody, true, parameters, (@event.Data ?? @event.Value).ToString(Formatting.None));
-                    serverSentEventQueue.Enqueue(Tuple.Create(sseResponse, @event));
-                    parameters.ServerSentEventCount++;
-                    parameters.ServerSentEvents.Add(@event);
+                    var @event = new ServerSentEvent(eventKind, value, data);
+                    var sseResponse = new Response(webRequest, requestBody, true, restParams, (@event.Data ?? @event.Value).ToString(Formatting.None));
+                    serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, @event));
+                    restParams.ServerSentEvents.Add(@event);
                 }
 
                 static bool TryReadLine(string source, int length, ref int position, out ReadOnlySpan<char> line)
@@ -1635,6 +1503,18 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        private readonly struct ServerSentEventPayload
+        {
+            public ServerSentEventPayload(Response response, ServerSentEvent @event)
+            {
+                Response = response;
+                Event = @event;
+            }
+
+            public Response Response { get; }
+            public ServerSentEvent Event { get; }
+        }
+
         /// <summary>
         /// Validates the <see cref="Response"/> and will throw a <see cref="RestException"/> if the response is unsuccessful.
         /// </summary>
@@ -1642,6 +1522,7 @@ namespace Utilities.WebRequestRest
         /// <param name="debug">Print debug information of <see cref="Response"/>.</param>
         /// <param name="methodName">Optional, <see cref="CallerMemberNameAttribute"/>.</param>
         /// <exception cref="RestException"></exception>
+        [Preserve]
         public static void Validate(this Response response, bool debug = false, [CallerMemberName] string methodName = null)
         {
             if (!response.Successful)
@@ -1654,5 +1535,51 @@ namespace Utilities.WebRequestRest
                 Debug.Log(response.ToString(methodName));
             }
         }
+
+        [Preserve]
+        public static RestParameters Clone(this RestParameters? other,
+            IReadOnlyDictionary<string, string> headers = null,
+            IProgress<Progress> progress = null,
+            int? timeout = null,
+            bool? disposeDownloadHandler = null,
+            bool? disposeUploadHandler = null,
+            CertificateHandler certificateHandler = null,
+            bool? disposeCertificateHandler = null,
+            bool? cacheDownloads = null,
+            bool? debug = null)
+            => RestParameters.Clone(
+                other,
+                headers,
+                progress,
+                timeout,
+                disposeDownloadHandler,
+                disposeUploadHandler,
+                certificateHandler,
+                disposeCertificateHandler,
+                cacheDownloads,
+                debug);
+
+        [Preserve]
+        public static RestParameters Clone(this RestParameters other,
+            IReadOnlyDictionary<string, string> headers = null,
+            IProgress<Progress> progress = null,
+            int? timeout = null,
+            bool? disposeDownloadHandler = null,
+            bool? disposeUploadHandler = null,
+            CertificateHandler certificateHandler = null,
+            bool? disposeCertificateHandler = null,
+            bool? cacheDownloads = null,
+            bool? debug = null)
+            => RestParameters.Clone(
+                other,
+                headers,
+                progress,
+                timeout,
+                disposeDownloadHandler,
+                disposeUploadHandler,
+                certificateHandler,
+                disposeCertificateHandler,
+                cacheDownloads,
+                debug);
     }
 }
