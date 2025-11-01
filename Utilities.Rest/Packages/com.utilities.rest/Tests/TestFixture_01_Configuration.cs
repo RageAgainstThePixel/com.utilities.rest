@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Utilities.WebRequestRest.Tests
 {
-    public class TestFixture_01_DownloadCache
+    public class TestFixture_01_Configuration
     {
         [Test]
         public void TestFixture_01_DownloadCache_Locations()
