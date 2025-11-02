@@ -14,7 +14,6 @@ namespace Utilities.WebRequestRest.Tests
         private const string SseServer = "https://echo.websocket.org/.sse";
 
         [Test]
-        [Timeout(6000)]
         public async Task Test_01_ServerSentEvents()
         {
             try
