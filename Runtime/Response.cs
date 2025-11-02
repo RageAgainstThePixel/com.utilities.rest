@@ -114,20 +114,14 @@ namespace Utilities.WebRequestRest
             }
             else
             {
+                Data = Array.Empty<byte>();
                 Body = responseBody;
             }
 
             Code = webRequest.responseCode;
             Headers = webRequest.GetResponseHeaders() ?? invalidHeaders;
             Parameters = parameters;
-
-            if (!successful)
-            {
-                Error = $"{webRequest.error}\n{webRequest.downloadHandler?.error}";
-            }
-
-            Data = Array.Empty<byte>();
-            Error = null;
+            Error = !successful ? $"{webRequest.error}\n{webRequest.downloadHandler?.error}" : null;
         }
 
         /// <summary>
