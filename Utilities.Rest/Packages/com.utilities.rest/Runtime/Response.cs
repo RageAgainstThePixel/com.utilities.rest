@@ -121,13 +121,7 @@ namespace Utilities.WebRequestRest
             Code = webRequest.responseCode;
             Headers = webRequest.GetResponseHeaders() ?? invalidHeaders;
             Parameters = parameters;
-
-            if (!successful)
-            {
-                Error = $"{webRequest.error}\n{webRequest.downloadHandler?.error}";
-            }
-
-            Error = null;
+            Error = !successful ? $"{webRequest.error}\n{webRequest.downloadHandler?.error}" : null;
         }
 
         /// <summary>
