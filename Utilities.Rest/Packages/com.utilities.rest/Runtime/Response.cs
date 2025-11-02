@@ -114,6 +114,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
+                Data = Array.Empty<byte>();
                 Body = responseBody;
             }
 
@@ -126,7 +127,6 @@ namespace Utilities.WebRequestRest
                 Error = $"{webRequest.error}\n{webRequest.downloadHandler?.error}";
             }
 
-            Data = Array.Empty<byte>();
             Error = null;
         }
 
