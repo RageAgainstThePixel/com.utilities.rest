@@ -1274,7 +1274,14 @@ namespace Utilities.WebRequestRest
             }
             catch (Exception e)
             {
-                return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, restParams, e.ToString());
+                switch (e)
+                {
+                    case TaskCanceledException:
+                    case OperationCanceledException:
+                        throw;
+                    default:
+                        return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, restParams, e.ToString());
+                }
             }
             finally
             {
