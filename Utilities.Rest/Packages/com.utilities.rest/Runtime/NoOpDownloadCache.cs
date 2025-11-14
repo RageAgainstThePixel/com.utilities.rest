@@ -14,7 +14,7 @@ namespace Utilities.Rest
 
         public bool TryGetDownloadCacheItem(string uri, out string filePath)
         {
-            filePath = uri;
+            filePath = null;
             return false;
         }
 

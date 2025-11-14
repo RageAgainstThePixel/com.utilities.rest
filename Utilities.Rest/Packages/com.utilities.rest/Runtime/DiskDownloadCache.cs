@@ -2,8 +2,6 @@
 
 using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -14,17 +12,6 @@ namespace Utilities.WebRequestRest
 {
     internal class DiskDownloadCache : IDownloadCache
     {
-        /// <summary>
-        /// Generates a <see cref="Guid"/> based on the string.
-        /// </summary>
-        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
-        /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
-        private static Guid GenerateGuid(string @string)
-        {
-            using MD5 md5 = MD5.Create();
-            return new Guid(md5.ComputeHash(Encoding.UTF8.GetBytes(@string)));
-        }
-
         /// <inheritdoc />
         public void ValidateCacheDirectory()
         {
@@ -60,7 +47,7 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                filePath = Path.Combine(Rest.DownloadCacheDirectory, GenerateGuid(uri).ToString());
+                filePath = Path.Combine(Rest.DownloadCacheDirectory, StringExtensions.GenerateGuid(uri).ToString());
                 exists = File.Exists(filePath);
             }
 

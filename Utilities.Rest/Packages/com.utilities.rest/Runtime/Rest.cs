@@ -537,9 +537,15 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="url">The url to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
-        /// <returns>True, if a valid filename is found.</returns>
+        /// <returns>True, if a valid filename is found from the url.</returns>
+        /// <remarks>
+        /// Url must start with "http" and the last segment must have a file extension, or it will return false.
+        /// </remarks>
         public static bool TryGetFileNameFromUrl(string url, out string fileName)
         {
+            fileName = null;
+            const string http = nameof(http);
+            if (!url.StartsWith(http)) { return false; }
             var baseUrl = UnityWebRequest.UnEscapeURL(url);
             var rootUrl = baseUrl.Split('?')[0];
             var index = rootUrl.LastIndexOf('/') + 1;
@@ -582,11 +588,6 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                TryGetFileNameFromUrl(url, out fileName);
-            }
-
             bool isCached;
             string cachePath;
             var restParams = parameters.Clone(disposeDownloadHandler: true);
@@ -598,6 +599,12 @@ namespace Utilities.WebRequestRest
             }
             else
             {
+                if (restParams.CacheDownloads &&
+                    string.IsNullOrWhiteSpace(fileName))
+                {
+                    TryGetFileNameFromUrl(url, out fileName);
+                }
+
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
@@ -666,11 +673,6 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                TryGetFileNameFromUrl(url, out fileName);
-            }
-
             bool isCached;
             string cachePath;
             var restParams = parameters.Clone();
@@ -682,6 +684,12 @@ namespace Utilities.WebRequestRest
             }
             else
             {
+                if (restParams.CacheDownloads &&
+                    string.IsNullOrWhiteSpace(fileName))
+                {
+                    TryGetFileNameFromUrl(url, out fileName);
+                }
+
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
@@ -763,7 +771,7 @@ namespace Utilities.WebRequestRest
         /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
         /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
-        /// <param name="playbackAmountThreshold">Optional, the amount of data to to download before signaling that streaming is ready.</param>
+        /// <param name="playbackAmountThreshold">Optional, the amount of data to download before signaling that streaming is ready.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
@@ -781,9 +789,12 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(fileName) &&
+                !TryGetFileNameFromUrl(url, out fileName))
             {
-                TryGetFileNameFromUrl(url, out fileName);
+                fileName = url.StartsWith(FileUriPrefix)
+                    ? Path.GetFileName(new Uri(url).LocalPath)
+                    : StringExtensions.GenerateGuidString(url);
             }
 
             if (url.Contains(FileUriPrefix))
@@ -976,7 +987,7 @@ namespace Utilities.WebRequestRest
             await Awaiters.UnityMainThread;
             var restParams = parameters.Clone();
 
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(fileName) && restParams.CacheDownloads)
             {
                 TryGetFileNameFromUrl(url, out fileName);
             }
