@@ -11,8 +11,12 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Generates a <see cref="Guid"/> based on the string.
         /// </summary>
-        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
-        /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
+        /// <param name="string">
+        /// The string to generate the <see cref="Guid"/>.
+        /// </param>
+        /// <returns>
+        /// A new <see cref="Guid"/> that represents the string.
+        /// </returns>
         public static Guid GenerateGuid(string @string)
         {
             using MD5 md5 = MD5.Create();
@@ -22,9 +26,25 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Generates a string representation of a <see cref="Guid"/> based on the string.
         /// </summary>
-        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
-        /// <returns>A new The string to generate the <see cref="Guid"/> as a string.</returns>
+        /// <param name="string">
+        /// The string to generate the <see cref="Guid"/>.
+        /// </param>
+        /// <returns>
+        /// A new string that represents the <see cref="Guid"/> generated from the string.
+        /// </returns>
         public static string GenerateGuidString(string @string)
             => GenerateGuid(@string).ToString();
+
+        /// <summary>
+        /// Generates a string representation of a <see cref="Guid"/> based on the <see cref="Uri"/>.
+        /// </summary>
+        /// <param name="uri">
+        /// The <see cref="Uri"/> to generate the <see cref="Guid"/> string from.
+        /// </param>
+        /// <returns>
+        /// A new string that represents the <see cref="Guid"/> generated from the <see cref="Uri"/>.
+        /// </returns>
+        public static string GenerateGuidString(this Uri uri)
+            => GenerateGuidString(uri.ToString());
     }
 }
