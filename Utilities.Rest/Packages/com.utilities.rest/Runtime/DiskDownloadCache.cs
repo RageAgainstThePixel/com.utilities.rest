@@ -2,8 +2,6 @@
 
 using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -14,18 +12,6 @@ namespace Utilities.WebRequestRest
 {
     internal class DiskDownloadCache : IDownloadCache
     {
-        /// <summary>
-        /// Generates a <see cref="Guid"/> based on the string.
-        /// </summary>
-        /// <param name="string">The string to generate the <see cref="Guid"/>.</param>
-        /// <returns>A new <see cref="Guid"/> that represents the string.</returns>
-        private static Guid GenerateGuid(string @string)
-        {
-            using MD5 md5 = MD5.Create();
-            return new Guid(md5.ComputeHash(Encoding.UTF8.GetBytes(@string)));
-        }
-
-        /// <inheritdoc />
         public void ValidateCacheDirectory()
         {
             if (!Directory.Exists(Rest.DownloadCacheDirectory))
@@ -34,46 +20,55 @@ namespace Utilities.WebRequestRest
             }
         }
 
-        /// <inheritdoc />
         public async Task ValidateCacheDirectoryAsync()
         {
             await Awaiters.UnityMainThread;
             ValidateCacheDirectory();
         }
 
-        /// <inheritdoc />
+        [Obsolete]
         public bool TryGetDownloadCacheItem(string uri, out string filePath)
+        {
+            var result = TryGetDownloadCacheItem(new Uri(uri), out var local);
+            filePath = local.LocalPath;
+            return result;
+        }
+
+        public bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
         {
             ValidateCacheDirectory();
             bool exists;
 
-            if (uri.Contains(Rest.FileUriPrefix))
+            if (uri.IsFile)
             {
                 filePath = uri;
-                return File.Exists(uri.Replace(Rest.FileUriPrefix, string.Empty));
+                return File.Exists(uri.LocalPath);
             }
 
-            if (Rest.TryGetFileNameFromUrl(uri, out var fileName))
+            if (Rest.TryGetFileNameFromUri(uri, out var fileName))
             {
-                filePath = Path.Combine(Rest.DownloadCacheDirectory, fileName);
-                exists = File.Exists(filePath);
+                filePath = new Uri(Path.Combine(Rest.DownloadCacheDirectory, fileName));
+                exists = File.Exists(filePath.LocalPath);
             }
             else
             {
-                filePath = Path.Combine(Rest.DownloadCacheDirectory, GenerateGuid(uri).ToString());
-                exists = File.Exists(filePath);
+                filePath = new Uri(Path.Combine(Rest.DownloadCacheDirectory, uri.GenerateGuidString()));
+                exists = File.Exists(filePath.LocalPath);
             }
 
             if (exists)
             {
-                filePath = $"{Rest.FileUriPrefix}{Path.GetFullPath(filePath)}";
+                filePath = new Uri(Path.GetFullPath(filePath.LocalPath));
             }
 
             return exists;
         }
 
-        /// <inheritdoc />
+        [Obsolete]
         public bool TryDeleteCacheItem(string uri)
+            => TryDeleteCacheItem(new Uri(uri));
+
+        public bool TryDeleteCacheItem(Uri uri)
         {
             if (!TryGetDownloadCacheItem(uri, out var filePath))
             {
@@ -82,17 +77,16 @@ namespace Utilities.WebRequestRest
 
             try
             {
-                File.Delete(filePath);
+                File.Delete(filePath.LocalPath);
             }
             catch (Exception e)
             {
                 Debug.LogError(e);
             }
 
-            return !File.Exists(filePath);
+            return !File.Exists(filePath.LocalPath);
         }
 
-        /// <inheritdoc />
         public void DeleteDownloadCache()
         {
             if (Directory.Exists(Rest.DownloadCacheDirectory))
@@ -101,14 +95,17 @@ namespace Utilities.WebRequestRest
             }
         }
 
-        /// <inheritdoc />
-        public async Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
+        [Obsolete]
+        public Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
+            => WriteCacheItemAsync(data, new Uri(cachePath), cancellationToken);
+
+        public async Task WriteCacheItemAsync(byte[] data, Uri cachePath, CancellationToken cancellationToken)
         {
-            if (File.Exists(cachePath)) { return; }
+            if (File.Exists(cachePath.LocalPath)) { return; }
 
             try
             {
-                await File.WriteAllBytesAsync(cachePath, data, cancellationToken).ConfigureAwait(true);
+                await File.WriteAllBytesAsync(cachePath.LocalPath, data, cancellationToken).ConfigureAwait(true);
             }
             catch (Exception e)
             {

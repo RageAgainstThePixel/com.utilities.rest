@@ -11,7 +11,7 @@ namespace Utilities.WebRequestRest.Tests
 {
     internal class TestFixture_02_CRUD
     {
-        private const string SseServer = "https://echo.websocket.org/.sse";
+        private static readonly Uri SseServer = new("https://echo.websocket.org/.sse");
 
         [Test]
         public async Task Test_01_ServerSentEvents()
@@ -52,7 +52,7 @@ namespace Utilities.WebRequestRest.Tests
         {
             try
             {
-                var response = await Rest.GetAsync("https://jsonplaceholder.typicode.com/posts/1");
+                var response = await Rest.GetAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -69,7 +69,7 @@ namespace Utilities.WebRequestRest.Tests
             try
             {
                 var payload = new { title = "foo", body = "bar", userId = 1 };
-                var response = await Rest.PostAsync("https://jsonplaceholder.typicode.com/posts", JsonConvert.SerializeObject(payload));
+                var response = await Rest.PostAsync(new Uri("https://jsonplaceholder.typicode.com/posts"), JsonConvert.SerializeObject(payload));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -86,7 +86,7 @@ namespace Utilities.WebRequestRest.Tests
             try
             {
                 var payload = new { id = 1, title = "foo", body = "bar", userId = 1 };
-                var response = await Rest.PutAsync("https://jsonplaceholder.typicode.com/posts/1", JsonConvert.SerializeObject(payload));
+                var response = await Rest.PutAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"), JsonConvert.SerializeObject(payload));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -103,7 +103,7 @@ namespace Utilities.WebRequestRest.Tests
             try
             {
                 var payload = new { title = "foo" };
-                var response = await Rest.PatchAsync("https://jsonplaceholder.typicode.com/posts/1", JsonConvert.SerializeObject(payload));
+                var response = await Rest.PatchAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"), JsonConvert.SerializeObject(payload));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -119,7 +119,7 @@ namespace Utilities.WebRequestRest.Tests
         {
             try
             {
-                var response = await Rest.DeleteAsync("https://jsonplaceholder.typicode.com/posts/1");
+                var response = await Rest.DeleteAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
