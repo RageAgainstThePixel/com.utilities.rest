@@ -65,8 +65,21 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> GetAsync(
+        public static Task<Response> GetAsync(
             string query,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => GetAsync(new Uri(query), parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest GET.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> GetAsync(
+            Uri query,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -83,8 +96,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> GetAsync(
+        public static Task<Response> GetAsync(
             string query,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => GetAsync(new Uri(query), serverSentEventHandler, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest GET.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="serverSentEventHandler"><see cref="Action{Response, ServerSentEvent}"/> server sent event callback handler.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> GetAsync(
+            Uri query,
             Func<Response, ServerSentEvent, Task> serverSentEventHandler,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -103,8 +131,25 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> GetAsync(
+        public static Task<Response> GetAsync(
             string query,
+            Action<Response> dataReceivedEventCallback,
+            int? eventChunkSize = null,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => GetAsync(new Uri(query), dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest GET.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
+        /// <param name="eventChunkSize"></param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> GetAsync(
+            Uri query,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
             RestParameters? parameters = null,
@@ -139,8 +184,21 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -157,8 +215,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            WWWForm formData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), formData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="formData">Form Data.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             WWWForm formData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -176,8 +249,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            string jsonData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), jsonData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">JSON data for the request.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             string jsonData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -202,8 +290,25 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            string jsonData,
+            Func<Response, ServerSentEvent, Task> serverSentEventHandler,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), jsonData, serverSentEventHandler, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">JSON data for the request.</param>
+        /// <param name="serverSentEventHandler"><see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             string jsonData,
             Func<Response, ServerSentEvent, Task> serverSentEventHandler,
             RestParameters? parameters = null,
@@ -230,8 +335,27 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            string jsonData,
+            Action<Response> dataReceivedEventCallback,
+            int? eventChunkSize = null,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), jsonData, dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">JSON data for the request.</param>
+        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
+        /// <param name="eventChunkSize">Optional, <see cref="dataReceivedEventCallback"/> event chunk size in bytes (Defaults to 512 bytes).</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             string jsonData,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
@@ -269,8 +393,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            byte[] bodyData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), bodyData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="bodyData">The raw data to post.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             byte[] bodyData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -293,8 +432,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PostAsync(
+        public static Task<Response> PostAsync(
             string query,
+            List<IMultipartFormSection> form,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PostAsync(new Uri(query), form, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest POST.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="form">The <see cref="IMultipartFormSection"/> to post.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PostAsync(
+            Uri query,
             List<IMultipartFormSection> form,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -323,8 +477,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PutAsync(
+        public static Task<Response> PutAsync(
             string query,
+            string jsonData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PutAsync(new Uri(query), jsonData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest PUT.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">Data to be submitted.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PutAsync(
+            Uri query,
             string jsonData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -343,8 +512,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PutAsync(
+        public static Task<Response> PutAsync(
             string query,
+            byte[] bodyData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PutAsync(new Uri(query), bodyData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest PUT.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="bodyData">Data to be submitted.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PutAsync(
+            Uri query,
             byte[] bodyData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -367,8 +551,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PatchAsync(
+        public static Task<Response> PatchAsync(
             string query,
+            string jsonData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PatchAsync(new Uri(query), jsonData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest PATCH.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="jsonData">Data to be submitted.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PatchAsync(
+            Uri query,
             string jsonData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -388,8 +587,23 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> PatchAsync(
+        public static Task<Response> PatchAsync(
             string query,
+            byte[] bodyData,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => PatchAsync(new Uri(query), bodyData, parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest PATCH.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="bodyData">Data to be submitted.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> PatchAsync(
+            Uri query,
             byte[] bodyData,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -412,8 +626,21 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static async Task<Response> DeleteAsync(
+        public static Task<Response> DeleteAsync(
             string query,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => DeleteAsync(new Uri(query), parameters, cancellationToken);
+
+        /// <summary>
+        /// Rest DELETE.
+        /// </summary>
+        /// <param name="query">Finalized Endpoint Query with parameters.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The response data.</returns>
+        public static async Task<Response> DeleteAsync(
+            Uri query,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -443,10 +670,31 @@ namespace Utilities.WebRequestRest
         private static void Init_Rest()
         {
             downloadLocation = Application.temporaryCachePath;
-
             cache = Application.platform == RuntimePlatform.WebGLPlayer
                     ? new NoOpDownloadCache()
                     : new DiskDownloadCache();
+        }
+
+        /// <summary>
+        /// Enable/Disable the download cache for all requests.
+        /// </summary>
+        /// <remarks>
+        /// WebGL cache is always disabled.
+        /// </remarks>
+        public static bool CacheEnabled
+        {
+            get => cache.GetType() == typeof(NoOpDownloadCache);
+            set
+            {
+                if (!value || Application.platform == RuntimePlatform.WebGLPlayer)
+                {
+                    cache = new NoOpDownloadCache();
+                }
+                else
+                {
+                    cache = new DiskDownloadCache();
+                }
+            }
         }
 
         private static readonly HashSet<string> allowedDownloadLocations = new()
@@ -516,6 +764,19 @@ namespace Utilities.WebRequestRest
         /// <param name="filePath">The file path to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
         public static bool TryGetDownloadCacheItem(string uri, out string filePath)
+        {
+            var result = TryGetDownloadCacheItem(new Uri(uri), out var local);
+            filePath = local.LocalPath;
+            return result;
+        }
+
+        /// <summary>
+        /// Try to get a file out of the download cache by uri reference.
+        /// </summary>
+        /// <param name="uri">The uri key of the item.</param>
+        /// <param name="filePath">The file path to the cached item.</param>
+        /// <returns>True, if the item was in cache, otherwise false.</returns>
+        public static bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
             => cache.TryGetDownloadCacheItem(uri, out filePath);
 
         /// <summary>
@@ -524,6 +785,14 @@ namespace Utilities.WebRequestRest
         /// <param name="uri">The uri key of the item.</param>
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
+            => TryDeleteCacheItem(new Uri(uri));
+
+        /// <summary>
+        /// Try to delete the cached item at the uri.
+        /// </summary>
+        /// <param name="uri">The uri key of the item.</param>
+        /// <returns>True, if the cached item was successfully deleted.</returns>
+        public static bool TryDeleteCacheItem(Uri uri)
             => cache.TryDeleteCacheItem(uri);
 
         /// <summary>
@@ -537,10 +806,37 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="url">The url to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
-        /// <returns>True, if a valid filename is found.</returns>
+        /// <returns>True, if a valid filename is found from the url.</returns>
+        /// <remarks>
+        /// Url must start with "http" and the last segment must have a file extension, or it will return false.
+        /// </remarks>
+        [Obsolete("use TryGetFileNameFromUri")]
         public static bool TryGetFileNameFromUrl(string url, out string fileName)
         {
+            fileName = null;
+            const string http = nameof(http);
+            if (!url.StartsWith(http)) { return false; }
             var baseUrl = UnityWebRequest.UnEscapeURL(url);
+            var rootUrl = baseUrl.Split('?')[0];
+            var index = rootUrl.LastIndexOf('/') + 1;
+            fileName = rootUrl.Substring(index, rootUrl.Length - index);
+            return Path.HasExtension(fileName);
+        }
+
+        /// <summary>
+        /// We will try go guess the name based on the uri.
+        /// </summary>
+        /// <param name="uri">The url to parse to try to guess file name.</param>
+        /// <param name="fileName">The filename if found.</param>
+        /// <returns>True, if a valid filename is found from the uri.</returns>
+        /// <remarks>
+        /// Uri must be a remote resource and the last segment must have a file extension, or it will return false.
+        /// </remarks>
+        public static bool TryGetFileNameFromUri(Uri uri, out string fileName)
+        {
+            fileName = null;
+            if (uri.IsFile) { return false; }
+            var baseUrl = UnityWebRequest.UnEscapeURL(uri.ToString());
             var rootUrl = baseUrl.Split('?')[0];
             var index = rootUrl.LastIndexOf('/') + 1;
             fileName = rootUrl.Substring(index, rootUrl.Length - index);
@@ -562,7 +858,7 @@ namespace Utilities.WebRequestRest
             string fileName,
             RestParameters? parameters,
             CancellationToken cancellationToken = default)
-            => DownloadTextureAsync(url, fileName, true, parameters, cancellationToken);
+            => DownloadTextureAsync(new Uri(url), fileName, true, parameters, cancellationToken);
 
         /// <summary>
         /// Download a <see cref="Texture2D"/> from the provided <see cref="url"/>.
@@ -579,35 +875,58 @@ namespace Utilities.WebRequestRest
             bool readable = true,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
+            => await DownloadTextureAsync(
+                new Uri(url),
+                fileName,
+                readable,
+                parameters,
+                cancellationToken).ConfigureAwait(false);
+
+        /// <summary>
+        /// Download a <see cref="Texture2D"/> from the provided <see cref="uri"/>.
+        /// </summary>
+        /// <param name="uri">The uri to download the <see cref="Texture2D"/> from.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="readable">Optional, Enables the texture's raw data will be accessible to script.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>A new <see cref="Texture2D"/> instance.</returns>
+        public static async Task<Texture2D> DownloadTextureAsync(
+            Uri uri,
+            string fileName = null,
+            bool readable = true,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
-
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                TryGetFileNameFromUrl(url, out fileName);
-            }
 
             bool isCached;
             string cachePath;
             var restParams = parameters.Clone(disposeDownloadHandler: true);
 
-            if (url.Contains(FileUriPrefix))
+            if (uri.IsFile)
             {
                 isCached = true;
-                cachePath = url;
+                cachePath = uri.AbsolutePath;
             }
             else
             {
+                if (restParams.CacheDownloads &&
+                    string.IsNullOrWhiteSpace(fileName))
+                {
+                    TryGetFileNameFromUri(uri, out fileName);
+                }
+
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
             {
-                url = cachePath;
+                uri = new Uri(cachePath);
             }
 
             Texture2D texture;
-            using var webRequest = UnityWebRequestTexture.GetTexture(url, nonReadable: !readable); // inverted logic
+            using var webRequest = UnityWebRequestTexture.GetTexture(uri, nonReadable: !readable); // inverted logic
 
             try
             {
@@ -623,7 +942,7 @@ namespace Utilities.WebRequestRest
 
                 if (texture == null)
                 {
-                    throw new RestException(response, $"Failed to load texture from \"{url}\"!");
+                    throw new RestException(response, $"Failed to load texture from \"{uri}\"!");
                 }
             }
             finally
@@ -652,8 +971,48 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
-        public static async Task<AudioClip> DownloadAudioClipAsync(
+        public static Task<AudioClip> DownloadAudioClipAsync(
             string url,
+            AudioType audioType,
+            string httpMethod = UnityWebRequest.kHttpVerbGET,
+            string fileName = null,
+            string jsonData = null,
+            byte[] payload = null,
+            bool compressed = false,
+            bool streamingAudio = false,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => DownloadAudioClipAsync(
+                new Uri(url),
+                audioType,
+                httpMethod,
+                fileName,
+                jsonData,
+                payload,
+                compressed,
+                streamingAudio,
+                parameters,
+                cancellationToken);
+
+        /// <summary>
+        /// Download a <see cref="AudioClip"/> from the provided <see cref="uri"/>.
+        /// </summary>
+        /// <param name="uri">The uri to download the <see cref="AudioClip"/> from.</param>
+        /// <param name="audioType"><see cref="AudioType"/> to download.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="httpMethod">Optional, must be either GET or POST.</param>
+        /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
+        /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
+        /// <param name="compressed">Optional, Create AudioClip that is compressed in memory.<br/>
+        /// Note: When <see cref="streamingAudio"/> is true, it supersedes compression, and the download handler creates an AudioClip similar
+        /// to an imported clip with the loadType AudioClipLoadType.Streaming.
+        /// </param>
+        /// <param name="streamingAudio">Optional, Create a streaming audio clip.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>A new <see cref="AudioClip"/> instance.</returns>
+        public static async Task<AudioClip> DownloadAudioClipAsync(
+            Uri uri,
             AudioType audioType,
             string httpMethod = UnityWebRequest.kHttpVerbGET,
             string fileName = null,
@@ -666,32 +1025,33 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                TryGetFileNameFromUrl(url, out fileName);
-            }
-
             bool isCached;
-            string cachePath;
+            Uri cachePath;
             var restParams = parameters.Clone();
 
-            if (url.Contains(FileUriPrefix))
+            if (uri.IsFile)
             {
                 isCached = true;
-                cachePath = url;
+                cachePath = uri;
             }
             else
             {
+                if (restParams.CacheDownloads &&
+                    string.IsNullOrWhiteSpace(fileName))
+                {
+                    TryGetFileNameFromUri(uri, out fileName);
+                }
+
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
             {
-                url = cachePath;
+                uri = cachePath;
             }
 
             UploadHandler uploadHandler = null;
-            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
+            using var downloadHandler = new DownloadHandlerAudioClip(uri, audioType);
             downloadHandler.compressed = compressed;
             downloadHandler.streamAudio = streamingAudio;
 
@@ -724,7 +1084,7 @@ namespace Utilities.WebRequestRest
 
             AudioClip clip;
             restParams = restParams.Clone(disposeUploadHandler: false, disposeDownloadHandler: false);
-            using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
+            using var webRequest = new UnityWebRequest(uri, httpMethod, downloadHandler, uploadHandler);
 
             try
             {
@@ -733,7 +1093,7 @@ namespace Utilities.WebRequestRest
 
                 if (!isCached && restParams.CacheDownloads)
                 {
-                    await cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
+                    await cache.WriteCacheItemAsync(downloadHandler.data, cachePath.LocalPath, cancellationToken);
                 }
 
                 await Awaiters.UnityMainThread;
@@ -741,7 +1101,7 @@ namespace Utilities.WebRequestRest
 
                 if (clip == null)
                 {
-                    throw new RestException(response, $"Failed to download audio clip from \"{url}\"!");
+                    throw new RestException(response, $"Failed to download audio clip from \"{uri}\"!");
                 }
             }
             finally
@@ -749,7 +1109,7 @@ namespace Utilities.WebRequestRest
                 uploadHandler?.Dispose();
             }
 
-            clip.name = Path.GetFileNameWithoutExtension(cachePath);
+            clip.name = Path.GetFileNameWithoutExtension(cachePath.LocalPath);
             return clip;
         }
 
@@ -763,12 +1123,49 @@ namespace Utilities.WebRequestRest
         /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
         /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
         /// <param name="fileName">Optional, file name to download (including extension).</param>
-        /// <param name="playbackAmountThreshold">Optional, the amount of data to to download before signaling that streaming is ready.</param>
+        /// <param name="playbackAmountThreshold">Optional, the amount of data to download before signaling that streaming is ready.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>A new <see cref="AudioClip"/> instance.</returns>
+        public static Task<AudioClip> StreamAudioAsync(
+            string url,
+            AudioType audioType,
+            Action<AudioClip> onStreamPlaybackReady,
+            string httpMethod = UnityWebRequest.kHttpVerbPOST,
+            string fileName = null,
+            string jsonData = null,
+            byte[] payload = null,
+            ulong playbackAmountThreshold = 10000,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => StreamAudioAsync(
+                new Uri(url),
+                audioType,
+                onStreamPlaybackReady,
+                httpMethod,
+                fileName,
+                jsonData,
+                payload,
+                playbackAmountThreshold,
+                parameters,
+                cancellationToken);
+
+        /// <summary>
+        /// Stream a <see cref="AudioClip"/> from the provided <see cref="uri"/>.
+        /// </summary>
+        /// <param name="uri">The url to download the <see cref="AudioClip"/> from.</param>
+        /// <param name="audioType"><see cref="AudioType"/> to download.</param>
+        /// <param name="onStreamPlaybackReady"><see cref="Action{T}"/> callback raised when stream is ready to be played.</param>
+        /// <param name="httpMethod">Optional, must be either GET or POST.</param>
+        /// <param name="jsonData">Optional, json payload. Only <see cref="jsonData"/> OR <see cref="payload"/> can be supplied.</param>
+        /// <param name="payload">Optional, raw byte payload. Only <see cref="payload"/> OR <see cref="jsonData"/> can be supplied.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="playbackAmountThreshold">Optional, the amount of data to download before signaling that streaming is ready.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AudioClip"/> instance.</returns>
         public static async Task<AudioClip> StreamAudioAsync(
-            string url,
+            Uri uri,
             AudioType audioType,
             Action<AudioClip> onStreamPlaybackReady,
             string httpMethod = UnityWebRequest.kHttpVerbPOST,
@@ -781,12 +1178,15 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
 
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(fileName) &&
+                !TryGetFileNameFromUri(uri, out fileName))
             {
-                TryGetFileNameFromUrl(url, out fileName);
+                fileName = uri.IsFile
+                    ? Path.GetFileName(uri.LocalPath)
+                    : uri.GenerateGuidString();
             }
 
-            if (url.Contains(FileUriPrefix))
+            if (uri.IsFile)
             {
                 // override the httpMethod
                 httpMethod = UnityWebRequest.kHttpVerbGET;
@@ -825,9 +1225,9 @@ namespace Utilities.WebRequestRest
             }
 
             restParams = restParams.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
-            using var downloadHandler = new DownloadHandlerAudioClip(url, audioType);
+            using var downloadHandler = new DownloadHandlerAudioClip(uri, audioType);
             downloadHandler.streamAudio = true; // BUG: Due to a Unity bug this does not work with mp3s of indeterminate length. https://forum.unity.com/threads/downloadhandleraudioclip-streamaudio-is-ignored.699908/
-            using var webRequest = new UnityWebRequest(url, httpMethod, downloadHandler, uploadHandler);
+            using var webRequest = new UnityWebRequest(uri, httpMethod, downloadHandler, uploadHandler);
             IProgress<Progress> progress = null;
 
             if (restParams.Progress != null)
@@ -891,8 +1291,27 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>A new <see cref="AssetBundle"/> instance.</returns>
-        public static async Task<AssetBundle> DownloadAssetBundleAsync(
+        public static Task<AssetBundle> DownloadAssetBundleAsync(
             string url,
+            UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => DownloadAssetBundleAsync(
+                new Uri(url),
+                options,
+                parameters,
+                cancellationToken);
+
+        /// <summary>
+        /// Download a <see cref="AssetBundle"/> from the provided <see cref="uri"/>.
+        /// </summary>
+        /// <param name="uri">The uri to download the <see cref="AssetBundle"/> from.</param>
+        /// <param name="options">Asset bundle request options.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>A new <see cref="AssetBundle"/> instance.</returns>
+        public static async Task<AssetBundle> DownloadAssetBundleAsync(
+            Uri uri,
             UnityEngine.ResourceManagement.ResourceProviders.AssetBundleRequestOptions options,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -903,7 +1322,7 @@ namespace Utilities.WebRequestRest
 
             if (options == null)
             {
-                webRequest = UnityWebRequestAssetBundle.GetAssetBundle(url);
+                webRequest = UnityWebRequestAssetBundle.GetAssetBundle(uri);
             }
             else
             {
@@ -913,19 +1332,19 @@ namespace Utilities.WebRequestRest
 #if ENABLE_CACHING
                     if (options.UseCrcForCachedBundle || !Caching.IsVersionCached(cachedBundle))
                     {
-                        webRequest = UnityWebRequestAssetBundle.GetAssetBundle(url, cachedBundle, options.Crc);
+                        webRequest = UnityWebRequestAssetBundle.GetAssetBundle(uri, cachedBundle, options.Crc);
                     }
                     else
                     {
-                        webRequest = UnityWebRequestAssetBundle.GetAssetBundle(url, cachedBundle);
+                        webRequest = UnityWebRequestAssetBundle.GetAssetBundle(uri, cachedBundle);
                     }
 #else
-                    webRequest = UnityWebRequestAssetBundle.GetAssetBundle(url, cachedBundle, options.Crc);
+                    webRequest = UnityWebRequestAssetBundle.GetAssetBundle(uri, cachedBundle, options.Crc);
 #endif
                 }
                 else
                 {
-                    webRequest = UnityWebRequestAssetBundle.GetAssetBundle(url, options.Crc);
+                    webRequest = UnityWebRequestAssetBundle.GetAssetBundle(uri, options.Crc);
                 }
 
                 if (options.Timeout > 0)
@@ -950,7 +1369,7 @@ namespace Utilities.WebRequestRest
 
                 if (assetBundle == null)
                 {
-                    throw new RestException(response, $"Failed to download asset bundle from \"{url}\"!");
+                    throw new RestException(response, $"Failed to download asset bundle from \"{uri}\"!");
                 }
 
                 return assetBundle;
@@ -967,8 +1386,27 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The path to the downloaded file.</returns>
-        public static async Task<string> DownloadFileAsync(
+        public static Task<string> DownloadFileAsync(
             string url,
+            string fileName = null,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => DownloadFileAsync(
+                new Uri(url),
+                fileName,
+                parameters,
+                cancellationToken);
+
+        /// <summary>
+        /// Download a file from the provided <see cref="uri"/>.
+        /// </summary>
+        /// <param name="uri">The uri to download the file from.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The path to the downloaded file.</returns>
+        public static async Task<string> DownloadFileAsync(
+            Uri uri,
             string fileName = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
@@ -976,9 +1414,9 @@ namespace Utilities.WebRequestRest
             await Awaiters.UnityMainThread;
             var restParams = parameters.Clone();
 
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (string.IsNullOrWhiteSpace(fileName) && restParams.CacheDownloads)
             {
-                TryGetFileNameFromUrl(url, out fileName);
+                TryGetFileNameFromUri(uri, out fileName);
             }
 
             if (TryGetDownloadCacheItem(fileName, out var filePath) && restParams.CacheDownloads)
@@ -986,7 +1424,7 @@ namespace Utilities.WebRequestRest
                 return filePath;
             }
 
-            using var webRequest = UnityWebRequest.Get(url);
+            using var webRequest = UnityWebRequest.Get(uri);
             using var fileDownloadHandler = new DownloadHandlerFile(filePath);
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
@@ -1003,15 +1441,34 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The bytes of the downloaded file.</returns>
-        public static async Task<byte[]> DownloadFileBytesAsync(
+        public static Task<byte[]> DownloadFileBytesAsync(
             string url,
+            string fileName = null,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => DownloadFileBytesAsync(
+                new Uri(url),
+                fileName,
+                parameters,
+                cancellationToken);
+
+        /// <summary>
+        /// Download a file from the provided <see cref="uri"/> and return the contents as bytes.
+        /// </summary>
+        /// <param name="uri">The uri to download the file from.</param>
+        /// <param name="fileName">Optional, file name to download (including extension).</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The bytes of the downloaded file.</returns>
+        public static async Task<byte[]> DownloadFileBytesAsync(
+            Uri uri,
             string fileName = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
             byte[] bytes = null;
-            var filePath = await DownloadFileAsync(url, fileName, parameters, cancellationToken);
+            var filePath = await DownloadFileAsync(uri, fileName, parameters, cancellationToken);
             var localPath = filePath.Replace("file://", string.Empty);
 
             if (File.Exists(localPath))
@@ -1030,13 +1487,30 @@ namespace Utilities.WebRequestRest
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The bytes downloaded from the server.</returns>
         /// <remarks>This request does not cache results.</remarks>
-        public static async Task<byte[]> DownloadBytesAsync(
+        public static Task<byte[]> DownloadBytesAsync(
             string url,
+            RestParameters? parameters = null,
+            CancellationToken cancellationToken = default)
+            => DownloadBytesAsync(
+                new Uri(url),
+                parameters,
+                cancellationToken);
+
+        /// <summary>
+        /// Download raw file contents from the provided <see cref="uri"/>.
+        /// </summary>
+        /// <param name="uri">The uri to download from.</param>
+        /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
+        /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
+        /// <returns>The bytes downloaded from the server.</returns>
+        /// <remarks>This request does not cache results.</remarks>
+        public static async Task<byte[]> DownloadBytesAsync(
+            Uri uri,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
-            using var webRequest = UnityWebRequest.Get(url);
+            using var webRequest = UnityWebRequest.Get(uri);
             using var downloadHandlerBuffer = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandlerBuffer;
             var response = await webRequest.SendAsync(parameters, cancellationToken);
