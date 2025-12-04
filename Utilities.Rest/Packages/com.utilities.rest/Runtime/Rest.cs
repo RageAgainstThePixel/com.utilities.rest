@@ -335,7 +335,7 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
-        public static Task<Response> PoseAsync(
+        public static Task<Response> PostAsync(
             string query,
             string jsonData,
             Action<Response> dataReceivedEventCallback,
