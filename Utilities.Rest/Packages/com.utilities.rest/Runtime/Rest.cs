@@ -1092,7 +1092,7 @@ namespace Utilities.WebRequestRest
 
                 if (!isCached && restParams.CacheDownloads)
                 {
-                    await cache.WriteCacheItemAsync(downloadHandler.data, cachePath.LocalPath, cancellationToken);
+                    await cache.WriteCacheItemAsync(downloadHandler.data, cachePath, cancellationToken);
                 }
 
                 await Awaiters.UnityMainThread;
@@ -1108,7 +1108,15 @@ namespace Utilities.WebRequestRest
                 uploadHandler?.Dispose();
             }
 
-            clip.name = Path.GetFileNameWithoutExtension(cachePath.LocalPath);
+            if (!string.IsNullOrWhiteSpace(fileName))
+            {
+                clip.name = fileName;
+            }
+            else if (isCached)
+            {
+                clip.name = Path.GetFileNameWithoutExtension(cachePath.LocalPath);
+            }
+
             return clip;
         }
 
