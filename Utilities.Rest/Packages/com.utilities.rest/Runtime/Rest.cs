@@ -157,7 +157,7 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
-            webRequest.disposeDownloadHandlerOnDispose = false;
+            parameters = parameters?.Clone(disposeDownloadHandler: false);
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
@@ -368,7 +368,7 @@ namespace Utilities.WebRequestRest
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
-            webRequest.disposeDownloadHandlerOnDispose = false;
+            parameters = parameters?.Clone(disposeDownloadHandler: false);
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
