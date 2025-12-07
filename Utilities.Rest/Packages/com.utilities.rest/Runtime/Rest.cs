@@ -2,6 +2,7 @@
 
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -156,6 +157,7 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
+            webRequest.disposeDownloadHandlerOnDispose = false;
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
@@ -366,6 +368,7 @@ namespace Utilities.WebRequestRest
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
+            webRequest.disposeDownloadHandlerOnDispose = false;
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
@@ -749,6 +752,39 @@ namespace Utilities.WebRequestRest
             => cache.ValidateCacheDirectoryAsync();
 
         /// <summary>
+        /// Get the possible path to a cache item by fileName.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns>
+        /// The full path to the cache item.
+        /// </returns>
+        /// <remarks>
+        /// This does not validate that the item exists in the cache.
+        /// </remarks>
+        public static string GetCacheItemPath(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                throw new ArgumentNullException(nameof(fileName));
+            }
+
+            return Path.Combine(DownloadCacheDirectory, fileName);
+        }
+
+        /// <summary>
+        /// Get the possible uri to a cache item by fileName.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns>
+        /// The <see cref="Uri"/> to the cache item.
+        /// </returns>
+        /// <remarks>
+        /// This does not validate that the item exists in the cache.
+        /// </remarks>
+        public static Uri GetCacheItemUri(string fileName)
+            => new Uri(GetCacheItemPath(fileName));
+
+        /// <summary>
         /// Try to get a file out of the download cache by fileName reference.
         /// </summary>
         /// <param name="fileName">The filename of the item.</param>
@@ -758,7 +794,7 @@ namespace Utilities.WebRequestRest
         {
             var result = cache.TryGetDownloadCacheItem(fileName, out var fileUri);
             filePath = fileUri?.LocalPath;
-            return result;
+            return result && filePath != null;
         }
 
         /// <summary>
@@ -768,9 +804,7 @@ namespace Utilities.WebRequestRest
         /// <param name="fileUri">The <see cref="Uri"/> to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
         public static bool TryGetDownloadCacheItem(string fileName, out Uri fileUri)
-        {
-            return cache.TryGetDownloadCacheItem(fileName, out fileUri);
-        }
+            => cache.TryGetDownloadCacheItem(fileName, out fileUri);
 
         /// <summary>
         /// Try to get a file out of the download cache by uri reference.
@@ -787,9 +821,7 @@ namespace Utilities.WebRequestRest
         /// <param name="uri">The uri key of the item.</param>
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
-        {
-            return TryDeleteCacheItem(new Uri(uri));
-        }
+            => TryDeleteCacheItem(new Uri(uri));
 
         /// <summary>
         /// Try to delete the cached item at the uri.
@@ -811,35 +843,23 @@ namespace Utilities.WebRequestRest
         /// <param name="url">The url to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
         /// <returns>True, if a valid filename is found from the url.</returns>
-        /// <remarks>
-        /// Url must start with "http" and the last segment must have a file extension, or it will return false.
-        /// </remarks>
-        [Obsolete("use TryGetFileNameFromUri")]
         public static bool TryGetFileNameFromUrl(string url, out string fileName)
-        {
-            fileName = null;
-            const string http = nameof(http);
-            if (!url.StartsWith(http)) { return false; }
-            var baseUrl = UnityWebRequest.UnEscapeURL(url);
-            var rootUrl = baseUrl.Split('?')[0];
-            var index = rootUrl.LastIndexOf('/') + 1;
-            fileName = rootUrl.Substring(index, rootUrl.Length - index);
-            return Path.HasExtension(fileName);
-        }
+            => TryGetFileNameFromUri(new Uri(url), out fileName);
 
         /// <summary>
         /// Try to guess the name based on the uri.
         /// </summary>
-        /// <param name="uri">The url to parse to try to guess file name.</param>
+        /// <param name="uri">The uri to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
         /// <returns>True, if a valid filename is found from the uri.</returns>
-        /// <remarks>
-        /// Uri must be a remote resource and the last segment must have a file extension, or it will return false.
-        /// </remarks>
         public static bool TryGetFileNameFromUri(Uri uri, out string fileName)
         {
-            fileName = null;
-            if (uri.Scheme == Uri.UriSchemeFile) { return false; }
+            if (uri.Scheme == Uri.UriSchemeFile)
+            {
+                fileName = Path.GetFileName(uri.LocalPath);
+                return true;
+            }
+
             var baseUrl = UnityWebRequest.UnEscapeURL(uri.ToString());
             var rootUrl = baseUrl.Split('?')[0];
             var index = rootUrl.LastIndexOf('/') + 1;
@@ -1054,7 +1074,7 @@ namespace Utilities.WebRequestRest
                     TryGetFileNameFromUri(uri, out fileName);
                 }
 
-                isCached = TryGetDownloadCacheItem(new Uri(fileName!), out cachePath) && restParams.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
@@ -1406,16 +1426,19 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The path to the downloaded file.</returns>
-        public static Task<string> DownloadFileAsync(
+        public static async Task<string> DownloadFileAsync(
             string url,
             string fileName = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
-            => DownloadFileAsync(
+        {
+            var result = await DownloadFileAsync(
                 new Uri(url),
                 fileName,
                 parameters,
                 cancellationToken);
+            return result.LocalPath;
+        }
 
         /// <summary>
         /// Download a file from the provided <see cref="uri"/>.
@@ -1425,32 +1448,50 @@ namespace Utilities.WebRequestRest
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The path to the downloaded file.</returns>
-        public static async Task<string> DownloadFileAsync(
+        public static async Task<Uri> DownloadFileAsync(
             Uri uri,
             string fileName = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
+            bool isCached;
+            Uri cachePath;
             var restParams = parameters.Clone();
 
-            if (string.IsNullOrWhiteSpace(fileName) && restParams.CacheDownloads)
+            if (uri.Scheme == Uri.UriSchemeFile)
             {
-                TryGetFileNameFromUri(uri, out fileName);
+                isCached = true;
+                cachePath = uri;
+            }
+            else
+            {
+                if (restParams.CacheDownloads &&
+                    string.IsNullOrWhiteSpace(fileName))
+                {
+                    TryGetFileNameFromUri(uri, out fileName);
+                }
+
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
-            if (TryGetDownloadCacheItem(new Uri(fileName!, UriKind.Relative), out Uri filePath) && restParams.CacheDownloads)
+            if (isCached)
             {
-                return filePath.LocalPath;
+                uri = cachePath;
+            }
+
+            if (isCached)
+            {
+                return uri;
             }
 
             using var webRequest = UnityWebRequest.Get(uri);
-            using var fileDownloadHandler = new DownloadHandlerFile(filePath.LocalPath);
+            using var fileDownloadHandler = new DownloadHandlerFile(cachePath.LocalPath);
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
             var response = await webRequest.SendAsync(restParams, cancellationToken);
             response.Validate(restParams.Debug);
-            return filePath.LocalPath;
+            return cachePath;
         }
 
         /// <summary>
@@ -1488,12 +1529,11 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
             byte[] bytes = null;
-            var filePath = await DownloadFileAsync(uri, fileName, parameters, cancellationToken);
-            var localPath = filePath.Replace("file://", string.Empty);
+            var fileUri = await DownloadFileAsync(uri, fileName, parameters, cancellationToken);
 
-            if (File.Exists(localPath))
+            if (File.Exists(fileUri.LocalPath))
             {
-                bytes = await File.ReadAllBytesAsync(localPath, cancellationToken).ConfigureAwait(true);
+                bytes = await File.ReadAllBytesAsync(fileUri.LocalPath, cancellationToken).ConfigureAwait(true);
             }
 
             return bytes;
@@ -1652,7 +1692,7 @@ namespace Utilities.WebRequestRest
             }
 
             var serverSentEventCharacterIndex = 0;
-            var serverSentEventQueue = new Queue<ServerSentEventPayload>();
+            var serverSentEventQueue = new ConcurrentQueue<ServerSentEventPayload?>();
             CancellationTokenSource serverSentEventCts = null;
 
             if (restParams.Progress != null || serverSentEventHandler != null)
@@ -1738,15 +1778,27 @@ namespace Utilities.WebRequestRest
                         try
                         {
                             await Awaiters.UnityMainThread;
-
-                            if (serverSentEventQueue.TryDequeue(out var payload))
+                            if (serverSentEventCts.Token.IsCancellationRequested) { break; }
+                            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                            if (serverSentEventHandler != null &&
+                                serverSentEventQueue != null &&
+                                serverSentEventQueue.TryDequeue(out var payload))
                             {
-                                await serverSentEventHandler.Invoke(payload.Response, payload.Event);
+                                if (!payload.HasValue) { continue; }
+                                var task = serverSentEventHandler.Invoke(payload.Value.Response, payload.Value.Event);
+                                if (task == null) { continue; }
+                                await task.ConfigureAwait(false);
                             }
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError(e);
+                            Debug.LogError($"[REST] {nameof(serverSentEventQueue)} EXCEPTION");
+                            var lines = e.ToString().Split('\n');
+
+                            foreach (var line in lines)
+                            {
+                                Debug.LogError(line);
+                            }
                         }
                     } while (!serverSentEventCts.Token.IsCancellationRequested);
                 }
@@ -1783,7 +1835,14 @@ namespace Utilities.WebRequestRest
 
                 if (serverSentEventHandler != null)
                 {
-                    EnqueueServerSentEventCallbacks();
+                    try
+                    {
+                        EnqueueServerSentEventCallbacks();
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
                 }
 
                 if (serverSentEventCts != null)
@@ -2013,6 +2072,7 @@ namespace Utilities.WebRequestRest
             }
 
             public Response Response { get; }
+
             public ServerSentEvent Event { get; }
         }
 

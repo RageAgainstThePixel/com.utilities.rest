@@ -27,7 +27,7 @@ namespace Utilities.WebRequestRest
         }
 
         public bool TryGetDownloadCacheItem(string fileName, out Uri fileUri)
-            => TryGetDownloadCacheItem(new Uri(Path.Combine(Rest.DownloadCacheDirectory, fileName)), out fileUri);
+            => TryGetDownloadCacheItem(Rest.GetCacheItemUri(fileName), out fileUri);
 
         public bool TryGetDownloadCacheItem(Uri uri, out Uri fileUri)
         {
