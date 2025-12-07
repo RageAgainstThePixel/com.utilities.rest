@@ -936,9 +936,10 @@ namespace Utilities.WebRequestRest
             else
             {
                 if (restParams.CacheDownloads &&
-                    string.IsNullOrWhiteSpace(fileName))
+                    string.IsNullOrWhiteSpace(fileName) &&
+                    !TryGetFileNameFromUri(uri, out fileName))
                 {
-                    TryGetFileNameFromUri(uri, out fileName);
+                    fileName = uri.GenerateGuidString();
                 }
 
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
@@ -1069,9 +1070,10 @@ namespace Utilities.WebRequestRest
             else
             {
                 if (restParams.CacheDownloads &&
-                    string.IsNullOrWhiteSpace(fileName))
+                    string.IsNullOrWhiteSpace(fileName) &&
+                    !TryGetFileNameFromUri(uri, out fileName))
                 {
-                    TryGetFileNameFromUri(uri, out fileName);
+                    fileName = uri.GenerateGuidString();
                 }
 
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
@@ -1467,9 +1469,10 @@ namespace Utilities.WebRequestRest
             else
             {
                 if (restParams.CacheDownloads &&
-                    string.IsNullOrWhiteSpace(fileName))
+                    string.IsNullOrWhiteSpace(fileName) &&
+                    !TryGetFileNameFromUri(uri, out fileName))
                 {
-                    TryGetFileNameFromUri(uri, out fileName);
+                    fileName = uri.GenerateGuidString();
                 }
 
                 isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
