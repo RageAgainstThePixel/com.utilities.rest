@@ -1042,7 +1042,7 @@ namespace Utilities.WebRequestRest
                     TryGetFileNameFromUri(uri, out fileName);
                 }
 
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(new Uri(fileName!), out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
@@ -1419,7 +1419,7 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUri(uri, out fileName);
             }
 
-            if (TryGetDownloadCacheItem(fileName, out var filePath) && restParams.CacheDownloads)
+            if (TryGetDownloadCacheItem(fileName, out string filePath) && restParams.CacheDownloads)
             {
                 return filePath;
             }
