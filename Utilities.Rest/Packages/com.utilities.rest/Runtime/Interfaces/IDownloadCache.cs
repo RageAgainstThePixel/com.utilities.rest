@@ -12,18 +12,12 @@ namespace Utilities.WebRequestRest.Interfaces
 
         Task ValidateCacheDirectoryAsync();
 
-        [Obsolete]
-        bool TryGetDownloadCacheItem(string uri, out string filePath);
-
         bool TryGetDownloadCacheItem(Uri uri, out Uri filePath);
-
-        [Obsolete]
-        bool TryDeleteCacheItem(string uri);
 
         bool TryDeleteCacheItem(Uri uri);
 
         void DeleteDownloadCache();
 
-        Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken);
+        Task WriteCacheItemAsync(byte[] data, Uri cachePath, CancellationToken cancellationToken);
     }
 }

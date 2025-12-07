@@ -23,7 +23,6 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public static class Rest
     {
-        internal const string FileUriPrefix = "file://";
         private const string kHttpVerbPATCH = "PATCH";
         private const string content_type = "Content-Type";
         private const string content_length = "Content-Length";
@@ -683,18 +682,10 @@ namespace Utilities.WebRequestRest
         /// </remarks>
         public static bool CacheEnabled
         {
-            get => cache.GetType() == typeof(NoOpDownloadCache);
-            set
-            {
-                if (!value || Application.platform == RuntimePlatform.WebGLPlayer)
-                {
-                    cache = new NoOpDownloadCache();
-                }
-                else
-                {
-                    cache = new DiskDownloadCache();
-                }
-            }
+            get => cache.GetType() != typeof(NoOpDownloadCache);
+            set => cache = !value || Application.platform == RuntimePlatform.WebGLPlayer
+                ? new NoOpDownloadCache()
+                : new DiskDownloadCache();
         }
 
         private static readonly HashSet<string> allowedDownloadLocations = new()
@@ -802,7 +793,7 @@ namespace Utilities.WebRequestRest
             => cache.DeleteDownloadCache();
 
         /// <summary>
-        /// We will try go guess the name based on the url.
+        /// Try to guess the name based on the url.
         /// </summary>
         /// <param name="url">The url to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
@@ -824,7 +815,7 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// We will try go guess the name based on the uri.
+        /// Try to guess the name based on the uri.
         /// </summary>
         /// <param name="uri">The url to parse to try to guess file name.</param>
         /// <param name="fileName">The filename if found.</param>
@@ -901,13 +892,13 @@ namespace Utilities.WebRequestRest
             await Awaiters.UnityMainThread;
 
             bool isCached;
-            string cachePath;
+            Uri cachePath;
             var restParams = parameters.Clone(disposeDownloadHandler: true);
 
             if (uri.IsFile)
             {
                 isCached = true;
-                cachePath = uri.AbsolutePath;
+                cachePath = uri;
             }
             else
             {
@@ -917,12 +908,12 @@ namespace Utilities.WebRequestRest
                     TryGetFileNameFromUri(uri, out fileName);
                 }
 
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(new Uri(fileName!), out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
             {
-                uri = new Uri(cachePath);
+                uri = cachePath;
             }
 
             Texture2D texture;
@@ -950,7 +941,15 @@ namespace Utilities.WebRequestRest
                 webRequest.downloadHandler?.Dispose();
             }
 
-            texture.name = Path.GetFileNameWithoutExtension(cachePath);
+            if (!string.IsNullOrWhiteSpace(fileName))
+            {
+                texture.name = fileName;
+            }
+            else if (isCached)
+            {
+                texture.name = Path.GetFileNameWithoutExtension(cachePath.LocalPath);
+            }
+
             return texture;
         }
 

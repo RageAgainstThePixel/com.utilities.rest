@@ -13,26 +13,16 @@ namespace Utilities.Rest
 
         public Task ValidateCacheDirectoryAsync() => Task.CompletedTask;
 
-        [Obsolete]
-        public bool TryGetDownloadCacheItem(string uri, out string filePath)
-        {
-            filePath = null;
-            return false;
-        }
-
         public bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
         {
             filePath = null;
             return false;
         }
 
-        [Obsolete]
-        public bool TryDeleteCacheItem(string uri) => true;
-
         public bool TryDeleteCacheItem(Uri uri) => true;
 
         public void DeleteDownloadCache() { }
 
-        public Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task WriteCacheItemAsync(byte[] data, Uri cachePath, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

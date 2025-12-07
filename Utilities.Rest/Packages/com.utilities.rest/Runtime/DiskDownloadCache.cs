@@ -26,14 +26,6 @@ namespace Utilities.WebRequestRest
             ValidateCacheDirectory();
         }
 
-        [Obsolete]
-        public bool TryGetDownloadCacheItem(string uri, out string filePath)
-        {
-            var result = TryGetDownloadCacheItem(new Uri(uri), out var local);
-            filePath = local.LocalPath;
-            return result;
-        }
-
         public bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
         {
             ValidateCacheDirectory();
@@ -64,10 +56,6 @@ namespace Utilities.WebRequestRest
             return exists;
         }
 
-        [Obsolete]
-        public bool TryDeleteCacheItem(string uri)
-            => TryDeleteCacheItem(new Uri(uri));
-
         public bool TryDeleteCacheItem(Uri uri)
         {
             if (!TryGetDownloadCacheItem(uri, out var filePath))
@@ -94,10 +82,6 @@ namespace Utilities.WebRequestRest
                 Directory.Delete(Rest.DownloadCacheDirectory, true);
             }
         }
-
-        [Obsolete]
-        public Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken)
-            => WriteCacheItemAsync(data, new Uri(cachePath), cancellationToken);
 
         public async Task WriteCacheItemAsync(byte[] data, Uri cachePath, CancellationToken cancellationToken)
         {
