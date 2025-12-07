@@ -1,5 +1,6 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Utilities.WebRequestRest.Interfaces;
@@ -12,16 +13,16 @@ namespace Utilities.Rest
 
         public Task ValidateCacheDirectoryAsync() => Task.CompletedTask;
 
-        public bool TryGetDownloadCacheItem(string uri, out string filePath)
+        public bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
         {
-            filePath = uri;
+            filePath = null;
             return false;
         }
 
-        public bool TryDeleteCacheItem(string uri) => true;
+        public bool TryDeleteCacheItem(Uri uri) => true;
 
         public void DeleteDownloadCache() { }
 
-        public Task WriteCacheItemAsync(byte[] data, string cachePath, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task WriteCacheItemAsync(byte[] data, Uri cachePath, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
