@@ -749,26 +749,37 @@ namespace Utilities.WebRequestRest
             => cache.ValidateCacheDirectoryAsync();
 
         /// <summary>
-        /// Try to get a file out of the download cache by uri reference.
+        /// Try to get a file out of the download cache by fileName reference.
         /// </summary>
-        /// <param name="uri">The uri key of the item.</param>
+        /// <param name="fileName">The filename of the item.</param>
         /// <param name="filePath">The file path to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
-        public static bool TryGetDownloadCacheItem(string uri, out string filePath)
+        public static bool TryGetDownloadCacheItem(string fileName, out string filePath)
         {
-            var result = TryGetDownloadCacheItem(new Uri(uri), out var local);
-            filePath = local.LocalPath;
+            var result = cache.TryGetDownloadCacheItem(fileName, out var fileUri);
+            filePath = fileUri?.LocalPath;
             return result;
+        }
+
+        /// <summary>
+        /// Try to get a file out of the download cache by fileName reference.
+        /// </summary>
+        /// <param name="fileName">The filename of the item.</param>
+        /// <param name="fileUri">The <see cref="Uri"/> to the cached item.</param>
+        /// <returns>True, if the item was in cache, otherwise false.</returns>
+        public static bool TryGetDownloadCacheItem(string fileName, out Uri fileUri)
+        {
+            return cache.TryGetDownloadCacheItem(fileName, out fileUri);
         }
 
         /// <summary>
         /// Try to get a file out of the download cache by uri reference.
         /// </summary>
         /// <param name="uri">The uri key of the item.</param>
-        /// <param name="filePath">The file path to the cached item.</param>
+        /// <param name="fileUri">The <see cref="Uri"/> to the cached item.</param>
         /// <returns>True, if the item was in cache, otherwise false.</returns>
-        public static bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
-            => cache.TryGetDownloadCacheItem(uri, out filePath);
+        public static bool TryGetDownloadCacheItem(Uri uri, out Uri fileUri)
+            => cache.TryGetDownloadCacheItem(uri, out fileUri);
 
         /// <summary>
         /// Try to delete the cached item at the uri.
@@ -776,7 +787,9 @@ namespace Utilities.WebRequestRest
         /// <param name="uri">The uri key of the item.</param>
         /// <returns>True, if the cached item was successfully deleted.</returns>
         public static bool TryDeleteCacheItem(string uri)
-            => TryDeleteCacheItem(new Uri(uri));
+        {
+            return TryDeleteCacheItem(new Uri(uri));
+        }
 
         /// <summary>
         /// Try to delete the cached item at the uri.
@@ -826,7 +839,7 @@ namespace Utilities.WebRequestRest
         public static bool TryGetFileNameFromUri(Uri uri, out string fileName)
         {
             fileName = null;
-            if (uri.IsFile) { return false; }
+            if (uri.Scheme == Uri.UriSchemeFile) { return false; }
             var baseUrl = UnityWebRequest.UnEscapeURL(uri.ToString());
             var rootUrl = baseUrl.Split('?')[0];
             var index = rootUrl.LastIndexOf('/') + 1;
@@ -895,7 +908,7 @@ namespace Utilities.WebRequestRest
             Uri cachePath;
             var restParams = parameters.Clone(disposeDownloadHandler: true);
 
-            if (uri.IsFile)
+            if (uri.Scheme == Uri.UriSchemeFile)
             {
                 isCached = true;
                 cachePath = uri;
@@ -908,7 +921,7 @@ namespace Utilities.WebRequestRest
                     TryGetFileNameFromUri(uri, out fileName);
                 }
 
-                isCached = TryGetDownloadCacheItem(new Uri(fileName!), out cachePath) && restParams.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
             }
 
             if (isCached)
@@ -1028,7 +1041,7 @@ namespace Utilities.WebRequestRest
             Uri cachePath;
             var restParams = parameters.Clone();
 
-            if (uri.IsFile)
+            if (uri.Scheme == Uri.UriSchemeFile)
             {
                 isCached = true;
                 cachePath = uri;
@@ -1188,12 +1201,12 @@ namespace Utilities.WebRequestRest
             if (string.IsNullOrWhiteSpace(fileName) &&
                 !TryGetFileNameFromUri(uri, out fileName))
             {
-                fileName = uri.IsFile
+                fileName = uri.Scheme == Uri.UriSchemeFile
                     ? Path.GetFileName(uri.LocalPath)
                     : uri.GenerateGuidString();
             }
 
-            if (uri.IsFile)
+            if (uri.Scheme == Uri.UriSchemeFile)
             {
                 // override the httpMethod
                 httpMethod = UnityWebRequest.kHttpVerbGET;
@@ -1426,18 +1439,18 @@ namespace Utilities.WebRequestRest
                 TryGetFileNameFromUri(uri, out fileName);
             }
 
-            if (TryGetDownloadCacheItem(fileName, out string filePath) && restParams.CacheDownloads)
+            if (TryGetDownloadCacheItem(new Uri(fileName!, UriKind.Relative), out Uri filePath) && restParams.CacheDownloads)
             {
-                return filePath;
+                return filePath.LocalPath;
             }
 
             using var webRequest = UnityWebRequest.Get(uri);
-            using var fileDownloadHandler = new DownloadHandlerFile(filePath);
+            using var fileDownloadHandler = new DownloadHandlerFile(filePath.LocalPath);
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
             var response = await webRequest.SendAsync(restParams, cancellationToken);
             response.Validate(restParams.Debug);
-            return filePath;
+            return filePath.LocalPath;
         }
 
         /// <summary>
