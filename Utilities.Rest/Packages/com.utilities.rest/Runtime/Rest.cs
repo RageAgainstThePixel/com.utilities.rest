@@ -157,7 +157,7 @@ namespace Utilities.WebRequestRest
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
-            parameters = parameters?.Clone(disposeDownloadHandler: false);
+            parameters = parameters.Clone(disposeDownloadHandler: false);
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
@@ -279,6 +279,7 @@ namespace Utilities.WebRequestRest
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_json);
+            parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -323,6 +324,7 @@ namespace Utilities.WebRequestRest
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_json);
+            parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
             return await webRequest.SendAsync(parameters, serverSentEventHandler, cancellationToken);
         }
 
@@ -368,7 +370,6 @@ namespace Utilities.WebRequestRest
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
-            parameters = parameters?.Clone(disposeDownloadHandler: false);
             using var downloadHandler = eventChunkSize.HasValue
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
@@ -378,6 +379,7 @@ namespace Utilities.WebRequestRest
 
             try
             {
+                parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
                 return await webRequest.SendAsync(parameters, serverSentEventHandler: null, cancellationToken);
             }
             finally
@@ -423,6 +425,7 @@ namespace Utilities.WebRequestRest
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_octet_stream);
+            parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -464,6 +467,7 @@ namespace Utilities.WebRequestRest
             webRequest.uploadHandler = uploadHandler;
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
+            parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -650,6 +654,7 @@ namespace Utilities.WebRequestRest
             using var webRequest = UnityWebRequest.Delete(query);
             using var downloadHandler = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandler;
+            parameters = parameters.Clone(disposeDownloadHandler: false);
             return await webRequest.SendAsync(parameters, cancellationToken);
         }
 
@@ -1402,7 +1407,7 @@ namespace Utilities.WebRequestRest
 
             using (webRequest)
             {
-                var restParams = parameters.Clone(disposeDownloadHandler: false, timeout: options?.Timeout);
+                parameters = parameters.Clone(disposeDownloadHandler: false, timeout: options?.Timeout);
                 var response = await webRequest.SendAsync(restParams, cancellationToken);
                 response.Validate(restParams.Debug);
 
@@ -1459,7 +1464,6 @@ namespace Utilities.WebRequestRest
             await Awaiters.UnityMainThread;
             bool isCached;
             Uri cachePath;
-            var restParams = parameters.Clone();
 
             if (uri.Scheme == Uri.UriSchemeFile)
             {
@@ -1468,32 +1472,27 @@ namespace Utilities.WebRequestRest
             }
             else
             {
-                if (restParams.CacheDownloads &&
-                    string.IsNullOrWhiteSpace(fileName) &&
+                if (string.IsNullOrWhiteSpace(fileName) &&
                     !TryGetFileNameFromUri(uri, out fileName))
                 {
                     fileName = uri.GenerateGuidString();
                 }
 
-                isCached = TryGetDownloadCacheItem(fileName, out cachePath) && restParams.CacheDownloads;
+                isCached = TryGetDownloadCacheItem(fileName, out cachePath);
             }
 
             if (isCached)
             {
-                uri = cachePath;
-            }
-
-            if (isCached)
-            {
-                return uri;
+                return cachePath;
             }
 
             using var webRequest = UnityWebRequest.Get(uri);
             using var fileDownloadHandler = new DownloadHandlerFile(cachePath.LocalPath);
             fileDownloadHandler.removeFileOnAbort = true;
             webRequest.downloadHandler = fileDownloadHandler;
-            var response = await webRequest.SendAsync(restParams, cancellationToken);
-            response.Validate(restParams.Debug);
+            parameters = parameters.Clone(disposeDownloadHandler: false);
+            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            response.Validate(parameters.Value.Debug);
             return cachePath;
         }
 
@@ -1576,8 +1575,9 @@ namespace Utilities.WebRequestRest
             using var webRequest = UnityWebRequest.Get(uri);
             using var downloadHandlerBuffer = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandlerBuffer;
+            parameters = parameters.Clone(disposeDownloadHandler: false);
             var response = await webRequest.SendAsync(parameters, cancellationToken);
-            response.Validate(parameters?.Debug ?? false);
+            response.Validate(parameters.Value.Debug);
             return response.Data;
         }
 
