@@ -1695,7 +1695,7 @@ namespace Utilities.WebRequestRest
             }
 
             var serverSentEventCharacterIndex = 0;
-            var serverSentEventQueue = new ConcurrentQueue<ServerSentEventPayload?>();
+            var serverSentEventQueue = new ConcurrentQueue<ServerSentEventPayload>();
             CancellationTokenSource serverSentEventCts = null;
 
             if (restParams.Progress != null || serverSentEventHandler != null)
@@ -1781,27 +1781,15 @@ namespace Utilities.WebRequestRest
                         try
                         {
                             await Awaiters.UnityMainThread;
-                            if (serverSentEventCts.Token.IsCancellationRequested) { break; }
-                            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                            if (serverSentEventHandler != null &&
-                                serverSentEventQueue != null &&
-                                serverSentEventQueue.TryDequeue(out var payload))
+
+                            if (serverSentEventQueue.TryDequeue(out var payload))
                             {
-                                if (!payload.HasValue) { continue; }
-                                var task = serverSentEventHandler.Invoke(payload.Value.Response, payload.Value.Event);
-                                if (task == null) { continue; }
-                                await task.ConfigureAwait(false);
+                                await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(false);
                             }
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError($"[REST] {nameof(serverSentEventQueue)} EXCEPTION");
-                            var lines = e.ToString().Split('\n');
-
-                            foreach (var line in lines)
-                            {
-                                Debug.LogError(line);
-                            }
+                            Debug.LogException(e);
                         }
                     } while (!serverSentEventCts.Token.IsCancellationRequested);
                 }
@@ -1861,8 +1849,6 @@ namespace Utilities.WebRequestRest
                     finally
                     {
                         serverSentEventCts?.Cancel();
-                        serverSentEventCts?.Dispose();
-                        serverSentEventCts = null;
                     }
                 }
             }
