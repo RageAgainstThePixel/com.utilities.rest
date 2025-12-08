@@ -1407,7 +1407,7 @@ namespace Utilities.WebRequestRest
 
             using (webRequest)
             {
-                parameters = parameters.Clone(disposeDownloadHandler: false, timeout: options?.Timeout);
+                var restParams = parameters.Clone(disposeDownloadHandler: false, timeout: options?.Timeout);
                 var response = await webRequest.SendAsync(restParams, cancellationToken);
                 response.Validate(restParams.Debug);
 
@@ -1776,15 +1776,19 @@ namespace Utilities.WebRequestRest
                 async void ServerSentEventQueue()
                 {
                     serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    await Awaiters.UnityMainThread;
+
                     do
                     {
                         try
                         {
-                            await Awaiters.UnityMainThread;
-
                             if (serverSentEventQueue.TryDequeue(out var payload))
                             {
-                                await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(false);
+                                await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(true);
+                            }
+                            else
+                            {
+                                await Task.Yield();
                             }
                         }
                         catch (Exception e)
