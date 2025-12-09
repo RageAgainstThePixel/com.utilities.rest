@@ -13,6 +13,12 @@ namespace Utilities.Rest
 
         public Task ValidateCacheDirectoryAsync() => Task.CompletedTask;
 
+        public bool TryGetDownloadCacheItem(string fileName, out Uri filePath)
+        {
+            filePath = null;
+            return false;
+        }
+
         public bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
         {
             filePath = null;
