@@ -26,31 +26,42 @@ namespace Utilities.WebRequestRest
             ValidateCacheDirectory();
         }
 
-        public bool TryGetDownloadCacheItem(Uri uri, out Uri filePath)
+        public bool TryGetDownloadCacheItem(string fileName, out Uri fileUri)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileUri = null;
+                return false;
+            }
+
+            return TryGetDownloadCacheItem(Rest.GetCacheItemUri(fileName), out fileUri);
+        }
+
+        public bool TryGetDownloadCacheItem(Uri uri, out Uri fileUri)
         {
             ValidateCacheDirectory();
             bool exists;
 
-            if (uri.IsFile)
+            if (uri.Scheme == Uri.UriSchemeFile)
             {
-                filePath = uri;
+                fileUri = uri;
                 return File.Exists(uri.LocalPath);
             }
 
             if (Rest.TryGetFileNameFromUri(uri, out var fileName))
             {
-                filePath = new Uri(Path.Combine(Rest.DownloadCacheDirectory, fileName));
-                exists = File.Exists(filePath.LocalPath);
+                fileUri = new Uri(Path.Combine(Rest.DownloadCacheDirectory, fileName));
+                exists = File.Exists(fileUri.LocalPath);
             }
             else
             {
-                filePath = new Uri(Path.Combine(Rest.DownloadCacheDirectory, uri.GenerateGuidString()));
-                exists = File.Exists(filePath.LocalPath);
+                fileUri = new Uri(Path.Combine(Rest.DownloadCacheDirectory, uri.GenerateGuidString()));
+                exists = File.Exists(fileUri.LocalPath);
             }
 
             if (exists)
             {
-                filePath = new Uri(Path.GetFullPath(filePath.LocalPath));
+                fileUri = new Uri(Path.GetFullPath(fileUri.LocalPath));
             }
 
             return exists;

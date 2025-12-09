@@ -12,6 +12,8 @@ namespace Utilities.WebRequestRest.Interfaces
 
         Task ValidateCacheDirectoryAsync();
 
+        bool TryGetDownloadCacheItem(string fileName, out Uri filePath);
+
         bool TryGetDownloadCacheItem(Uri uri, out Uri filePath);
 
         bool TryDeleteCacheItem(Uri uri);
