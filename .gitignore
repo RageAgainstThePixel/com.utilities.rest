@@ -81,6 +81,7 @@ _ReSharper.Caches
 # ===================== #
 # Project Specific List #
 # ===================== #
+_temp/
 --Version/
 artifacts/
 ThirdParty/
