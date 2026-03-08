@@ -3,7 +3,8 @@
     "rootNamespace": "Utilities.WebRequestRest",
     "references": [
         "GUID:a6609af893242c7438d701ddd4cce46a",
-        "GUID:84651a3751eca9349aac36a66bba901b"
+        "GUID:84651a3751eca9349aac36a66bba901b",
+        "GUID:e0cd26848372d4e5c891c569017e11f1"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

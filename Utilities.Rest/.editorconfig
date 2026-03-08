@@ -12,6 +12,10 @@ indent_size = 4
 indent_style = space
 tab_width = 4
 
+# Sort usings alphabetically
+dotnet_sort_system_directives_first = false
+dotnet_sort_usings_first = true
+
 # New line preferences
 end_of_line = crlf
 insert_final_newline = true

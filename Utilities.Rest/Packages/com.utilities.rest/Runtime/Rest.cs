@@ -1,6 +1,5 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Scripting;
@@ -162,6 +162,7 @@ namespace Utilities.WebRequestRest
                 ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
                 : new DownloadHandlerCallback(webRequest);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
+            webRequest.downloadHandler = downloadHandler;
 
             try
             {
@@ -1797,13 +1798,13 @@ namespace Utilities.WebRequestRest
                         }
                     } while (!serverSentEventCts.Token.IsCancellationRequested);
                 }
-#pragma warning disable CS4014 // We purposefully don't await this task, so it will run on a background thread.
+#pragma warning disable CS4014 // Fire-and-forget; started on main thread so continuations stay on main thread (avoids get_result from background thread in batch mode).
                 // ReSharper disable PossiblyMistakenUseOfCancellationToken
-                Task.Run(CallbackThread, cancellationToken);
+                CallbackThread();
 
                 if (serverSentEventHandler != null)
                 {
-                    Task.Run(ServerSentEventQueue, cancellationToken);
+                    ServerSentEventQueue();
                 }
                 // ReSharper restore PossiblyMistakenUseOfCancellationToken
 #pragma warning restore CS4014

@@ -42,7 +42,6 @@ namespace Utilities.WebRequestRest.Tests
                     default:
                         Debug.LogException(e);
                         throw;
-
                 }
             }
         }
