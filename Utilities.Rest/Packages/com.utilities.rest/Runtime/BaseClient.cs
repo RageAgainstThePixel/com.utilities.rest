@@ -7,6 +7,11 @@ using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
 {
+    /// <summary>
+    /// Base type for REST API clients with authentication and settings.
+    /// </summary>
+    /// <typeparam name="TAuthentication">Authentication type implementing <see cref="IAuthentication"/>.</typeparam>
+    /// <typeparam name="TSettings">Settings type implementing <see cref="ISettings"/>.</typeparam>
     public abstract class BaseClient<TAuthentication, TSettings> : IClient
         where TAuthentication : IAuthentication
         where TSettings : ISettings

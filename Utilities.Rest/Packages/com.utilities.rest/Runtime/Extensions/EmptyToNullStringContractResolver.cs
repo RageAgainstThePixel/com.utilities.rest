@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -14,6 +14,7 @@ namespace Utilities.Rest.Extensions
     /// </summary>
     public sealed class EmptyToNullStringContractResolver : DefaultContractResolver
     {
+        /// <inheritdoc />
         protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
             => type.GetProperties()
                 .Select(propertyInfo =>

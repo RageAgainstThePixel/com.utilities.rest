@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
 using System;
@@ -22,15 +22,21 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// REST Class for basic CRUD transactions.
     /// </summary>
-    /// <remarks>Methods that return <see cref="Task{T}"/> of <see cref="Response"/> (e.g. GetAsync, PostAsync) require the caller to dispose the Response—use <c>using var response = await Rest.GetAsync(...)</c> or call <see cref="IDisposable.Dispose"/> when done.</remarks>
+    /// <remarks>
+    /// Methods that return <see cref="Task{T}"/> of <see cref="Response"/> (e.g. GetAsync, PostAsync)
+    /// require the caller to dispose the Response—use <c>using var response = await Rest.GetAsync(...)</c> or
+    /// call <see cref="IDisposable.Dispose"/> when done.
+    /// </remarks>
     public static class Rest
     {
+        // ReSharper disable InconsistentNaming
         private const string kHttpVerbPATCH = "PATCH";
         private const string content_type = "Content-Type";
         private const string content_length = "Content-Length";
         private const string application_json = "application/json";
         private const string multipart_form_data = "multipart/form-data";
         private const string application_octet_stream = "application/octet-stream";
+        // ReSharper restore InconsistentNaming
         private const char Space = ' ';
         private const char Bom = '\uFEFF';
         private const char NewLine = '\n';
@@ -2089,6 +2095,20 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        /// <summary>
+        /// Clones the given <see cref="RestParameters"/> (or null) with optional overrides for individual fields.
+        /// </summary>
+        /// <param name="other">The instance to clone, or null.</param>
+        /// <param name="headers">Optional override for headers.</param>
+        /// <param name="progress">Optional override for progress.</param>
+        /// <param name="timeout">Optional override for timeout.</param>
+        /// <param name="disposeDownloadHandler">Optional override for dispose download handler.</param>
+        /// <param name="disposeUploadHandler">Optional override for dispose upload handler.</param>
+        /// <param name="certificateHandler">Optional override for certificate handler.</param>
+        /// <param name="disposeCertificateHandler">Optional override for dispose certificate handler.</param>
+        /// <param name="cacheDownloads">Optional override for cache downloads.</param>
+        /// <param name="debug">Optional override for debug.</param>
+        /// <returns>A new <see cref="RestParameters"/> with the specified values or defaults from <paramref name="other"/>.</returns>
         [Preserve]
         public static RestParameters Clone(this RestParameters? other,
             IReadOnlyDictionary<string, string> headers = null,
@@ -2112,6 +2132,20 @@ namespace Utilities.WebRequestRest
                 cacheDownloads,
                 debug);
 
+        /// <summary>
+        /// Clones the given <see cref="RestParameters"/> with optional overrides for individual fields.
+        /// </summary>
+        /// <param name="other">The instance to clone.</param>
+        /// <param name="headers">Optional override for headers.</param>
+        /// <param name="progress">Optional override for progress.</param>
+        /// <param name="timeout">Optional override for timeout.</param>
+        /// <param name="disposeDownloadHandler">Optional override for dispose download handler.</param>
+        /// <param name="disposeUploadHandler">Optional override for dispose upload handler.</param>
+        /// <param name="certificateHandler">Optional override for certificate handler.</param>
+        /// <param name="disposeCertificateHandler">Optional override for dispose certificate handler.</param>
+        /// <param name="cacheDownloads">Optional override for cache downloads.</param>
+        /// <param name="debug">Optional override for debug.</param>
+        /// <returns>A new <see cref="RestParameters"/> with the specified values or defaults from <paramref name="other"/>.</returns>
         [Preserve]
         public static RestParameters Clone(this RestParameters other,
             IReadOnlyDictionary<string, string> headers = null,

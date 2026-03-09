@@ -1,13 +1,13 @@
-﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using Unity.Collections;
 
 namespace Utilities.WebRequestRest
 {
@@ -47,14 +47,12 @@ namespace Utilities.WebRequestRest
         /// Response data as a managed array. Prefer <see cref="NativeData"/> to avoid allocation; dispose this Response when done.
         /// </summary>
         [Obsolete("Use NativeData and dispose Response when done. Data returns NativeData.ToArray() when backed by native data.")]
-        public byte[] Data
-            => GetDataBytes();
+        public byte[] Data => GetDataBytes();
 
         /// <summary>
         /// Response data as a native array. Valid until <see cref="Dispose"/>; do not dispose the array yourself.
         /// </summary>
-        public NativeArray<byte>? NativeData => nativeData;
-        private readonly NativeArray<byte>? nativeData;
+        public NativeArray<byte>? NativeData { get; }
 
         /// <summary>
         /// Response code from the resource.
@@ -82,13 +80,13 @@ namespace Utilities.WebRequestRest
         public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents;
 
         private byte[] GetDataBytes()
-            => nativeData is { IsCreated: true }
-                ? nativeData.Value.ToArray()
+            => NativeData is { IsCreated: true }
+                ? NativeData.Value.ToArray()
                 : null;
 
         private int GetDataLength()
-            => nativeData is { IsCreated: true }
-                ? nativeData.Value.Length
+            => NativeData is { IsCreated: true }
+                ? NativeData.Value.Length
                 : 0;
 
         /// <summary>
@@ -133,8 +131,8 @@ namespace Utilities.WebRequestRest
 
                 if (rawData is { Length: > 0 })
                 {
-                    nativeData = new NativeArray<byte>(rawData.Length, Allocator.Persistent);
-                    NativeArray<byte>.Copy(rawData, nativeData.Value, rawData.Length);
+                    NativeData = new NativeArray<byte>(rawData.Length, Allocator.Persistent);
+                    NativeArray<byte>.Copy(rawData, NativeData.Value, rawData.Length);
                 }
             }
             else
@@ -175,14 +173,24 @@ namespace Utilities.WebRequestRest
 
             if (data is { Length: > 0 })
             {
-                nativeData = new NativeArray<byte>(data.Length, Allocator.Persistent);
-                NativeArray<byte>.Copy(data, nativeData.Value, data.Length);
+                NativeData = new NativeArray<byte>(data.Length, Allocator.Persistent);
+                NativeArray<byte>.Copy(data, NativeData.Value, data.Length);
             }
         }
 
         /// <summary>
         /// Constructor that takes ownership of the given native array. Caller must not dispose the array; this Response will dispose it.
         /// </summary>
+        /// <param name="request">The request that prompted the response.</param>
+        /// <param name="method">The request method.</param>
+        /// <param name="requestBody">The request body.</param>
+        /// <param name="successful">Was the request successful?</param>
+        /// <param name="body">Response body text.</param>
+        /// <param name="nativeData">Native buffer; this instance takes ownership and will dispose it.</param>
+        /// <param name="responseCode">Response code.</param>
+        /// <param name="headers">Response headers.</param>
+        /// <param name="parameters">Request parameters.</param>
+        /// <param name="error">Optional error message.</param>
         public Response(string request, string method, string requestBody, bool successful, string body, NativeArray<byte> nativeData, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters? parameters, string error = null)
         {
             Request = request;
@@ -194,7 +202,7 @@ namespace Utilities.WebRequestRest
             Headers = headers;
             Error = error;
             Parameters = parameters;
-            this.nativeData = nativeData;
+            NativeData = nativeData;
         }
 
         /// <summary>
@@ -202,16 +210,22 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public void Dispose()
         {
-            if (nativeData == null) { return; }
+            if (NativeData == null) { return; }
 
-            if (nativeData.Value.IsCreated)
+            if (NativeData.Value.IsCreated)
             {
-                nativeData.Value.Dispose();
+                NativeData.Value.Dispose();
             }
         }
 
+        /// <inheritdoc />
         public override string ToString() => ToString(string.Empty);
 
+        /// <summary>
+        /// Returns a formatted string representation of the response (e.g. for debug logging).
+        /// </summary>
+        /// <param name="methodName">Optional method name to prefix the output.</param>
+        /// <returns>A formatted debug string.</returns>
         public string ToString(string methodName)
         {
             var debugMessage = new StringBuilder();
@@ -227,7 +241,7 @@ namespace Utilities.WebRequestRest
 
             var debugMessageObject = new Dictionary<string, Dictionary<string, object>>
             {
-                ["request"] = new Dictionary<string, object>
+                ["request"] = new()
                 {
                     ["url"] = Request
                 }
@@ -256,6 +270,7 @@ namespace Utilities.WebRequestRest
             }
 
             var dataLength = GetDataLength();
+
             if (dataLength > 0)
             {
                 debugMessageObject["response"]["data"] = dataLength;

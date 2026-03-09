@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,6 +10,9 @@ using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
 {
+    /// <summary>
+    /// A single server-sent event (event type, value, and optional data payload).
+    /// </summary>
     [Preserve]
     public readonly struct ServerSentEvent : IServerSentEvent
     {
@@ -55,23 +58,29 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        /// <summary>Kind of server-sent event (comment, event, data, id, retry).</summary>
         [Preserve]
         public ServerSentEventKind Event { get; }
 
+        /// <summary>Parsed value for the event field.</summary>
         [Preserve]
         public JToken Value { get; }
 
+        /// <summary>Parsed data payload, if present.</summary>
         [Preserve]
         public JToken Data { get; }
 
+        /// <summary>Object type identifier (e.g. "stream.event").</summary>
         [Preserve]
         [JsonIgnore]
         public string Object { get; }
 
+        /// <inheritdoc />
         [Preserve]
         public override string ToString()
             => ToJsonString();
 
+        /// <summary>Returns a JSON string representation of this event.</summary>
         [Preserve]
         public string ToJsonString()
         {

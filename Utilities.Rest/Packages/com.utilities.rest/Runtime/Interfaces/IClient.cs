@@ -2,6 +2,9 @@
 
 namespace Utilities.WebRequestRest.Interfaces
 {
+    /// <summary>
+    /// Base interface for REST API clients.
+    /// </summary>
     public interface IClient
     {
         /// <summary>
