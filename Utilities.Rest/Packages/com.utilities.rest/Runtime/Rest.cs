@@ -1,5 +1,6 @@
 ﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Scripting;
@@ -22,6 +22,7 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// REST Class for basic CRUD transactions.
     /// </summary>
+    /// <remarks>Methods that return <see cref="Task{T}"/> of <see cref="Response"/> (e.g. GetAsync, PostAsync) require the caller to dispose the Response—use <c>using var response = await Rest.GetAsync(...)</c> or call <see cref="IDisposable.Dispose"/> when done.</remarks>
     public static class Rest
     {
         private const string kHttpVerbPATCH = "PATCH";
@@ -123,11 +124,11 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Rest GET.
+        /// Rest GET with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize"></param>
+        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
+        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
@@ -140,11 +141,11 @@ namespace Utilities.WebRequestRest
             => GetAsync(new Uri(query), dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
 
         /// <summary>
-        /// Rest GET.
+        /// Rest GET with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize"></param>
+        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
+        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
@@ -330,12 +331,12 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Rest POST.
+        /// Rest POST with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize">Optional, <see cref="dataReceivedEventCallback"/> event chunk size in bytes (Defaults to 512 bytes).</param>
+        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
+        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
@@ -349,12 +350,12 @@ namespace Utilities.WebRequestRest
             => PostAsync(new Uri(query), jsonData, dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
 
         /// <summary>
-        /// Rest POST.
+        /// Rest POST with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize">Optional, <see cref="dataReceivedEventCallback"/> event chunk size in bytes (Defaults to 512 bytes).</param>
+        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
+        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
         /// <returns>The response data.</returns>
@@ -1577,9 +1578,11 @@ namespace Utilities.WebRequestRest
             using var downloadHandlerBuffer = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandlerBuffer;
             parameters = parameters.Clone(disposeDownloadHandler: false);
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            using var response = await webRequest.SendAsync(parameters, cancellationToken);
             response.Validate(parameters.Value.Debug);
+#pragma warning disable CS0618 // Data is obsolete; DownloadBytesAsync returns byte[] and copies out before dispose
             return response.Data;
+#pragma warning restore CS0618
         }
 
         #endregion Get Multimedia Content
@@ -1798,16 +1801,12 @@ namespace Utilities.WebRequestRest
                         }
                     } while (!serverSentEventCts.Token.IsCancellationRequested);
                 }
-#pragma warning disable CS4014 // Fire-and-forget; started on main thread so continuations stay on main thread (avoids get_result from background thread in batch mode).
-                // ReSharper disable PossiblyMistakenUseOfCancellationToken
                 CallbackThread();
 
                 if (serverSentEventHandler != null)
                 {
                     ServerSentEventQueue();
                 }
-                // ReSharper restore PossiblyMistakenUseOfCancellationToken
-#pragma warning restore CS4014
             }
 
             try
@@ -1822,7 +1821,17 @@ namespace Utilities.WebRequestRest
                     case OperationCanceledException:
                         throw;
                     default:
-                        return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, restParams, e.ToString());
+                        return new Response(
+                            request: webRequest.url,
+                            method: webRequest.method,
+                            requestBody: requestBody,
+                            successful: false,
+                            body: $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!",
+                            data: null,
+                            responseCode: -1,
+                            headers: null,
+                            parameters: restParams,
+                            error: e.ToString());
                 }
             }
             finally
@@ -1919,11 +1928,9 @@ namespace Utilities.WebRequestRest
 
                         if (colonIndex < 0) { continue; }
 
-                        var fieldNameSpan = Trim(line[..colonIndex]);
-                        var fieldName = fieldNameSpan.Length == 0 ? string.Empty : fieldNameSpan.ToString();
-                        var isCommentLine = colonIndex == 0 && fieldNameSpan.Length == 0;
-                        var fieldValueSpan = TrimSseValue(line[(colonIndex + 1)..]);
-                        var fieldValue = fieldValueSpan.Length == 0 ? string.Empty : new string(fieldValueSpan);
+                        var fieldName = Trim(line[..colonIndex]);
+                        var isCommentLine = colonIndex == 0 && fieldName.Length == 0;
+                        var fieldValue = TrimSseValue(line[(colonIndex + 1)..]);
 
                         if (!typeAssigned)
                         {
@@ -1978,25 +1985,26 @@ namespace Utilities.WebRequestRest
                     restParams.ServerSentEvents.Add(@event);
                 }
 
-                static bool TryReadLine(string source, int length, ref int position, out ReadOnlySpan<char> line)
+                return;
+
+                static bool TryReadLine(string source, int length, ref int position, out string line)
                 {
                     if (position >= length)
                     {
-                        line = ReadOnlySpan<char>.Empty;
+                        line = null;
                         return false;
                     }
 
-                    var slice = source.AsSpan(position, length - position);
-                    var newlineIndex = slice.IndexOf(NewLine);
+                    var newlineIndex = source.IndexOf(NewLine, position);
 
-                    if (newlineIndex < 0)
+                    if (newlineIndex < 0 || newlineIndex >= length)
                     {
-                        line = ReadOnlySpan<char>.Empty;
+                        line = null;
                         return false;
                     }
 
-                    line = slice[..newlineIndex];
-                    position += newlineIndex + 1;
+                    line = source.Substring(position, newlineIndex - position);
+                    position = newlineIndex + 1;
 
                     if (line.Length > 0 && line[^1] == Return)
                     {
@@ -2006,37 +2014,27 @@ namespace Utilities.WebRequestRest
                     return true;
                 }
 
-                static ReadOnlySpan<char> Trim(ReadOnlySpan<char> span)
+                static string Trim(string s)
+                    => s?.Trim() ?? string.Empty;
+
+                static string TrimSseValue(string s)
                 {
-                    var start = 0;
-                    var end = span.Length - 1;
-
-                    while (start <= end && char.IsWhiteSpace(span[start]))
+                    if (string.IsNullOrEmpty(s))
                     {
-                        start++;
+                        return string.Empty;
                     }
 
-                    while (end >= start && char.IsWhiteSpace(span[end]))
+                    while (s.Length > 0 && s[0] == Space)
                     {
-                        end--;
+                        s = s[1..];
                     }
 
-                    return start > end ? ReadOnlySpan<char>.Empty : span[start..(end + 1)];
-                }
-
-                static ReadOnlySpan<char> TrimSseValue(ReadOnlySpan<char> span)
-                {
-                    if (!span.IsEmpty && span[0] == Space)
+                    if (s.Length > 0 && s[0] == Bom)
                     {
-                        span = span[1..];
+                        s = s[1..];
                     }
 
-                    if (!span.IsEmpty && span[0] == Bom)
-                    {
-                        span = span[1..];
-                    }
-
-                    return span;
+                    return s;
                 }
 
                 static void AppendData(ref StringBuilder builder, string chunk)

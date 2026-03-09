@@ -1,0 +1,2 @@
+# Re-include .csproj in this dir (root or parent .gitignore may ignore *.csproj).
+!*.csproj

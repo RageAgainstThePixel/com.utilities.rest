@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Utilities.Rest.Analyzers</AssemblyName>
+    <RootNamespace>Utilities.Rest.Analyzers</RootNamespace>
+    <NoWarn>$(NoWarn);CS8618;CS8602;CS8603;CS8604;RS2008</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <OutputPath>..\Utilities.Rest\Packages\com.utilities.rest\Runtime\Analyzers\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- Remove culture satellite DLLs so Unity does not see duplicate assembly names (e.g. Microsoft.CodeAnalysis.CSharp.resources.dll in fr/, de/, etc.) -->
+  <Target Name="RemoveSatelliteAssemblies" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+    <RemoveDir Directories="$(OutputPath)\de;$(OutputPath)\cs;$(OutputPath)\es;$(OutputPath)\fr;$(OutputPath)\it;$(OutputPath)\ja;$(OutputPath)\ko;$(OutputPath)\pl;$(OutputPath)\pt-BR;$(OutputPath)\ru;$(OutputPath)\tr;$(OutputPath)\zh-Hans;$(OutputPath)\zh-Hant" />
+  </Target>
+</Project>

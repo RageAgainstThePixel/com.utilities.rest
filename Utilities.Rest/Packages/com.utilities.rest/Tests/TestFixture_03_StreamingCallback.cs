@@ -24,17 +24,22 @@ namespace Utilities.WebRequestRest.Tests
             {
                 using var cts = new CancellationTokenSource();
                 cts.CancelAfter(TimeSpan.FromSeconds(15));
-                var response = await Rest.GetAsync(
+                using var response = await Rest.GetAsync(
                     query: PostsUrl,
-                    dataReceivedEventCallback: dataCallback =>
+                    dataReceivedEventCallback: (chunkResponse) =>
                     {
-                        chunkCount++;
-                        Assert.IsTrue(dataCallback.Successful, "Streaming response should be successful");
-                        Assert.IsNotNull(dataCallback.Data, "Chunk data should not be null");
-
-                        if (dataCallback.Data is { Length: > 0 })
+                        try
                         {
-                            chunks.Add((byte[])dataCallback.Data.Clone());
+                            chunkCount++;
+                            Assert.IsTrue(chunkResponse.Successful, "Streaming response should be successful");
+                            if (chunkResponse.NativeData is { IsCreated: true } nativeData && nativeData.Length > 0)
+                            {
+                                chunks.Add(nativeData.ToArray());
+                            }
+                        }
+                        finally
+                        {
+                            chunkResponse.Dispose();
                         }
                     },
                     eventChunkSize: StreamingChunkSize,
@@ -42,10 +47,10 @@ namespace Utilities.WebRequestRest.Tests
                     cancellationToken: cts.Token);
                 response.Validate(debug: true);
                 Assert.IsTrue(response.Successful, "Final response should be successful");
-                Assert.IsNotNull(response.Data, "Final response data should not be null");
+                Assert.IsTrue(response.NativeData.HasValue && response.NativeData.Value.IsCreated, "Final response data should not be null");
                 Assert.GreaterOrEqual(chunkCount, 2, "Streaming callback should be invoked at least twice (validates DownloadHandlerCallback multi-chunk path)");
                 var accumulatedLength = chunks.Sum(c => c.Length);
-                Assert.AreEqual(response.Data.Length, accumulatedLength, "Accumulated chunk data length should equal final response body size");
+                Assert.AreEqual(response.NativeData!.Value.Length, accumulatedLength, "Accumulated chunk data length should equal final response body size");
             }
             catch (OperationCanceledException)
             {
@@ -65,13 +70,20 @@ namespace Utilities.WebRequestRest.Tests
 
                 for (var i = 0; i < requestCount; i++)
                 {
-                    var response = await Rest.GetAsync(
+                    using var response = await Rest.GetAsync(
                         query: PostsUrl,
-                        dataReceivedEventCallback: dataCallback =>
+                        dataReceivedEventCallback: (chunkResponse) =>
                         {
-                            if (dataCallback.Data != null)
+                            try
                             {
-                                totalChunks++;
+                                if (chunkResponse.NativeData is { IsCreated: true } nativeData && nativeData.Length > 0)
+                                {
+                                    totalChunks++;
+                                }
+                            }
+                            finally
+                            {
+                                chunkResponse.Dispose();
                             }
                         },
                         eventChunkSize: StreamingChunkSize,

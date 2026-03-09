@@ -7,13 +7,14 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using Unity.Collections;
 
 namespace Utilities.WebRequestRest
 {
     /// <summary>
     /// Response to a REST Call.
     /// </summary>
-    public readonly struct Response
+    public sealed class Response : IDisposable
     {
         private static readonly Dictionary<string, string> invalidHeaders = new();
 
@@ -43,9 +44,17 @@ namespace Utilities.WebRequestRest
         public string Body { get; }
 
         /// <summary>
-        /// Response data from the resource.
+        /// Response data as a managed array. Prefer <see cref="NativeData"/> to avoid allocation; dispose this Response when done.
         /// </summary>
-        public byte[] Data { get; }
+        [Obsolete("Use NativeData and dispose Response when done. Data returns NativeData.ToArray() when backed by native data.")]
+        public byte[] Data
+            => GetDataBytes();
+
+        /// <summary>
+        /// Response data as a native array. Valid until <see cref="Dispose"/>; do not dispose the array yourself.
+        /// </summary>
+        public NativeArray<byte>? NativeData => nativeData;
+        private readonly NativeArray<byte>? nativeData;
 
         /// <summary>
         /// Response code from the resource.
@@ -72,6 +81,16 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents;
 
+        private byte[] GetDataBytes()
+            => nativeData is { IsCreated: true }
+                ? nativeData.Value.ToArray()
+                : null;
+
+        private int GetDataLength()
+            => nativeData is { IsCreated: true }
+                ? nativeData.Value.Length
+                : 0;
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -89,6 +108,7 @@ namespace Utilities.WebRequestRest
 
             if (string.IsNullOrWhiteSpace(responseBody))
             {
+                byte[] rawData = null;
                 switch (webRequest.downloadHandler)
                 {
                     case DownloadHandlerFile:
@@ -96,25 +116,29 @@ namespace Utilities.WebRequestRest
                     case DownloadHandlerAudioClip:
                     case DownloadHandlerAssetBundle:
                         Body = null;
-                        Data = null;
                         break;
                     case DownloadHandlerBuffer downloadHandlerBuffer:
                         Body = downloadHandlerBuffer.text;
-                        Data = downloadHandlerBuffer.data;
+                        rawData = downloadHandlerBuffer.data;
                         break;
                     case DownloadHandlerScript downloadHandlerScript:
                         Body = downloadHandlerScript.text;
-                        Data = downloadHandlerScript.data;
+                        rawData = downloadHandlerScript.data;
                         break;
                     default:
                         Body = webRequest.responseCode == 401 ? "Invalid Credentials" : webRequest.downloadHandler?.text;
-                        Data = webRequest.downloadHandler?.data;
+                        rawData = webRequest.downloadHandler?.data;
                         break;
+                }
+
+                if (rawData is { Length: > 0 })
+                {
+                    nativeData = new NativeArray<byte>(rawData.Length, Allocator.Persistent);
+                    NativeArray<byte>.Copy(rawData, nativeData.Value, rawData.Length);
                 }
             }
             else
             {
-                Data = Array.Empty<byte>();
                 Body = responseBody;
             }
 
@@ -144,26 +168,46 @@ namespace Utilities.WebRequestRest
             Method = method;
             Successful = successful;
             Body = body;
-            Data = data;
             Code = responseCode;
             Headers = headers;
             Error = error;
             Parameters = parameters;
+
+            if (data is { Length: > 0 })
+            {
+                nativeData = new NativeArray<byte>(data.Length, Allocator.Persistent);
+                NativeArray<byte>.Copy(data, nativeData.Value, data.Length);
+            }
         }
 
-        [Obsolete("Use new .ctr with parameters")]
-        public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, string error = null)
+        /// <summary>
+        /// Constructor that takes ownership of the given native array. Caller must not dispose the array; this Response will dispose it.
+        /// </summary>
+        public Response(string request, string method, string requestBody, bool successful, string body, NativeArray<byte> nativeData, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters? parameters, string error = null)
         {
             Request = request;
             RequestBody = requestBody;
             Method = method;
             Successful = successful;
             Body = body;
-            Data = data;
             Code = responseCode;
             Headers = headers;
             Error = error;
-            Parameters = null;
+            Parameters = parameters;
+            this.nativeData = nativeData;
+        }
+
+        /// <summary>
+        /// Releases the native buffer held by this response. Call when done with the response (e.g. use <c>using var response = ...</c>).
+        /// </summary>
+        public void Dispose()
+        {
+            if (nativeData == null) { return; }
+
+            if (nativeData.Value.IsCreated)
+            {
+                nativeData.Value.Dispose();
+            }
         }
 
         public override string ToString() => ToString(string.Empty);
@@ -183,7 +227,7 @@ namespace Utilities.WebRequestRest
 
             var debugMessageObject = new Dictionary<string, Dictionary<string, object>>
             {
-                ["request"] = new()
+                ["request"] = new Dictionary<string, object>
                 {
                     ["url"] = Request
                 }
@@ -201,7 +245,7 @@ namespace Utilities.WebRequestRest
                 }
             }
 
-            debugMessageObject["response"] = new()
+            debugMessageObject["response"] = new Dictionary<string, object>
             {
                 ["code"] = Code
             };
@@ -211,19 +255,21 @@ namespace Utilities.WebRequestRest
                 debugMessageObject["response"]["headers"] = Headers;
             }
 
-            if (Data is { Length: > 0 })
+            var dataLength = GetDataLength();
+            if (dataLength > 0)
             {
-                debugMessageObject["response"]["data"] = Data.Length;
+                debugMessageObject["response"]["data"] = dataLength;
             }
 
             if (string.IsNullOrWhiteSpace(Body))
             {
-                if (Data is { Length: > 0 } &&
+                if (dataLength > 0 &&
                     Headers != null &&
                     Headers.TryGetValue("Content-Type", out var contentType) &&
                     contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
                 {
-                    var decoded = Encoding.UTF8.GetString(Data);
+                    var dataBytes = GetDataBytes();
+                    var decoded = Encoding.UTF8.GetString(dataBytes);
 
                     try
                     {
