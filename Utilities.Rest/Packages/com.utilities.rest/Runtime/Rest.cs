@@ -1927,6 +1927,12 @@ namespace Utilities.WebRequestRest
                         return;
                     }
 
+                    if (@event.Value == null &&
+                        @event.Data == null)
+                    {
+                        continue;
+                    }
+
                     var sseResponse = new Response(webRequest, requestBody, true, restParams, (@event.Data ?? @event.Value).ToString(Formatting.None));
                     serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, @event));
                     restParams.ServerSentEvents.Add(@event);
