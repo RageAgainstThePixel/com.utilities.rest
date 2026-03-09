@@ -82,7 +82,7 @@ namespace Utilities.WebRequestRest
         private byte[] GetDataBytes()
             => NativeData is { IsCreated: true }
                 ? NativeData.Value.ToArray()
-                : null;
+                : Array.Empty<byte>();
 
         private int GetDataLength()
             => NativeData is { IsCreated: true }

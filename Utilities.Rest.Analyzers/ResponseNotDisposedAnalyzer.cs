@@ -15,8 +15,8 @@ namespace Utilities.Rest.Analyzers
         private const string Category = "Usage";
 
         private static readonly LocalizableString Title = "Response must be disposed";
-        private static readonly LocalizableString MessageFormat = "Response must be disposed. Use 'using var response = await Rest.{0}(...)' or call response.Dispose().";
-        private static readonly LocalizableString Description = "A Response returned from Rest API methods (GetAsync, PostAsync, etc.) must be disposed to release native resources.";
+        private static readonly LocalizableString MessageFormat = "Response must be disposed. Use 'using var response = await Rest.{0}(...)' (or dispose explicitly and suppress this diagnostic).";
+        private static readonly LocalizableString Description = "A Response returned from Rest API methods (GetAsync, PostAsync, etc.) must be disposed to release native resources. This analyzer only detects 'using var'; explicit Dispose() (e.g. in finally) is valid but not recognized.";
 
         private static readonly DiagnosticDescriptor Rule = new(
             DiagnosticId,

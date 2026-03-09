@@ -1716,8 +1716,6 @@ namespace Utilities.WebRequestRest
 
                     try
                     {
-                        await Awaiters.UnityMainThread;
-
                         // Define constants for data units
                         const double kbSize = 1e+3;
                         const double mbSize = 1e+6;
@@ -1785,28 +1783,35 @@ namespace Utilities.WebRequestRest
 
                 async void ServerSentEventQueue()
                 {
-                    serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    await Awaiters.UnityMainThread;
-
-                    do
+                    try
                     {
-                        try
+                        serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                        while (!serverSentEventCts.Token.IsCancellationRequested)
                         {
-                            if (serverSentEventQueue.TryDequeue(out var payload))
+                            try
                             {
-                                await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(true);
+                                if (serverSentEventQueue.TryDequeue(out var payload))
+                                {
+                                    await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(true);
+                                }
+                                else
+                                {
+                                    await Task.Yield();
+                                }
                             }
-                            else
+                            catch (Exception e)
                             {
-                                await Task.Yield();
+                                Debug.LogException(e);
                             }
                         }
-                        catch (Exception e)
-                        {
-                            Debug.LogException(e);
-                        }
-                    } while (!serverSentEventCts.Token.IsCancellationRequested);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
                 }
+
                 CallbackThread();
 
                 if (serverSentEventHandler != null)
