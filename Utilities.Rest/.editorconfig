@@ -15,6 +15,10 @@ tab_width = 4
 # Sort usings alphabetically
 dotnet_sort_system_directives_first = false
 dotnet_sort_usings_first = true
+csharp_sort_usings_with_system_first = false
+resharper_csharp_sort_usings_with_system_first = false
+resharper_sort_usings_with_system_first = false
+sort_usings_with_system_first = false
 
 # New line preferences
 end_of_line = crlf

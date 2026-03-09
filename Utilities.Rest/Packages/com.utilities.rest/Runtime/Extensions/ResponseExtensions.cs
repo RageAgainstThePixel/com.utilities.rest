@@ -24,9 +24,9 @@ namespace Utilities.WebRequestRest
         /// </returns>
         public static NativeArray<byte> CopyNativeData(this Response response, Allocator allocator)
         {
-            if (response == null ||
-                !response.NativeData.HasValue ||
-                !response.NativeData.Value.IsCreated)
+            var isValid = response?.NativeData?.IsCreated ?? false;
+
+            if (!isValid)
             {
                 return new NativeArray<byte>(0, allocator);
             }
