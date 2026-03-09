@@ -1927,15 +1927,9 @@ namespace Utilities.WebRequestRest
                         return;
                     }
 
-                    if (@event == null)
-                    {
-                        continue;
-                    }
-
-                    var ev = @event.Value;
-                    var sseResponse = new Response(webRequest, requestBody, true, restParams, (ev.Data ?? ev.Value).ToString(Formatting.None));
-                    serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, ev));
-                    restParams.ServerSentEvents.Add(ev);
+                    var sseResponse = new Response(webRequest, requestBody, true, restParams, (@event.Data ?? @event.Value).ToString(Formatting.None));
+                    serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, @event));
+                    restParams.ServerSentEvents.Add(@event);
                 }
             }
         }

@@ -243,9 +243,9 @@ namespace Utilities.WebRequestRest
         }
 
         [Preserve]
-        internal static bool TryParseEvent(string source, int length, ref int position, out ServerSentEvent? @event, out bool isDone)
+        internal static bool TryParseEvent(string source, int length, ref int position, out ServerSentEvent @event, out bool isDone)
         {
-            @event = null;
+            @event = default;
             isDone = false;
 
             var eventKind = ServerSentEventKind.Comment;
