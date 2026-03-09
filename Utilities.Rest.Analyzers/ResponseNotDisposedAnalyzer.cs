@@ -16,7 +16,7 @@ namespace Utilities.Rest.Analyzers
 
         private static readonly LocalizableString Title = "Response must be disposed";
         private static readonly LocalizableString MessageFormat = "Response must be disposed. Use 'using var response = await Rest.{0}(...)' (or dispose explicitly and suppress this diagnostic).";
-        private static readonly LocalizableString Description = "A Response returned from Rest API methods (GetAsync, PostAsync, etc.) must be disposed to release native resources. This analyzer only detects 'using var'; explicit Dispose() (e.g. in finally) is valid but not recognized.";
+        private static readonly LocalizableString Description = "A Response returned from Rest API methods (GetAsync, PostAsync, etc.) must be disposed to release native resources. Recognized patterns: 'using var', block-form 'using (...)', and try/finally with Dispose() in finally.";
 
         private static readonly DiagnosticDescriptor Rule = new(
             DiagnosticId,
@@ -80,9 +80,115 @@ namespace Utilities.Rest.Analyzers
                 return;
             }
 
+            var localSymbol = semanticModel.GetDeclaredSymbol(variable, context.CancellationToken);
+
+            if (localSymbol is ILocalSymbol local && IsDisposedInEnclosingTryFinally(localDecl, local, semanticModel, context.CancellationToken))
+            {
+                return;
+            }
+
             var methodName = method.Name;
             var diagnostic = Diagnostic.Create(Rule, variable.GetLocation(), methodName);
             context.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Returns true if the declaration is inside a try that has a finally block which disposes the given local (by symbol).
+        /// </summary>
+        private static bool IsDisposedInEnclosingTryFinally(
+            LocalDeclarationStatementSyntax declaration,
+            ILocalSymbol localSymbol,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            for (SyntaxNode? node = declaration.Parent; node != null; node = node.Parent)
+            {
+                if (node is not TryStatementSyntax tryStatement || tryStatement.Finally == null)
+                {
+                    continue;
+                }
+
+                if (!IsInTryOrCatch(tryStatement, declaration))
+                {
+                    continue;
+                }
+
+                if (FinallyDisposesVariable(tryStatement.Finally, localSymbol, semanticModel, cancellationToken))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsInTryOrCatch(TryStatementSyntax tryStatement, SyntaxNode declaration)
+        {
+            if (tryStatement.Block.Contains(declaration))
+            {
+                return true;
+            }
+
+            foreach (var catchClause in tryStatement.Catches)
+            {
+                if (catchClause.Block.Contains(declaration))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool FinallyDisposesVariable(
+            FinallyClauseSyntax finallyClause,
+            ILocalSymbol localSymbol,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var node in finallyClause.DescendantNodes())
+            {
+                if (node is not InvocationExpressionSyntax invocation)
+                {
+                    continue;
+                }
+
+                var receiver = GetReceiver(invocation.Expression);
+
+                if (receiver is null)
+                {
+                    continue;
+                }
+
+                var receiverSymbol = semanticModel.GetSymbolInfo(receiver, cancellationToken).Symbol;
+
+                if (SymbolEqualityComparer.Default.Equals(receiverSymbol, localSymbol))
+                {
+                    var methodName = (invocation.Expression as MemberAccessExpressionSyntax)?.Name?.Identifier.ValueText
+                        ?? (invocation.Expression as MemberBindingExpressionSyntax)?.Name?.Identifier.ValueText;
+                    if (methodName == "Dispose")
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static ExpressionSyntax? GetReceiver(ExpressionSyntax expression)
+        {
+            if (expression is MemberAccessExpressionSyntax memberAccess)
+            {
+                return memberAccess.Expression;
+            }
+
+            if (expression is ConditionalAccessExpressionSyntax conditionalAccess)
+            {
+                return conditionalAccess.Expression;
+            }
+
+            return null;
         }
 
         private static bool IsRestMethodReturningResponse(IMethodSymbol method)

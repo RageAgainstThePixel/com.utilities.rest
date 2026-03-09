@@ -44,7 +44,9 @@ namespace Utilities.WebRequestRest
         /// <summary>Chunk size in bytes for each <see cref="OnDataReceived"/> callback (from constructor).</summary>
         private readonly int eventChunkSize;
         private readonly UnityWebRequest webRequest;
-        private readonly Dictionary<string, string> emptyResponseHeaders = new();
+        private readonly Dictionary<string, string> cachedResponseHeaders = new();
+
+        private bool responseHeadersCached;
 
         private NativeList<byte> stream;
 
@@ -137,7 +139,21 @@ namespace Utilities.WebRequestRest
 
         private void EmitChunk(int bytesToRead)
         {
-            var headers = webRequest.GetResponseHeaders() ?? emptyResponseHeaders;
+            if (!responseHeadersCached)
+            {
+                cachedResponseHeaders.Clear();
+                var headers = webRequest.GetResponseHeaders();
+                if (headers != null)
+                {
+                    foreach (var kv in headers)
+                    {
+                        cachedResponseHeaders[kv.Key] = kv.Value;
+                    }
+                }
+
+                responseHeadersCached = true;
+            }
+
             var chunk = new NativeArray<byte>(bytesToRead, Allocator.Persistent);
             NativeArray<byte>.Copy(stream.AsArray(), (int)streamPosition, chunk, 0, bytesToRead);
             streamPosition += bytesToRead;
@@ -150,7 +166,7 @@ namespace Utilities.WebRequestRest
                     body: null,
                     nativeData: chunk,
                     responseCode: webRequest.responseCode,
-                    headers: headers,
+                    headers: cachedResponseHeaders,
                     parameters: null));
         }
 

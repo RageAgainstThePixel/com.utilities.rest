@@ -1913,155 +1913,29 @@ namespace Utilities.WebRequestRest
                 while (currentIndex < textLength)
                 {
                     var eventStart = currentIndex;
-                    var eventKind = ServerSentEventKind.Comment;
-                    StringBuilder dataBuilder = null;
-                    var typeAssigned = false;
-                    var value = string.Empty;
-                    // ReSharper disable once JoinDeclarationAndInitializer
-                    string data;
 
-                    // Read lines until a blank line (event boundary) or end of input
-                    while (true)
+                    if (!ServerSentEvent.TryParseEvent(allEventMessages, textLength, ref currentIndex, out var @event, out var isDone))
                     {
-                        if (!TryReadLine(allEventMessages, textLength, ref currentIndex, out var line))
-                        {
-                            serverSentEventCharacterIndex = eventStart;
-                            return;
-                        }
-
-                        if (line.Length == 0)
-                        {
-                            // Blank line: event boundary
-                            break;
-                        }
-
-                        var colonIndex = line.IndexOf(':');
-
-                        if (colonIndex < 0) { continue; }
-
-                        var fieldName = Trim(line[..colonIndex]);
-                        var isCommentLine = colonIndex == 0 && fieldName.Length == 0;
-                        var fieldValue = TrimSseValue(line[(colonIndex + 1)..]);
-
-                        if (!typeAssigned)
-                        {
-                            eventKind = isCommentLine
-                                ? ServerSentEventKind.Comment
-                                : ServerSentEvent.EventMap.GetValueOrDefault(fieldName, ServerSentEventKind.Comment);
-
-                            value = fieldValue;
-                            typeAssigned = true;
-
-                            if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
-                            {
-                                AppendData(ref dataBuilder, fieldValue);
-                            }
-
-                            continue;
-                        }
-
-                        if (isCommentLine)
-                        {
-                            continue;
-                        }
-
-                        if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
-                        {
-                            AppendData(ref dataBuilder, fieldValue);
-                        }
+                        serverSentEventCharacterIndex = eventStart;
+                        return;
                     }
 
                     serverSentEventCharacterIndex = currentIndex;
 
-                    if (!typeAssigned)
-                    {
-                        continue;
-                    }
-
-                    data = dataBuilder?.ToString();
-
-                    const string doneTag = "[DONE]";
-                    const string doneEvent = "done";
-
-                    if (string.Equals(value, doneTag, StringComparison.Ordinal) ||
-                        string.Equals(value, doneEvent, StringComparison.Ordinal) ||
-                        string.Equals(data, doneTag, StringComparison.Ordinal))
+                    if (isDone)
                     {
                         return;
                     }
 
-                    var @event = new ServerSentEvent(eventKind, value, data);
-                    var sseResponse = new Response(webRequest, requestBody, true, restParams, (@event.Data ?? @event.Value).ToString(Formatting.None));
-                    serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, @event));
-                    restParams.ServerSentEvents.Add(@event);
-                }
-
-                return;
-
-                static bool TryReadLine(string source, int length, ref int position, out string line)
-                {
-                    if (position >= length)
+                    if (@event == null)
                     {
-                        line = null;
-                        return false;
+                        continue;
                     }
 
-                    var newlineIndex = source.IndexOf(NewLine, position);
-
-                    if (newlineIndex < 0 || newlineIndex >= length)
-                    {
-                        line = null;
-                        return false;
-                    }
-
-                    line = source.Substring(position, newlineIndex - position);
-                    position = newlineIndex + 1;
-
-                    if (line.Length > 0 && line[^1] == Return)
-                    {
-                        line = line[..^1];
-                    }
-
-                    return true;
-                }
-
-                static string Trim(string s)
-                    => s?.Trim() ?? string.Empty;
-
-                static string TrimSseValue(string s)
-                {
-                    if (string.IsNullOrEmpty(s))
-                    {
-                        return string.Empty;
-                    }
-
-                    while (s.Length > 0 && s[0] == Space)
-                    {
-                        s = s[1..];
-                    }
-
-                    if (s.Length > 0 && s[0] == Bom)
-                    {
-                        s = s[1..];
-                    }
-
-                    return s;
-                }
-
-                static void AppendData(ref StringBuilder builder, string chunk)
-                {
-                    const int defaultStringBuilderPadding = 16; // extra padding to reduce allocations
-                    builder ??= new StringBuilder((chunk?.Length ?? 0) + defaultStringBuilderPadding);
-
-                    if (builder.Length > 0)
-                    {
-                        builder.Append(NewLine);
-                    }
-
-                    if (!string.IsNullOrEmpty(chunk))
-                    {
-                        builder.Append(chunk);
-                    }
+                    var ev = @event.Value;
+                    var sseResponse = new Response(webRequest, requestBody, true, restParams, (ev.Data ?? ev.Value).ToString(Formatting.None));
+                    serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, ev));
+                    restParams.ServerSentEvents.Add(ev);
                 }
             }
         }
