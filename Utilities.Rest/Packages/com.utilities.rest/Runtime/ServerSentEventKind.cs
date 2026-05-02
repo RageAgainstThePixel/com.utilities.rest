@@ -7,15 +7,29 @@ namespace Utilities.WebRequestRest
     /// </summary>
     public enum ServerSentEventKind
     {
-        /// <summary>Comment line.</summary>
-        Comment,
-        /// <summary>Event type.</summary>
-        Event,
-        /// <summary>Data payload.</summary>
-        Data,
-        /// <summary>Event id.</summary>
-        Id,
-        /// <summary>Retry interval.</summary>
-        Retry,
+        /// <summary>
+        /// Field name was not recognized; producer should skip it.
+        /// </summary>
+        Unknown = -1,
+        /// <summary>
+        /// Comment line.
+        /// </summary>
+        Comment = 0,
+        /// <summary>
+        /// Event type.
+        /// </summary>
+        Event = 1,
+        /// <summary>
+        /// Data payload.
+        /// </summary>
+        Data = 2,
+        /// <summary>
+        /// Event id.
+        /// </summary>
+        Id = 3,
+        /// <summary>
+        /// Retry interval.
+        /// </summary>
+        Retry = 4,
     }
 }

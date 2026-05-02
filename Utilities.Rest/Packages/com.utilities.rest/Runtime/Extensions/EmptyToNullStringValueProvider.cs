@@ -25,8 +25,8 @@ namespace Utilities.Rest.Extensions
             var result = memberInfo.GetValue(target);
 
             if (memberInfo.PropertyType == typeof(string) &&
-                result != null &&
-                string.IsNullOrWhiteSpace(result.ToString()))
+                result is string s &&
+                string.IsNullOrWhiteSpace(s))
             {
                 result = null;
             }
@@ -38,8 +38,8 @@ namespace Utilities.Rest.Extensions
         public void SetValue(object target, object value)
         {
             if (memberInfo.PropertyType == typeof(string) &&
-                value != null &&
-                string.IsNullOrWhiteSpace(value.ToString()))
+                value is string s &&
+                string.IsNullOrWhiteSpace(s))
             {
                 value = null;
             }

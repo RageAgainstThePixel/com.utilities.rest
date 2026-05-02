@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Scripting;
@@ -133,47 +134,82 @@ namespace Utilities.WebRequestRest
         /// Rest GET with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
-        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
         public static Task<Response> GetAsync(
             string query,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
-            => GetAsync(new Uri(query), dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
+            => GetAsync(new Uri(query), dataReceivedEventCallback, eventChunkSize, receiveBufferSize, parameters, cancellationToken);
 
         /// <summary>
         /// Rest GET with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
-        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
+        /// <remarks>
+        /// On return, ownership of the accumulated stream buffer transfers from the internal
+        /// <see cref="DownloadHandlerCallback"/> to the returned <see cref="Response"/> via
+        /// <see cref="Allocator.Persistent"/>. The defensive <c>downloadHandler.Complete()</c>
+        /// call in the <c>finally</c> covers the case where the request is aborted before
+        /// <see cref="DownloadHandlerCallback.CompleteContent"/> runs (e.g. cancellation): any
+        /// remaining buffered bytes are flushed to the streaming callback before disposal.
+        /// </remarks>
         public static async Task<Response> GetAsync(
             Uri query,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
-            parameters = parameters.Clone(disposeDownloadHandler: false);
-            using var downloadHandler = eventChunkSize.HasValue
-                ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
-                : new DownloadHandlerCallback(webRequest);
+            using var downloadHandler = new DownloadHandlerCallback(
+                webRequest,
+                eventChunkSize ?? DownloadHandlerCallback.DefaultChunkBytes,
+                receiveBufferSize ?? DownloadHandlerCallback.DefaultReceiveBufferBytes);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
             webRequest.downloadHandler = downloadHandler;
+            parameters = parameters.Clone(disposeDownloadHandler: false);
 
             try
             {
-                return await webRequest.SendAsync(parameters, cancellationToken);
+                using var initial = await webRequest.SendAsync(parameters, cancellationToken);
+                var detached = downloadHandler.DetachStreamAsArray(Allocator.Persistent);
+                return new Response(
+                    request: initial.Request,
+                    method: initial.Method,
+                    requestBody: initial.RequestBody,
+                    successful: initial.Successful,
+                    body: initial.Body,
+                    nativeData: detached,
+                    responseCode: initial.Code,
+                    headers: initial.Headers,
+                    parameters: initial.Parameters,
+                    error: initial.Error);
             }
             finally
             {
@@ -341,35 +377,57 @@ namespace Utilities.WebRequestRest
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
-        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
         public static Task<Response> PostAsync(
             string query,
             string jsonData,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
-            => PostAsync(new Uri(query), jsonData, dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
+            => PostAsync(new Uri(query), jsonData, dataReceivedEventCallback, eventChunkSize, receiveBufferSize, parameters, cancellationToken);
 
         /// <summary>
         /// Rest POST with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="dataReceivedEventCallback">Callback invoked per chunk; dispose the <see cref="Response"/> when done (e.g. in a <c>finally</c> block).</param>
-        /// <param name="eventChunkSize">Chunk size in bytes (defaults to 512).</param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
+        /// <remarks>
+        /// On return, ownership of the accumulated stream buffer transfers from the internal
+        /// <see cref="DownloadHandlerCallback"/> to the returned <see cref="Response"/> via
+        /// <see cref="Allocator.Persistent"/>. The defensive <c>downloadHandler.Complete()</c>
+        /// call in the <c>finally</c> covers the case where the request is aborted before
+        /// <see cref="DownloadHandlerCallback.CompleteContent"/> runs (e.g. cancellation): any
+        /// remaining buffered bytes are flushed to the streaming callback before disposal.
+        /// </remarks>
         public static async Task<Response> PostAsync(
             Uri query,
             string jsonData,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -378,17 +436,30 @@ namespace Utilities.WebRequestRest
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
-            using var downloadHandler = eventChunkSize.HasValue
-                ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
-                : new DownloadHandlerCallback(webRequest);
+            using var downloadHandler = new DownloadHandlerCallback(
+                webRequest,
+                eventChunkSize ?? DownloadHandlerCallback.DefaultChunkBytes,
+                receiveBufferSize ?? DownloadHandlerCallback.DefaultReceiveBufferBytes);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_json);
+            parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
 
             try
             {
-                parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
-                return await webRequest.SendAsync(parameters, serverSentEventHandler: null, cancellationToken);
+                using var initial = await webRequest.SendAsync(parameters, serverSentEventHandler: null, cancellationToken);
+                var detached = downloadHandler.DetachStreamAsArray(Allocator.Persistent);
+                return new Response(
+                    request: initial.Request,
+                    method: initial.Method,
+                    requestBody: initial.RequestBody,
+                    successful: initial.Successful,
+                    body: initial.Body,
+                    nativeData: detached,
+                    responseCode: initial.Code,
+                    headers: initial.Headers,
+                    parameters: initial.Parameters,
+                    error: initial.Error);
             }
             finally
             {
@@ -1586,9 +1657,7 @@ namespace Utilities.WebRequestRest
             parameters = parameters.Clone(disposeDownloadHandler: false);
             using var response = await webRequest.SendAsync(parameters, cancellationToken);
             response.Validate(parameters.Value.Debug);
-#pragma warning disable CS0618 // Data is obsolete; DownloadBytesAsync returns byte[] and copies out before dispose
-            return response.Data;
-#pragma warning restore CS0618
+            return response.CopyDataToManagedArray();
         }
 
         #endregion Get Multimedia Content
@@ -1614,6 +1683,13 @@ namespace Utilities.WebRequestRest
         /// <param name="serverSentEventHandler">Optional, <see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
         /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
         /// <returns><see cref="Response"/></returns>
+        /// <remarks>
+        /// This method awaits <see cref="Awaiters.UnityMainThread"/> internally and assumes that
+        /// progress reporting and server-sent-event delivery happen on the Unity main thread.
+        /// The internal progress / SSE pumps are awaited before returning so that no callback
+        /// outlives the <paramref name="webRequest"/> handle (which would otherwise be a
+        /// use-after-dispose hazard).
+        /// </remarks>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
             RestParameters? parameters = null,
@@ -1707,10 +1783,12 @@ namespace Utilities.WebRequestRest
             var serverSentEventCharacterIndex = 0;
             var serverSentEventQueue = new ConcurrentQueue<ServerSentEventPayload>();
             CancellationTokenSource serverSentEventCts = null;
+            Task callbackPumpTask = null;
+            Task serverSentEventPumpTask = null;
 
             if (restParams.Progress != null || serverSentEventHandler != null)
             {
-                async void CallbackThread()
+                async Task CallbackPump()
                 {
                     var frame = 0;
 
@@ -1781,12 +1859,10 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-                async void ServerSentEventQueue()
+                async Task ServerSentEventPump()
                 {
                     try
                     {
-                        serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
                         while (!serverSentEventCts.Token.IsCancellationRequested)
                         {
                             try
@@ -1812,11 +1888,16 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-                CallbackThread();
+                if (serverSentEventHandler != null)
+                {
+                    serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                }
+
+                callbackPumpTask = CallbackPump();
 
                 if (serverSentEventHandler != null)
                 {
-                    ServerSentEventQueue();
+                    serverSentEventPumpTask = ServerSentEventPump();
                 }
             }
 
@@ -1865,17 +1946,34 @@ namespace Utilities.WebRequestRest
                 {
                     try
                     {
-                        while (serverSentEventQueue.Count > 0)
+                        if (!cancellationToken.IsCancellationRequested)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            await Task.Yield();
+                            var drainDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+
+                            while (serverSentEventQueue.Count > 0 && DateTime.UtcNow < drainDeadline)
+                            {
+                                if (cancellationToken.IsCancellationRequested) { break; }
+                                await Task.Yield();
+                            }
                         }
                     }
                     finally
                     {
-                        serverSentEventCts?.Cancel();
+                        try { serverSentEventCts.Cancel(); } catch { }
                     }
                 }
+
+                if (callbackPumpTask != null)
+                {
+                    try { await callbackPumpTask; } catch { }
+                }
+
+                if (serverSentEventPumpTask != null)
+                {
+                    try { await serverSentEventPumpTask; } catch { }
+                }
+
+                serverSentEventCts?.Dispose();
             }
 
             if (webRequest.result is
@@ -1925,6 +2023,11 @@ namespace Utilities.WebRequestRest
                     if (isDone)
                     {
                         return;
+                    }
+
+                    if (@event.Event == ServerSentEventKind.Unknown)
+                    {
+                        continue;
                     }
 
                     if (@event.Value == null &&

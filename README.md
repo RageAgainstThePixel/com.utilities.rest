@@ -8,7 +8,7 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 Requires Unity 2021.3 LTS or higher.
 
-The recommended installation method is though the unity package manager and [OpenUPM](https://openupm.com/packages/com.utilities.rest).
+The recommended installation method is through the Unity Package Manager and [OpenUPM](https://openupm.com/packages/com.utilities.rest).
 
 ### Via Unity Package Manager and OpenUPM
 
@@ -48,9 +48,9 @@ openupm add com.utilities.rest
 
 This library aims to provide basic support for common RESTful state transactions with most web APIs.
 
-Advanced features includes progress notifications, authentication and native multimedia downloads of asset bundles, textures, audio clips with file caching.
+Advanced features include progress notifications, authentication and native multimedia downloads of asset bundles, textures, audio clips with file caching.
 
-**Response is IDisposable.** Any `Response` returned from `Rest.GetAsync`, `Rest.PostAsync`, and other Rest methods must be disposed when you are done with it. Prefer `using var response = await Rest.GetAsync(...)` so the response is disposed at the end of the scope. Streaming and SSE callbacks receive a `Response` per chunk or event—dispose that `Response` inside the callback when finished (e.g. in a `finally` block).
+**Response is IDisposable.** APIs that return `Response` (for example `Rest.GetAsync`, `Rest.PostAsync`, `Rest.SendAsync`, and the other verb helpers that yield a `Response`) must have that value disposed when you are done. Prefer `using var response = await Rest.GetAsync(...)` so the response is disposed at the end of the scope. Streaming and SSE callbacks receive a `Response` per chunk or event—dispose that `Response` inside the callback when finished (e.g. in a `finally` block). Methods that return other types (file paths, `byte[]`, `Texture`, etc.) do not use `Response` disposal.
 
 A **Roslyn analyzer** (UTILSREST001) is included in the package. It reports an error when a `Response` from Rest API methods is not disposed. The analyzer lives under `Runtime/Analyzers/`. Per [Unity's analyzer scope](https://docs.unity3d.com/6000.3/Documentation/Manual/analyzer-scope-and-diagnostics.html), because that folder is under the package's assembly definition, the analyzer runs only for the **Utilities.Rest** assembly and any assembly that references it (not project-wide)—so package users get the diagnostic only where they use the package API. To build the analyzer from source, use the `Utilities.Rest.Analyzers` project and build in Release; the output is written to the package's `Runtime/Analyzers/`.
 
@@ -150,9 +150,11 @@ using var response = await Rest.PostAsync("www.your.api/endpoint", jsonData, asy
 response.Validate(debug: true);
 ```
 
+`Response.ServerSentEvents` lists events seen during the request; if you cancel mid-stream, it may only contain events parsed before cancellation.
+
 #### Data Received Callbacks
 
-Streaming GET and POST overloads invoke a callback per chunk. The callback receives a `Response` per chunk (chunk data is in `Response.NativeData` or the deprecated `Data` property); dispose the `Response` when done (e.g. in a `finally` block).
+Streaming GET and POST overloads call your handler once per chunk. Chunk bytes are in `chunkResponse.NativeData`; dispose `chunkResponse` when finished (for example in `finally`).
 
 ```csharp
 using var response = await Rest.GetAsync("www.your.api/endpoint", (chunkResponse) =>
@@ -160,7 +162,7 @@ using var response = await Rest.GetAsync("www.your.api/endpoint", (chunkResponse
     try
     {
         // chunkResponse: Rest.Response (url, method, code, headers, chunk data). Dispose when done.
-        Debug.Log($"Chunk length: {chunkResponse.NativeData?.Length ?? 0}");
+        Debug.Log($"Chunk length: {(chunkResponse.HasNativeData ? chunkResponse.NativeData.Length : 0)}");
     }
     finally
     {
@@ -176,7 +178,7 @@ using var postResponse = await Rest.PostAsync("www.your.api/endpoint", jsonData,
 {
     try
     {
-        Debug.Log(chunkResponse.Body);
+        Debug.Log($"Chunk length: {(chunkResponse.HasNativeData ? chunkResponse.NativeData.Length : 0)}");
     }
     finally
     {

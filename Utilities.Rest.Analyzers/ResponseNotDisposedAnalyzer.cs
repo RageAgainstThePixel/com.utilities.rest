@@ -16,7 +16,7 @@ namespace Utilities.Rest.Analyzers
 
         private static readonly LocalizableString Title = "Response must be disposed";
         private static readonly LocalizableString MessageFormat = "Response must be disposed. Use 'using var response = await Rest.{0}(...)' (or dispose explicitly and suppress this diagnostic).";
-        private static readonly LocalizableString Description = "A Response returned from Rest API methods (GetAsync, PostAsync, etc.) must be disposed to release native resources. Recognized patterns: 'using var', block-form 'using (...)', and try/finally with Dispose() in finally.";
+        private static readonly LocalizableString Description = "A Response returned from Rest API methods (GetAsync, PostAsync, etc.) must be disposed to release native resources. Recognized patterns: 'using var', block-form 'using (...)', and try/finally with Dispose() in finally. Discarding the awaited Response (bare 'await Rest.X(...);' or '_ = await Rest.X(...);') always reports.";
 
         private static readonly DiagnosticDescriptor Rule = new(
             DiagnosticId,
@@ -34,6 +34,7 @@ namespace Utilities.Rest.Analyzers
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
             context.RegisterSyntaxNodeAction(AnalyzeLocalDeclaration, SyntaxKind.LocalDeclarationStatement);
+            context.RegisterSyntaxNodeAction(AnalyzeExpressionStatement, SyntaxKind.ExpressionStatement);
         }
 
         private static void AnalyzeLocalDeclaration(SyntaxNodeAnalysisContext context)
@@ -54,42 +55,120 @@ namespace Utilities.Rest.Analyzers
             var variable = localDecl.Declaration.Variables[0];
             var initializer = variable.Initializer?.Value;
 
-            // Must be await SomeInvocation()
             if (initializer is not AwaitExpressionSyntax awaitExpr)
             {
                 return;
             }
 
-            var invoked = awaitExpr.Expression;
+            var restMethod = ResolveUnderlyingRestMethod(awaitExpr.Expression, context.SemanticModel, context.CancellationToken);
 
-            if (invoked is not InvocationExpressionSyntax invocation)
+            if (restMethod == null)
             {
                 return;
             }
 
-            var semanticModel = context.SemanticModel;
-            var symbolInfo = semanticModel.GetSymbolInfo(invocation, context.CancellationToken);
+            var localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken);
 
-            if (symbolInfo.Symbol is not IMethodSymbol method)
+            if (localSymbol is ILocalSymbol local && IsDisposedInEnclosingTryFinally(localDecl, local, context.SemanticModel, context.CancellationToken))
             {
                 return;
             }
 
-            if (!IsRestMethodReturningResponse(method))
-            {
-                return;
-            }
-
-            var localSymbol = semanticModel.GetDeclaredSymbol(variable, context.CancellationToken);
-
-            if (localSymbol is ILocalSymbol local && IsDisposedInEnclosingTryFinally(localDecl, local, semanticModel, context.CancellationToken))
-            {
-                return;
-            }
-
-            var methodName = method.Name;
-            var diagnostic = Diagnostic.Create(Rule, variable.GetLocation(), methodName);
+            var diagnostic = Diagnostic.Create(Rule, variable.GetLocation(), restMethod.Name);
             context.ReportDiagnostic(diagnostic);
+        }
+
+        private static void AnalyzeExpressionStatement(SyntaxNodeAnalysisContext context)
+        {
+            var statement = (ExpressionStatementSyntax)context.Node;
+            var expr = statement.Expression;
+
+            AwaitExpressionSyntax? awaitExpr;
+
+            if (expr is AwaitExpressionSyntax bareAwait)
+            {
+                awaitExpr = bareAwait;
+            }
+            else if (expr is AssignmentExpressionSyntax assignment &&
+                     assignment.Left is IdentifierNameSyntax id &&
+                     id.Identifier.ValueText == "_" &&
+                     assignment.Right is AwaitExpressionSyntax discardAwait)
+            {
+                awaitExpr = discardAwait;
+            }
+            else
+            {
+                return;
+            }
+
+            var restMethod = ResolveUnderlyingRestMethod(awaitExpr.Expression, context.SemanticModel, context.CancellationToken);
+
+            if (restMethod == null)
+            {
+                return;
+            }
+
+            var diagnostic = Diagnostic.Create(Rule, awaitExpr.GetLocation(), restMethod.Name);
+            context.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Walks past task-wrapping members (<c>ConfigureAwait</c>, <c>WithCancellation</c>, <c>AsTask</c>) to
+        /// resolve the underlying <c>Rest.{XAsync}</c> invocation, if any.
+        /// </summary>
+        private static IMethodSymbol? ResolveUnderlyingRestMethod(
+            ExpressionSyntax expression,
+            SemanticModel semanticModel,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            const int maxDepth = 8;
+            var current = expression;
+
+            for (var depth = 0; depth < maxDepth; depth++)
+            {
+                if (current is not InvocationExpressionSyntax invocation)
+                {
+                    return null;
+                }
+
+                if (semanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol method)
+                {
+                    return null;
+                }
+
+                if (IsRestMethodReturningResponse(method))
+                {
+                    return method;
+                }
+
+                if (!IsTaskPassThrough(method))
+                {
+                    return null;
+                }
+
+                if (invocation.Expression is MemberAccessExpressionSyntax memberAccess)
+                {
+                    current = memberAccess.Expression;
+                    continue;
+                }
+
+                return null;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Members that wrap a task without changing ownership semantics, so we should walk past
+        /// them to find the underlying invocation that produces the <see cref="System.Threading.Tasks.Task{T}"/>.
+        /// </summary>
+        private static bool IsTaskPassThrough(IMethodSymbol method)
+        {
+            var name = method.Name;
+            return name == "ConfigureAwait" ||
+                name == "WithCancellation" ||
+                name == "AsTask" ||
+                name == "Unwrap";
         }
 
         /// <summary>
@@ -164,8 +243,8 @@ namespace Utilities.Rest.Analyzers
 
                 if (SymbolEqualityComparer.Default.Equals(receiverSymbol, localSymbol))
                 {
-                    var methodName = (invocation.Expression as MemberAccessExpressionSyntax)?.Name?.Identifier.ValueText
-                        ?? (invocation.Expression as MemberBindingExpressionSyntax)?.Name?.Identifier.ValueText;
+                    var methodName = (invocation.Expression as MemberAccessExpressionSyntax)?.Name?.Identifier.ValueText ??
+                        (invocation.Expression as MemberBindingExpressionSyntax)?.Name?.Identifier.ValueText;
                     if (methodName == "Dispose")
                     {
                         return true;

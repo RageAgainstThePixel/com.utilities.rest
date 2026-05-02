@@ -12,8 +12,14 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// A single server-sent event (event type, value, and optional data payload).
     /// </summary>
+    /// <remarks>
+    /// <see cref="Value"/> and <see cref="Data"/> are parsed lazily on first access from the raw
+    /// strings supplied by <see cref="TryParseEvent"/>; the parser does not allocate
+    /// <see cref="JToken"/> instances upfront. Because this is a value type, copies of an
+    /// instance carry their own lazy-cache state.
+    /// </remarks>
     [Preserve]
-    public readonly struct ServerSentEvent : IServerSentEvent
+    public struct ServerSentEvent : IServerSentEvent
     {
         private const char Space = ' ';
         private const char Bom = '\uFEFF';
@@ -31,55 +37,67 @@ namespace Utilities.WebRequestRest
         [ThreadStatic]
         private static StringBuilder cachedDataBuilder;
 
+        private readonly string rawValue;
+        private readonly string rawData;
+        private JToken cachedValue;
+        private JToken cachedData;
+        private bool valueResolved;
+        private bool dataResolved;
+
         [Preserve]
         private ServerSentEvent(ServerSentEventKind @event, string value, string data)
         {
             Object = StreamEventObjectType;
             Event = @event;
-
-            try
-            {
-                Value = JToken.Parse(value);
-            }
-            catch
-            {
-                Value = new JValue(value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(data))
-            {
-                try
-                {
-                    Data = JToken.Parse(data);
-                }
-                catch
-                {
-                    Data = new JValue(data);
-                }
-            }
-            else
-            {
-                Data = null;
-            }
+            rawValue = value;
+            rawData = string.IsNullOrWhiteSpace(data) ? null : data;
+            cachedValue = null;
+            cachedData = null;
+            valueResolved = false;
+            dataResolved = false;
         }
 
         /// <summary>
-        /// Kind of server-sent event (comment, event, data, id, retry).
+        /// Kind of server-sent event (comment, event, data, id, retry, unknown).
         /// </summary>
         [Preserve]
         public ServerSentEventKind Event { get; }
 
         /// <summary>
-        /// Parsed value for the event field.
+        /// Parsed value for the event field. Lazily initialized on first access.
         /// </summary>
         [Preserve]
-        public JToken Value { get; }
+        public JToken Value
+        {
+            get
+            {
+                if (!valueResolved)
+                {
+                    cachedValue = ParseToken(rawValue);
+                    valueResolved = true;
+                }
+
+                return cachedValue;
+            }
+        }
 
         /// <summary>
-        /// Parsed data payload, if present.
+        /// Parsed data payload, if present. Lazily initialized on first access.
         /// </summary>
         [Preserve]
-        public JToken Data { get; }
+        public JToken Data
+        {
+            get
+            {
+                if (!dataResolved)
+                {
+                    cachedData = rawData == null ? null : ParseToken(rawData);
+                    dataResolved = true;
+                }
+
+                return cachedData;
+            }
+        }
 
         /// <summary>
         /// Object type identifier (e.g. "stream.event").
@@ -109,6 +127,24 @@ namespace Utilities.WebRequestRest
 
             stringBuilder.Append('}');
             return stringBuilder.ToString();
+        }
+
+        [Preserve]
+        private static JToken ParseToken(string source)
+        {
+            if (source == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return JToken.Parse(source);
+            }
+            catch
+            {
+                return new JValue(source);
+            }
         }
 
         [Preserve]
@@ -166,7 +202,7 @@ namespace Utilities.WebRequestRest
                 return ServerSentEventKind.Retry;
             }
 
-            return ServerSentEventKind.Comment;
+            return ServerSentEventKind.Unknown;
         }
 
         [Preserve]
@@ -177,6 +213,7 @@ namespace Utilities.WebRequestRest
             ServerSentEventKind.Data => SseData,
             ServerSentEventKind.Id => SseId,
             ServerSentEventKind.Retry => SseRetry,
+            ServerSentEventKind.Unknown => SseComment,
             _ => throw new ArgumentException("Invalid server sent event kind", nameof(kind)),
         };
 
@@ -242,6 +279,25 @@ namespace Utilities.WebRequestRest
             return true;
         }
 
+        /// <summary>
+        /// Parses one server-sent event from <paramref name="source"/> starting at <paramref name="position"/>.
+        /// </summary>
+        /// <param name="source">Backing buffer containing accumulated SSE text.</param>
+        /// <param name="length">Length of valid data in <paramref name="source"/>.</param>
+        /// <param name="position">In/out: read cursor; advanced past the parsed event on success.</param>
+        /// <param name="event">The parsed event when this method returns <see langword="true"/>; otherwise <c>default</c>.</param>
+        /// <param name="isDone">Set to <see langword="true"/> when the parsed event signals end-of-stream (<c>[DONE]</c> or <c>done</c>).</param>
+        /// <returns>
+        /// <see langword="true"/> if a complete event boundary was reached (regardless of payload);
+        /// <see langword="false"/> when more data is needed (caller should resume from the original
+        /// <paramref name="position"/> on the next iteration).
+        /// </returns>
+        /// <remarks>
+        /// When the return value is <see langword="true"/>, <paramref name="event"/> may still be
+        /// <c>default</c> (and <see cref="Value"/> / <see cref="Data"/> both <see langword="null"/>):
+        /// this signals "valid event boundary but empty payload"—the caller should <c>continue</c>
+        /// to the next iteration without invoking the handler.
+        /// </remarks>
         [Preserve]
         internal static bool TryParseEvent(string source, int length, ref int position, out ServerSentEvent @event, out bool isDone)
         {

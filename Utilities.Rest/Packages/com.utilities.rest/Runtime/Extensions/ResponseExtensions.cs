@@ -20,18 +20,19 @@ namespace Utilities.WebRequestRest
         /// The allocator to use for the new array (e.g. <see cref="Allocator.Temp"/>, <see cref="Allocator.TempJob"/>, <see cref="Allocator.Persistent"/>).
         /// </param>
         /// <returns>
-        /// A new native array containing a copy of the response data, or an empty array if the response has no native data. Must be disposed by the caller.
+        /// A new native array containing a copy of the response data, or <c>default</c>
+        /// (an uncreated array, no dispose required) if the response has no native data.
         /// </returns>
         public static NativeArray<byte> CopyNativeData(this Response response, Allocator allocator)
         {
-            var isValid = response?.NativeData?.IsCreated ?? false;
+            var isValid = response is { HasNativeData: true };
 
             if (!isValid)
             {
-                return new NativeArray<byte>(0, allocator);
+                return default;
             }
 
-            var source = response.NativeData.Value;
+            var source = response.NativeData;
             var copy = new NativeArray<byte>(source.Length, allocator);
             copy.CopyFrom(source);
             return copy;

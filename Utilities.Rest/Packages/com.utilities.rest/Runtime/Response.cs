@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 using Unity.Collections;
 using UnityEngine;
@@ -14,9 +15,19 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// Response to a REST Call.
     /// </summary>
+    /// <remarks>
+    /// Response holds a <see cref="NativeArray{T}"/> backing buffer allocated with
+    /// <see cref="Allocator.Persistent"/>. Callers MUST dispose the response (e.g. via
+    /// <c>using var response = await Rest.GetAsync(...)</c>) to release native memory.
+    /// <para>
+    /// Streaming responses produced by <c>Rest.GetAsync(... Action&lt;Response&gt;)</c> /
+    /// <c>Rest.PostAsync(... Action&lt;Response&gt;)</c> set <see cref="Body"/> to <see langword="null"/>;
+    /// consumers should read raw bytes from <see cref="NativeData"/> (decoding manually if needed).
+    /// </para>
+    /// </remarks>
     public sealed class Response : IDisposable
     {
-        private static readonly Dictionary<string, string> invalidHeaders = new();
+        private static readonly IReadOnlyDictionary<string, string> invalidHeaders = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>());
 
         /// <summary>
         /// The original request that prompted the response.
@@ -46,13 +57,25 @@ namespace Utilities.WebRequestRest
         /// <summary>
         /// Response data as a managed array. Prefer <see cref="NativeData"/> to avoid allocation; dispose this Response when done.
         /// </summary>
-        [Obsolete("Use NativeData and dispose Response when done. Data returns NativeData.ToArray() when backed by native data.")]
+        /// <exception cref="ObjectDisposedException">Thrown if the response has already been disposed.</exception>
+        [Obsolete("Use NativeData (and dispose Response when done) or CopyDataToManagedArray() for an explicit copy.")]
         public byte[] Data => GetDataBytes();
 
         /// <summary>
         /// Response data as a native array. Valid until <see cref="Dispose"/>; do not dispose the array yourself.
+        /// Use <see cref="HasNativeData"/> to check whether the array is populated.
         /// </summary>
-        public NativeArray<byte>? NativeData { get; }
+        public NativeArray<byte> NativeData { get; private set; }
+
+        /// <summary>
+        /// True when <see cref="NativeData"/> is allocated and not yet disposed.
+        /// </summary>
+        public bool HasNativeData => NativeData.IsCreated;
+
+        /// <summary>
+        /// True after <see cref="Dispose"/> has been called.
+        /// </summary>
+        public bool IsDisposed { get; private set; }
 
         /// <summary>
         /// Response code from the resource.
@@ -60,7 +83,8 @@ namespace Utilities.WebRequestRest
         public long Code { get; }
 
         /// <summary>
-        /// Response headers from the resource.
+        /// Response headers from the resource. Never <see langword="null"/>; an empty read-only
+        /// dictionary is returned when no headers are available.
         /// </summary>
         public IReadOnlyDictionary<string, string> Headers { get; }
 
@@ -80,14 +104,38 @@ namespace Utilities.WebRequestRest
         public IReadOnlyList<ServerSentEvent> ServerSentEvents => Parameters?.ServerSentEvents;
 
         private byte[] GetDataBytes()
-            => NativeData is { IsCreated: true }
-                ? NativeData.Value.ToArray()
+        {
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException(nameof(Response));
+            }
+
+            return NativeData.IsCreated
+                ? NativeData.ToArray()
                 : Array.Empty<byte>();
+        }
 
         private int GetDataLength()
-            => NativeData is { IsCreated: true }
-                ? NativeData.Value.Length
+            => NativeData.IsCreated
+                ? NativeData.Length
                 : 0;
+
+        /// <summary>
+        /// Copies the response's native data into a managed <see cref="byte"/> array.
+        /// Returns an empty array when no native data is present.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">Thrown if the response has already been disposed.</exception>
+        public byte[] CopyDataToManagedArray()
+        {
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException(nameof(Response));
+            }
+
+            return NativeData.IsCreated
+                ? NativeData.ToArray()
+                : Array.Empty<byte>();
+        }
 
         /// <summary>
         /// Constructor.
@@ -131,8 +179,9 @@ namespace Utilities.WebRequestRest
 
                 if (rawData is { Length: > 0 })
                 {
-                    NativeData = new NativeArray<byte>(rawData.Length, Allocator.Persistent);
-                    NativeArray<byte>.Copy(rawData, NativeData.Value, rawData.Length);
+                    var native = new NativeArray<byte>(rawData.Length, Allocator.Persistent);
+                    NativeArray<byte>.Copy(rawData, native, rawData.Length);
+                    NativeData = native;
                 }
             }
             else
@@ -156,7 +205,7 @@ namespace Utilities.WebRequestRest
         /// <param name="body">Response body from the resource.</param>
         /// <param name="data">Response data from the resource.</param>
         /// <param name="responseCode">Response code from the resource.</param>
-        /// <param name="headers">Response headers from the resource.</param>
+        /// <param name="headers">Response headers from the resource. <see langword="null"/> is normalized to an empty dictionary.</param>
         /// <param name="parameters">The parameters of the request.</param>
         /// <param name="error">Optional, error message from the resource.</param>
         public Response(string request, string method, string requestBody, bool successful, string body, byte[] data, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters? parameters, string error = null)
@@ -167,14 +216,15 @@ namespace Utilities.WebRequestRest
             Successful = successful;
             Body = body;
             Code = responseCode;
-            Headers = headers;
+            Headers = headers ?? invalidHeaders;
             Error = error;
             Parameters = parameters;
 
             if (data is { Length: > 0 })
             {
-                NativeData = new NativeArray<byte>(data.Length, Allocator.Persistent);
-                NativeArray<byte>.Copy(data, NativeData.Value, data.Length);
+                var native = new NativeArray<byte>(data.Length, Allocator.Persistent);
+                NativeArray<byte>.Copy(data, native, data.Length);
+                NativeData = native;
             }
         }
 
@@ -188,7 +238,7 @@ namespace Utilities.WebRequestRest
         /// <param name="body">Response body text.</param>
         /// <param name="nativeData">Native buffer; this instance takes ownership and will dispose it.</param>
         /// <param name="responseCode">Response code.</param>
-        /// <param name="headers">Response headers.</param>
+        /// <param name="headers">Response headers. <see langword="null"/> is normalized to an empty dictionary.</param>
         /// <param name="parameters">Request parameters.</param>
         /// <param name="error">Optional error message.</param>
         public Response(string request, string method, string requestBody, bool successful, string body, NativeArray<byte> nativeData, long responseCode, IReadOnlyDictionary<string, string> headers, RestParameters? parameters, string error = null)
@@ -199,7 +249,7 @@ namespace Utilities.WebRequestRest
             Successful = successful;
             Body = body;
             Code = responseCode;
-            Headers = headers;
+            Headers = headers ?? invalidHeaders;
             Error = error;
             Parameters = parameters;
             NativeData = nativeData;
@@ -210,12 +260,15 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public void Dispose()
         {
-            if (NativeData == null) { return; }
+            if (IsDisposed) { return; }
 
-            if (NativeData.Value.IsCreated)
+            if (NativeData.IsCreated)
             {
-                NativeData.Value.Dispose();
+                NativeData.Dispose();
             }
+
+            NativeData = default;
+            IsDisposed = true;
         }
 
         /// <inheritdoc />
@@ -283,7 +336,7 @@ namespace Utilities.WebRequestRest
                     Headers.TryGetValue("Content-Type", out var contentType) &&
                     contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
                 {
-                    var dataBytes = GetDataBytes();
+                    var dataBytes = NativeData.IsCreated ? NativeData.ToArray() : Array.Empty<byte>();
                     var decoded = Encoding.UTF8.GetString(dataBytes);
 
                     try
