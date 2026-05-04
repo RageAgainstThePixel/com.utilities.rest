@@ -172,7 +172,15 @@ namespace Utilities.WebRequestRest
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError(e);
+                    switch (e)
+                    {
+                        case TaskCanceledException:
+                        case OperationCanceledException:
+                            throw;
+                        default:
+                            Debug.LogError(e);
+                            break;
+                    }
                 }
 
                 return base.ReceiveData(rented, byteCount);
