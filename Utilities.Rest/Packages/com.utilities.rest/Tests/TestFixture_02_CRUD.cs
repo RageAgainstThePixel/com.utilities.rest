@@ -11,16 +11,15 @@ namespace Utilities.WebRequestRest.Tests
 {
     internal class TestFixture_02_CRUD
     {
-        private static readonly Uri SseServer = new("https://echo.websocket.org/.sse");
-
         [Test]
+        [Timeout(60000)]
         public async Task Test_01_ServerSentEvents()
         {
             try
             {
-                using var cts = new CancellationTokenSource();
-                cts.CancelAfter(TimeSpan.FromSeconds(5));
-                using var response = await Rest.GetAsync(SseServer, ServerSentEventHandler, cancellationToken: cts.Token);
+                using var server = new LocalSseTestServer();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var response = await Rest.GetAsync(server.SseUri, ServerSentEventHandler, cancellationToken: cts.Token);
 
                 Task ServerSentEventHandler(Response res, ServerSentEvent sse)
                 {
