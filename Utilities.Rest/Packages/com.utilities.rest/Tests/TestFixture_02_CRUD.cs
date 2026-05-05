@@ -11,24 +11,29 @@ namespace Utilities.WebRequestRest.Tests
 {
     internal class TestFixture_02_CRUD
     {
-        private static readonly Uri SseServer = new("https://echo.websocket.org/.sse");
-
         [Test]
+        [Timeout(60000)]
         public async Task Test_01_ServerSentEvents()
         {
             try
             {
-                using var cts = new CancellationTokenSource();
-                cts.CancelAfter(TimeSpan.FromSeconds(5));
-                await Rest.GetAsync(SseServer, ServerSentEventHandler, cancellationToken: cts.Token);
+                using var server = new LocalSseTestServer();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var response = await Rest.GetAsync(server.SseUri, ServerSentEventHandler, cancellationToken: cts.Token);
 
                 Task ServerSentEventHandler(Response res, ServerSentEvent sse)
                 {
-                    Debug.Log(sse.ToJsonString());
-                    Assert.IsTrue(res.Successful);
-                    res.Validate(true);
-
-                    return Task.CompletedTask;
+                    try
+                    {
+                        Debug.Log(sse.ToJsonString());
+                        Assert.IsTrue(res.Successful);
+                        res.Validate(true);
+                        return Task.CompletedTask;
+                    }
+                    finally
+                    {
+                        res.Dispose();
+                    }
                 }
             }
             catch (Exception e)
@@ -42,7 +47,6 @@ namespace Utilities.WebRequestRest.Tests
                     default:
                         Debug.LogException(e);
                         throw;
-
                 }
             }
         }
@@ -52,7 +56,7 @@ namespace Utilities.WebRequestRest.Tests
         {
             try
             {
-                var response = await Rest.GetAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"));
+                using var response = await Rest.GetAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -69,7 +73,7 @@ namespace Utilities.WebRequestRest.Tests
             try
             {
                 var payload = new { title = "foo", body = "bar", userId = 1 };
-                var response = await Rest.PostAsync(new Uri("https://jsonplaceholder.typicode.com/posts"), JsonConvert.SerializeObject(payload));
+                using var response = await Rest.PostAsync(new Uri("https://jsonplaceholder.typicode.com/posts"), JsonConvert.SerializeObject(payload));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -86,7 +90,7 @@ namespace Utilities.WebRequestRest.Tests
             try
             {
                 var payload = new { id = 1, title = "foo", body = "bar", userId = 1 };
-                var response = await Rest.PutAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"), JsonConvert.SerializeObject(payload));
+                using var response = await Rest.PutAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"), JsonConvert.SerializeObject(payload));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -103,7 +107,7 @@ namespace Utilities.WebRequestRest.Tests
             try
             {
                 var payload = new { title = "foo" };
-                var response = await Rest.PatchAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"), JsonConvert.SerializeObject(payload));
+                using var response = await Rest.PatchAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"), JsonConvert.SerializeObject(payload));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }
@@ -119,7 +123,7 @@ namespace Utilities.WebRequestRest.Tests
         {
             try
             {
-                var response = await Rest.DeleteAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"));
+                using var response = await Rest.DeleteAsync(new Uri("https://jsonplaceholder.typicode.com/posts/1"));
                 response.Validate(true);
                 Assert.IsTrue(response.Successful);
             }

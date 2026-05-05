@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Newtonsoft.Json;
 using System;
@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Scripting;
@@ -22,14 +23,21 @@ namespace Utilities.WebRequestRest
     /// <summary>
     /// REST Class for basic CRUD transactions.
     /// </summary>
+    /// <remarks>
+    /// Methods that return <see cref="Task{T}"/> of <see cref="Response"/> (e.g. GetAsync, PostAsync)
+    /// require the caller to dispose the Response—use <c>using var response = await Rest.GetAsync(...)</c> or
+    /// call <see cref="IDisposable.Dispose"/> when done.
+    /// </remarks>
     public static class Rest
     {
+        // ReSharper disable InconsistentNaming
         private const string kHttpVerbPATCH = "PATCH";
         private const string content_type = "Content-Type";
         private const string content_length = "Content-Length";
         private const string application_json = "application/json";
         private const string multipart_form_data = "multipart/form-data";
         private const string application_octet_stream = "application/octet-stream";
+        // ReSharper restore InconsistentNaming
         private const char Space = ' ';
         private const char Bom = '\uFEFF';
         private const char NewLine = '\n';
@@ -123,49 +131,85 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Rest GET.
+        /// Rest GET with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize"></param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
         public static Task<Response> GetAsync(
             string query,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
-            => GetAsync(new Uri(query), dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
+            => GetAsync(new Uri(query), dataReceivedEventCallback, eventChunkSize, receiveBufferSize, parameters, cancellationToken);
 
         /// <summary>
-        /// Rest GET.
+        /// Rest GET with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize"></param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
+        /// <remarks>
+        /// On return, ownership of the accumulated stream buffer transfers from the internal
+        /// <see cref="DownloadHandlerCallback"/> to the returned <see cref="Response"/> via
+        /// <see cref="Allocator.Persistent"/>. The defensive <c>downloadHandler.Complete()</c>
+        /// call in the <c>finally</c> covers the case where the request is aborted before
+        /// <see cref="DownloadHandlerCallback.CompleteContent"/> runs (e.g. cancellation): any
+        /// remaining buffered bytes are flushed to the streaming callback before disposal.
+        /// </remarks>
         public static async Task<Response> GetAsync(
             Uri query,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
             await Awaiters.UnityMainThread;
             using var webRequest = UnityWebRequest.Get(query);
-            parameters = parameters.Clone(disposeDownloadHandler: false);
-            using var downloadHandler = eventChunkSize.HasValue
-                ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
-                : new DownloadHandlerCallback(webRequest);
+            using var downloadHandler = new DownloadHandlerCallback(
+                webRequest,
+                eventChunkSize ?? DownloadHandlerCallback.DefaultChunkBytes,
+                receiveBufferSize ?? DownloadHandlerCallback.DefaultReceiveBufferBytes);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
+            webRequest.downloadHandler = downloadHandler;
+            parameters = parameters.Clone(disposeDownloadHandler: false);
 
             try
             {
-                return await webRequest.SendAsync(parameters, cancellationToken);
+                using var initial = await webRequest.SendAsync(parameters, cancellationToken);
+                var detached = downloadHandler.DetachStreamAsArray(Allocator.Persistent);
+                return new Response(
+                    request: initial.Request,
+                    method: initial.Method,
+                    requestBody: initial.RequestBody,
+                    successful: initial.Successful,
+                    body: initial.Body,
+                    nativeData: detached,
+                    responseCode: initial.Code,
+                    headers: initial.Headers,
+                    parameters: initial.Parameters,
+                    error: initial.Error);
             }
             finally
             {
@@ -329,39 +373,61 @@ namespace Utilities.WebRequestRest
         }
 
         /// <summary>
-        /// Rest POST.
+        /// Rest POST with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize">Optional, <see cref="dataReceivedEventCallback"/> event chunk size in bytes (Defaults to 512 bytes).</param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
         public static Task<Response> PostAsync(
             string query,
             string jsonData,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
-            => PostAsync(new Uri(query), jsonData, dataReceivedEventCallback, eventChunkSize, parameters, cancellationToken);
+            => PostAsync(new Uri(query), jsonData, dataReceivedEventCallback, eventChunkSize, receiveBufferSize, parameters, cancellationToken);
 
         /// <summary>
-        /// Rest POST.
+        /// Rest POST with streaming chunks delivered to a callback per chunk.
         /// </summary>
         /// <param name="query">Finalized Endpoint Query with parameters.</param>
         /// <param name="jsonData">JSON data for the request.</param>
-        /// <param name="dataReceivedEventCallback"><see cref="Action{T}"/> data received event callback.</param>
-        /// <param name="eventChunkSize">Optional, <see cref="dataReceivedEventCallback"/> event chunk size in bytes (Defaults to 512 bytes).</param>
+        /// <param name="dataReceivedEventCallback">
+        /// Callback invoked per chunk. Each invocation receives a <see cref="Response"/> whose
+        /// <see cref="Response.NativeData"/> holds that chunk's bytes; the callback MUST dispose
+        /// the <see cref="Response"/> when done (e.g. in a <c>finally</c> block) or the chunk's
+        /// native buffer leaks.
+        /// </param>
+        /// <param name="eventChunkSize">Chunk size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultChunkBytes"/>.</param>
+        /// <param name="receiveBufferSize">Receive buffer size in bytes. Defaults to <see cref="DownloadHandlerCallback.DefaultReceiveBufferBytes"/>.</param>
         /// <param name="parameters">Optional, <see cref="RestParameters"/>.</param>
         /// <param name="cancellationToken">Optional, <see cref="CancellationToken"/>.</param>
-        /// <returns>The response data.</returns>
+        /// <returns>The final response. Caller must dispose; <see cref="Response.NativeData"/> contains the full body.</returns>
+        /// <remarks>
+        /// On return, ownership of the accumulated stream buffer transfers from the internal
+        /// <see cref="DownloadHandlerCallback"/> to the returned <see cref="Response"/> via
+        /// <see cref="Allocator.Persistent"/>. The defensive <c>downloadHandler.Complete()</c>
+        /// call in the <c>finally</c> covers the case where the request is aborted before
+        /// <see cref="DownloadHandlerCallback.CompleteContent"/> runs (e.g. cancellation): any
+        /// remaining buffered bytes are flushed to the streaming callback before disposal.
+        /// </remarks>
         public static async Task<Response> PostAsync(
             Uri query,
             string jsonData,
             Action<Response> dataReceivedEventCallback,
             int? eventChunkSize = null,
+            int? receiveBufferSize = null,
             RestParameters? parameters = null,
             CancellationToken cancellationToken = default)
         {
@@ -370,17 +436,30 @@ namespace Utilities.WebRequestRest
             var data = new UTF8Encoding().GetBytes(jsonData);
             using var uploadHandler = new UploadHandlerRaw(data);
             webRequest.uploadHandler = uploadHandler;
-            using var downloadHandler = eventChunkSize.HasValue
-                ? new DownloadHandlerCallback(webRequest, eventChunkSize.Value)
-                : new DownloadHandlerCallback(webRequest);
+            using var downloadHandler = new DownloadHandlerCallback(
+                webRequest,
+                eventChunkSize ?? DownloadHandlerCallback.DefaultChunkBytes,
+                receiveBufferSize ?? DownloadHandlerCallback.DefaultReceiveBufferBytes);
             downloadHandler.OnDataReceived += dataReceivedEventCallback;
             webRequest.downloadHandler = downloadHandler;
             webRequest.SetRequestHeader(content_type, application_json);
+            parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
 
             try
             {
-                parameters = parameters.Clone(disposeDownloadHandler: false, disposeUploadHandler: false);
-                return await webRequest.SendAsync(parameters, serverSentEventHandler: null, cancellationToken);
+                using var initial = await webRequest.SendAsync(parameters, serverSentEventHandler: null, cancellationToken);
+                var detached = downloadHandler.DetachStreamAsArray(Allocator.Persistent);
+                return new Response(
+                    request: initial.Request,
+                    method: initial.Method,
+                    requestBody: initial.RequestBody,
+                    successful: initial.Successful,
+                    body: initial.Body,
+                    nativeData: detached,
+                    responseCode: initial.Code,
+                    headers: initial.Headers,
+                    parameters: initial.Parameters,
+                    error: initial.Error);
             }
             finally
             {
@@ -1576,9 +1655,9 @@ namespace Utilities.WebRequestRest
             using var downloadHandlerBuffer = new DownloadHandlerBuffer();
             webRequest.downloadHandler = downloadHandlerBuffer;
             parameters = parameters.Clone(disposeDownloadHandler: false);
-            var response = await webRequest.SendAsync(parameters, cancellationToken);
+            using var response = await webRequest.SendAsync(parameters, cancellationToken);
             response.Validate(parameters.Value.Debug);
-            return response.Data;
+            return response.CopyDataToManagedArray();
         }
 
         #endregion Get Multimedia Content
@@ -1604,6 +1683,13 @@ namespace Utilities.WebRequestRest
         /// <param name="serverSentEventHandler">Optional, <see cref="Func{Response, ServerSentEvent, Task}"/> server sent event callback handler.</param>
         /// <param name="cancellationToken">Optional <see cref="CancellationToken"/>.</param>
         /// <returns><see cref="Response"/></returns>
+        /// <remarks>
+        /// This method awaits <see cref="Awaiters.UnityMainThread"/> internally and assumes that
+        /// progress reporting and server-sent-event delivery happen on the Unity main thread.
+        /// The internal progress / SSE pumps are awaited before returning so that no callback
+        /// outlives the <paramref name="webRequest"/> handle (which would otherwise be a
+        /// use-after-dispose hazard).
+        /// </remarks>
         public static async Task<Response> SendAsync(
             this UnityWebRequest webRequest,
             RestParameters? parameters = null,
@@ -1697,17 +1783,17 @@ namespace Utilities.WebRequestRest
             var serverSentEventCharacterIndex = 0;
             var serverSentEventQueue = new ConcurrentQueue<ServerSentEventPayload>();
             CancellationTokenSource serverSentEventCts = null;
+            Task callbackPumpTask = null;
+            Task serverSentEventPumpTask = null;
 
             if (restParams.Progress != null || serverSentEventHandler != null)
             {
-                async void CallbackThread()
+                async Task CallbackPump()
                 {
                     var frame = 0;
 
                     try
                     {
-                        await Awaiters.UnityMainThread;
-
                         // Define constants for data units
                         const double kbSize = 1e+3;
                         const double mbSize = 1e+6;
@@ -1773,40 +1859,46 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-                async void ServerSentEventQueue()
+                async Task ServerSentEventPump()
                 {
-                    serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    await Awaiters.UnityMainThread;
-
-                    do
+                    try
                     {
-                        try
+                        while (!serverSentEventCts.Token.IsCancellationRequested)
                         {
-                            if (serverSentEventQueue.TryDequeue(out var payload))
+                            try
                             {
-                                await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(true);
+                                if (serverSentEventQueue.TryDequeue(out var payload))
+                                {
+                                    await serverSentEventHandler.Invoke(payload.Response, payload.Event).ConfigureAwait(true);
+                                }
+                                else
+                                {
+                                    await Task.Yield();
+                                }
                             }
-                            else
+                            catch (Exception e)
                             {
-                                await Task.Yield();
+                                Debug.LogException(e);
                             }
                         }
-                        catch (Exception e)
-                        {
-                            Debug.LogException(e);
-                        }
-                    } while (!serverSentEventCts.Token.IsCancellationRequested);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
                 }
-#pragma warning disable CS4014 // We purposefully don't await this task, so it will run on a background thread.
-                // ReSharper disable PossiblyMistakenUseOfCancellationToken
-                Task.Run(CallbackThread, cancellationToken);
 
                 if (serverSentEventHandler != null)
                 {
-                    Task.Run(ServerSentEventQueue, cancellationToken);
+                    serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 }
-                // ReSharper restore PossiblyMistakenUseOfCancellationToken
-#pragma warning restore CS4014
+
+                callbackPumpTask = CallbackPump();
+
+                if (serverSentEventHandler != null)
+                {
+                    serverSentEventPumpTask = ServerSentEventPump();
+                }
             }
 
             try
@@ -1821,7 +1913,17 @@ namespace Utilities.WebRequestRest
                     case OperationCanceledException:
                         throw;
                     default:
-                        return new Response(webRequest.url, webRequest.method, requestBody, false, $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!", null, -1, null, restParams, e.ToString());
+                        return new Response(
+                            request: webRequest.url,
+                            method: webRequest.method,
+                            requestBody: requestBody,
+                            successful: false,
+                            body: $"{nameof(Rest)}.{nameof(SendAsync)}::{nameof(UnityWebRequest.SendWebRequest)} Failed!",
+                            data: null,
+                            responseCode: -1,
+                            headers: null,
+                            parameters: restParams,
+                            error: e.ToString());
                 }
             }
             finally
@@ -1844,17 +1946,34 @@ namespace Utilities.WebRequestRest
                 {
                     try
                     {
-                        while (serverSentEventQueue.Count > 0)
+                        if (!cancellationToken.IsCancellationRequested)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            await Task.Yield();
+                            var drainDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+
+                            while (serverSentEventQueue.Count > 0 && DateTime.UtcNow < drainDeadline)
+                            {
+                                if (cancellationToken.IsCancellationRequested) { break; }
+                                await Task.Yield();
+                            }
                         }
                     }
                     finally
                     {
-                        serverSentEventCts?.Cancel();
+                        try { serverSentEventCts.Cancel(); } catch { }
                     }
                 }
+
+                if (callbackPumpTask != null)
+                {
+                    try { await callbackPumpTask; } catch { }
+                }
+
+                if (serverSentEventPumpTask != null)
+                {
+                    try { await serverSentEventPumpTask; } catch { }
+                }
+
+                serverSentEventCts?.Dispose();
             }
 
             if (webRequest.result is
@@ -1892,166 +2011,34 @@ namespace Utilities.WebRequestRest
                 while (currentIndex < textLength)
                 {
                     var eventStart = currentIndex;
-                    var eventKind = ServerSentEventKind.Comment;
-                    StringBuilder dataBuilder = null;
-                    var typeAssigned = false;
-                    var value = string.Empty;
-                    // ReSharper disable once JoinDeclarationAndInitializer
-                    string data;
 
-                    // Read lines until a blank line (event boundary) or end of input
-                    while (true)
+                    if (!ServerSentEvent.TryParseEvent(allEventMessages, textLength, ref currentIndex, out var @event, out var isDone))
                     {
-                        if (!TryReadLine(allEventMessages, textLength, ref currentIndex, out var line))
-                        {
-                            serverSentEventCharacterIndex = eventStart;
-                            return;
-                        }
-
-                        if (line.Length == 0)
-                        {
-                            // Blank line: event boundary
-                            break;
-                        }
-
-                        var colonIndex = line.IndexOf(':');
-
-                        if (colonIndex < 0) { continue; }
-
-                        var fieldNameSpan = Trim(line[..colonIndex]);
-                        var fieldName = fieldNameSpan.Length == 0 ? string.Empty : fieldNameSpan.ToString();
-                        var isCommentLine = colonIndex == 0 && fieldNameSpan.Length == 0;
-                        var fieldValueSpan = TrimSseValue(line[(colonIndex + 1)..]);
-                        var fieldValue = fieldValueSpan.Length == 0 ? string.Empty : new string(fieldValueSpan);
-
-                        if (!typeAssigned)
-                        {
-                            eventKind = isCommentLine
-                                ? ServerSentEventKind.Comment
-                                : ServerSentEvent.EventMap.GetValueOrDefault(fieldName, ServerSentEventKind.Comment);
-
-                            value = fieldValue;
-                            typeAssigned = true;
-
-                            if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
-                            {
-                                AppendData(ref dataBuilder, fieldValue);
-                            }
-
-                            continue;
-                        }
-
-                        if (isCommentLine)
-                        {
-                            continue;
-                        }
-
-                        if (string.Equals(fieldName, nameof(data), StringComparison.OrdinalIgnoreCase))
-                        {
-                            AppendData(ref dataBuilder, fieldValue);
-                        }
+                        serverSentEventCharacterIndex = eventStart;
+                        return;
                     }
 
                     serverSentEventCharacterIndex = currentIndex;
 
-                    if (!typeAssigned)
-                    {
-                        continue;
-                    }
-
-                    data = dataBuilder?.ToString();
-
-                    const string doneTag = "[DONE]";
-                    const string doneEvent = "done";
-
-                    if (string.Equals(value, doneTag, StringComparison.Ordinal) ||
-                        string.Equals(value, doneEvent, StringComparison.Ordinal) ||
-                        string.Equals(data, doneTag, StringComparison.Ordinal))
+                    if (isDone)
                     {
                         return;
                     }
 
-                    var @event = new ServerSentEvent(eventKind, value, data);
+                    if (@event.Event == ServerSentEventKind.Unknown)
+                    {
+                        continue;
+                    }
+
+                    if (@event.Value == null &&
+                        @event.Data == null)
+                    {
+                        continue;
+                    }
+
                     var sseResponse = new Response(webRequest, requestBody, true, restParams, (@event.Data ?? @event.Value).ToString(Formatting.None));
                     serverSentEventQueue.Enqueue(new ServerSentEventPayload(sseResponse, @event));
                     restParams.ServerSentEvents.Add(@event);
-                }
-
-                static bool TryReadLine(string source, int length, ref int position, out ReadOnlySpan<char> line)
-                {
-                    if (position >= length)
-                    {
-                        line = ReadOnlySpan<char>.Empty;
-                        return false;
-                    }
-
-                    var slice = source.AsSpan(position, length - position);
-                    var newlineIndex = slice.IndexOf(NewLine);
-
-                    if (newlineIndex < 0)
-                    {
-                        line = ReadOnlySpan<char>.Empty;
-                        return false;
-                    }
-
-                    line = slice[..newlineIndex];
-                    position += newlineIndex + 1;
-
-                    if (line.Length > 0 && line[^1] == Return)
-                    {
-                        line = line[..^1];
-                    }
-
-                    return true;
-                }
-
-                static ReadOnlySpan<char> Trim(ReadOnlySpan<char> span)
-                {
-                    var start = 0;
-                    var end = span.Length - 1;
-
-                    while (start <= end && char.IsWhiteSpace(span[start]))
-                    {
-                        start++;
-                    }
-
-                    while (end >= start && char.IsWhiteSpace(span[end]))
-                    {
-                        end--;
-                    }
-
-                    return start > end ? ReadOnlySpan<char>.Empty : span[start..(end + 1)];
-                }
-
-                static ReadOnlySpan<char> TrimSseValue(ReadOnlySpan<char> span)
-                {
-                    if (!span.IsEmpty && span[0] == Space)
-                    {
-                        span = span[1..];
-                    }
-
-                    if (!span.IsEmpty && span[0] == Bom)
-                    {
-                        span = span[1..];
-                    }
-
-                    return span;
-                }
-
-                static void AppendData(ref StringBuilder builder, string chunk)
-                {
-                    const int defaultStringBuilderPadding = 16; // extra padding to reduce allocations
-                    builder ??= new StringBuilder((chunk?.Length ?? 0) + defaultStringBuilderPadding);
-
-                    if (builder.Length > 0)
-                    {
-                        builder.Append(NewLine);
-                    }
-
-                    if (!string.IsNullOrEmpty(chunk))
-                    {
-                        builder.Append(chunk);
-                    }
                 }
             }
         }
@@ -2090,6 +2077,20 @@ namespace Utilities.WebRequestRest
             }
         }
 
+        /// <summary>
+        /// Clones the given <see cref="RestParameters"/> (or null) with optional overrides for individual fields.
+        /// </summary>
+        /// <param name="other">The instance to clone, or null.</param>
+        /// <param name="headers">Optional override for headers.</param>
+        /// <param name="progress">Optional override for progress.</param>
+        /// <param name="timeout">Optional override for timeout.</param>
+        /// <param name="disposeDownloadHandler">Optional override for dispose download handler.</param>
+        /// <param name="disposeUploadHandler">Optional override for dispose upload handler.</param>
+        /// <param name="certificateHandler">Optional override for certificate handler.</param>
+        /// <param name="disposeCertificateHandler">Optional override for dispose certificate handler.</param>
+        /// <param name="cacheDownloads">Optional override for cache downloads.</param>
+        /// <param name="debug">Optional override for debug.</param>
+        /// <returns>A new <see cref="RestParameters"/> with the specified values or defaults from <paramref name="other"/>.</returns>
         [Preserve]
         public static RestParameters Clone(this RestParameters? other,
             IReadOnlyDictionary<string, string> headers = null,
@@ -2113,6 +2114,20 @@ namespace Utilities.WebRequestRest
                 cacheDownloads,
                 debug);
 
+        /// <summary>
+        /// Clones the given <see cref="RestParameters"/> with optional overrides for individual fields.
+        /// </summary>
+        /// <param name="other">The instance to clone.</param>
+        /// <param name="headers">Optional override for headers.</param>
+        /// <param name="progress">Optional override for progress.</param>
+        /// <param name="timeout">Optional override for timeout.</param>
+        /// <param name="disposeDownloadHandler">Optional override for dispose download handler.</param>
+        /// <param name="disposeUploadHandler">Optional override for dispose upload handler.</param>
+        /// <param name="certificateHandler">Optional override for certificate handler.</param>
+        /// <param name="disposeCertificateHandler">Optional override for dispose certificate handler.</param>
+        /// <param name="cacheDownloads">Optional override for cache downloads.</param>
+        /// <param name="debug">Optional override for debug.</param>
+        /// <returns>A new <see cref="RestParameters"/> with the specified values or defaults from <paramref name="other"/>.</returns>
         [Preserve]
         public static RestParameters Clone(this RestParameters other,
             IReadOnlyDictionary<string, string> headers = null,
