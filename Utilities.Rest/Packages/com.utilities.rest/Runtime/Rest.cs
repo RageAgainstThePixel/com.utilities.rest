@@ -1773,9 +1773,18 @@ namespace Utilities.WebRequestRest
                     }
                 }
 
-                async void ServerSentEventQueue()
+                // Created before the worker starts: when it was created inside the worker, a request
+                // that finished first saw null in the finally below and never cancelled it, leaving
+                // the worker polling every frame forever.
+                if (serverSentEventHandler != null)
                 {
                     serverSentEventCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                }
+
+                var serverSentEventToken = serverSentEventCts?.Token ?? CancellationToken.None;
+
+                async void ServerSentEventQueue()
+                {
                     await Awaiters.UnityMainThread;
 
                     do
@@ -1795,7 +1804,7 @@ namespace Utilities.WebRequestRest
                         {
                             Debug.LogException(e);
                         }
-                    } while (!serverSentEventCts.Token.IsCancellationRequested);
+                    } while (!serverSentEventToken.IsCancellationRequested);
                 }
 #pragma warning disable CS4014 // We purposefully don't await this task, so it will run on a background thread.
                 // ReSharper disable PossiblyMistakenUseOfCancellationToken
@@ -1852,7 +1861,8 @@ namespace Utilities.WebRequestRest
                     }
                     finally
                     {
-                        serverSentEventCts?.Cancel();
+                        serverSentEventCts.Cancel();
+                        serverSentEventCts.Dispose();
                     }
                 }
             }
