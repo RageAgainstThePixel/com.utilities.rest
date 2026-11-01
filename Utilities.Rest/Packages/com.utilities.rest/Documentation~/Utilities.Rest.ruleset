@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Utilities.Rest" Description="Rules for com.utilities.rest package" ToolsVersion="10.0">
+  <Rules AnalyzerId="Utilities.Rest.Analyzers" RuleNamespace="Utilities.Rest.Analyzers">
+    <Rule Id="UTILSREST001" Action="Error" />
+  </Rules>
+</RuleSet>

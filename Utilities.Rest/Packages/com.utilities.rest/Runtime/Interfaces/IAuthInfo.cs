@@ -2,6 +2,9 @@
 
 namespace Utilities.WebRequestRest.Interfaces
 {
+    /// <summary>
+    /// Authentication info required by <see cref="IAuthentication{T}"/>.
+    /// </summary>
     public interface IAuthInfo
     {
     }

@@ -6,6 +6,12 @@ using UnityEngine;
 
 namespace Utilities.WebRequestRest.Interfaces
 {
+    /// <summary>
+    /// Base type for loading and providing authentication (e.g. from ScriptableObject, directory, or environment).
+    /// </summary>
+    /// <typeparam name="TAuthentication">Authentication type implementing <see cref="IAuthentication"/>.</typeparam>
+    /// <typeparam name="TAuthInfo">Auth info type implementing <see cref="IAuthInfo"/>.</typeparam>
+    /// <typeparam name="TConfiguration">Configuration type (ScriptableObject implementing <see cref="IConfiguration"/>).</typeparam>
     public abstract class AbstractAuthentication<TAuthentication, TAuthInfo, TConfiguration> : IAuthentication<TAuthInfo>
         where TAuthentication : IAuthentication
         where TAuthInfo : IAuthInfo

@@ -7,10 +7,27 @@ using Utilities.WebRequestRest.Interfaces;
 
 namespace Utilities.WebRequestRest
 {
+    /// <summary>
+    /// Base type for REST API clients with authentication and settings.
+    /// </summary>
+    /// <typeparam name="TAuthentication">Authentication type implementing <see cref="IAuthentication"/>.</typeparam>
+    /// <typeparam name="TSettings">Settings type implementing <see cref="ISettings"/>.</typeparam>
     public abstract class BaseClient<TAuthentication, TSettings> : IClient
         where TAuthentication : IAuthentication
         where TSettings : ISettings
     {
+        /// <summary>
+        /// Initializes the client with the supplied authentication and settings.
+        /// </summary>
+        /// <param name="authentication">Required <see cref="IAuthentication"/> instance.</param>
+        /// <param name="settings">Required <see cref="ISettings"/> instance.</param>
+        /// <remarks>
+        /// This constructor invokes the abstract members <see cref="ValidateAuthentication"/> and
+        /// <see cref="SetupDefaultRequestHeaders"/> before derived-class field/property initializers
+        /// have run. Implementations of those members must therefore be safe to call before any
+        /// derived-class state is set up (do not depend on derived fields/properties beyond
+        /// <see cref="Authentication"/> and <see cref="Settings"/>).
+        /// </remarks>
         protected BaseClient(TAuthentication authentication, TSettings settings)
         {
             Authentication = authentication;

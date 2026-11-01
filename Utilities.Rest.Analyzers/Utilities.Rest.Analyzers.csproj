@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Microsoft.CodeAnalysis.CSharp version is pinned at 3.8.0 below. This is the highest version
+    Unity 2021.3 LTS / 2022.3 LTS / 6000.x can load when the analyzer ships under Runtime/Analyzers/.
+    Bumping requires verifying Unity's bundled Roslyn version on every supported editor and
+    rebuilding the package's Runtime/Analyzers/ DLL set in Release.
+    CI: when bumping, also re-run TestFixture_02_CRUD and TestFixture_03_StreamingCallback in
+    each supported editor before merging.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Utilities.Rest.Analyzers</AssemblyName>
+    <RootNamespace>Utilities.Rest.Analyzers</RootNamespace>
+    <NoWarn>$(NoWarn);CS8618;CS8602;CS8603;CS8604;RS2008</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <OutputPath>..\Utilities.Rest\Packages\com.utilities.rest\Runtime\Analyzers\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- Remove culture satellite DLLs so Unity does not see duplicate assembly names (e.g. Microsoft.CodeAnalysis.CSharp.resources.dll in fr/, de/, etc.) -->
+  <Target Name="RemoveSatelliteAssemblies" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+    <RemoveDir Directories="$(OutputPath)\de;$(OutputPath)\cs;$(OutputPath)\es;$(OutputPath)\fr;$(OutputPath)\it;$(OutputPath)\ja;$(OutputPath)\ko;$(OutputPath)\pl;$(OutputPath)\pt-BR;$(OutputPath)\ru;$(OutputPath)\tr;$(OutputPath)\zh-Hans;$(OutputPath)\zh-Hant" />
+  </Target>
+  <!-- Remove build artifacts that should not ship with the package: PDB, .deps.json, and System.Memory.dll
+       (Unity already provides System.Memory at runtime; bundling it would duplicate the assembly). -->
+  <Target Name="RemoveAnalyzerArtifacts" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+    <Delete Files="$(OutputPath)Utilities.Rest.Analyzers.deps.json;$(OutputPath)Utilities.Rest.Analyzers.pdb;$(OutputPath)System.Memory.dll" />
+  </Target>
+</Project>

@@ -2,6 +2,9 @@
 
 namespace Utilities.WebRequestRest.Interfaces
 {
+    /// <summary>
+    /// Settings info exposed by <see cref="ISettings{TSettingsInfo}"/>.
+    /// </summary>
     public interface ISettingsInfo
     {
     }

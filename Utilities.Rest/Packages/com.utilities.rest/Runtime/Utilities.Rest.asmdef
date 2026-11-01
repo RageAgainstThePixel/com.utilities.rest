@@ -3,11 +3,12 @@
     "rootNamespace": "Utilities.WebRequestRest",
     "references": [
         "GUID:a6609af893242c7438d701ddd4cce46a",
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
         "GUID:84651a3751eca9349aac36a66bba901b"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

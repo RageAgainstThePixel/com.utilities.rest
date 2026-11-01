@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT License. See LICENSE in the project root for license information.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -137,6 +137,15 @@ namespace Utilities.WebRequestRest
         /// </summary>
         public bool DisposeUploadHandler { get; }
 
+        /// <summary>
+        /// Backing list of server-sent events accumulated while a request is in flight.
+        /// </summary>
+        /// <remarks>
+        /// This list is the one mutable surface of an otherwise <see langword="readonly"/> struct:
+        /// <see cref="Rest.SendAsync(UnityEngine.Networking.UnityWebRequest, RestParameters?, System.Threading.CancellationToken)"/>
+        /// appends each parsed event during streaming. Cancellation leaves whatever events were
+        /// observed up to that point (i.e. partial state, by design).
+        /// </remarks>
         internal readonly List<ServerSentEvent> ServerSentEvents;
 
         /// <summary>
