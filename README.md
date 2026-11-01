@@ -8,6 +8,8 @@ A Utilities.Rest package for the [Unity](https://unity.com/) Game Engine.
 
 Requires Unity 2021.3 LTS or higher.
 
+Pull requests test the current Unity streams, and a monthly run covers the older lines.
+
 The recommended installation method is through the Unity Package Manager and [OpenUPM](https://openupm.com/packages/com.utilities.rest).
 
 ### Via Unity Package Manager and OpenUPM
